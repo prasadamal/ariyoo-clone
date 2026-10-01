@@ -8,36 +8,37 @@ datasource db {
 }
 
 model User {
-  id           Int       @id @default(autoincrement())
-  email        String    @unique
-  passwordHash String
-  fullName     String
-  userName     String?   @unique
-  isSeeker     Boolean   @default(true)
-  isSolver     Boolean   @default(false)
-  createdAt    DateTime  @default(now())
-  tags         UserTag[]
-  places       UserPlace[]
-  placeTags    UserPlaceTag[]
-  seekerSessions Session[] @relation("SeekerSessions")
-  solverSessions Session[] @relation("SolverSessions")
+  id             Int            @id @default(autoincrement())
+  email          String         @unique
+  passwordHash   String
+  fullName       String
+  userName       String?        @unique
+  isSeeker       Boolean        @default(true)
+  isSolver       Boolean        @default(false)
+  createdAt      DateTime       @default(now())
+  tags           UserTag[]
+  places         UserPlace[]
+  placeTags      UserPlaceTag[]
+  seekerSessions Session[]      @relation("SeekerSessions")
+  solverSessions Session[]      @relation("SolverSessions")
+  messages       Message[]
 }
 
 model Tag {
-  id    Int     @id @default(autoincrement())
-  name  String  @unique
+  id    Int       @id @default(autoincrement())
+  name  String    @unique
   users UserTag[]
 }
 
 model Place {
-  id    Int     @id @default(autoincrement())
-  name  String  @unique
+  id    Int         @id @default(autoincrement())
+  name  String      @unique
   users UserPlace[]
 }
 
 model PlaceTag {
-  id    Int     @id @default(autoincrement())
-  name  String  @unique
+  id    Int            @id @default(autoincrement())
+  name  String         @unique
   users UserPlaceTag[]
 }
 
@@ -46,6 +47,7 @@ model UserTag {
   tagId  Int
   user   User @relation(fields: [userId], references: [id])
   tag    Tag  @relation(fields: [tagId], references: [id])
+
   @@id([userId, tagId])
 }
 
@@ -55,6 +57,7 @@ model UserPlace {
   placeId Int
   user    User  @relation(fields: [userId], references: [id])
   place   Place @relation(fields: [placeId], references: [id])
+
   @@unique([userId, placeId])
 }
 
@@ -64,34 +67,41 @@ model UserPlaceTag {
   placeTagId Int
   user       User     @relation(fields: [userId], references: [id])
   placeTag   PlaceTag @relation(fields: [placeTagId], references: [id])
+
   @@unique([userId, placeTagId])
 }
 
 model Session {
-  id        Int      @id @default(autoincrement())
+  id        Int       @id @default(autoincrement())
   seekerId  Int
   solverId  Int
   title     String
-  active    Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  seeker    User     @relation("SeekerSessions", fields: [seekerId], references: [id])
-  solver    User     @relation("SolverSessions", fields: [solverId], references: [id])
+  active    Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  seeker    User      @relation("SeekerSessions", fields: [seekerId], references: [id])
+  solver    User      @relation("SolverSessions", fields: [solverId], references: [id])
   messages  Message[]
+
+  @@index([seekerId])
+  @@index([solverId])
 }
 
 model Message {
-  id         Int      @id @default(autoincrement())
-  sessionId  Int
-  senderId   Int
+  id          Int      @id @default(autoincrement())
+  sessionId   Int
+  senderId    Int
   messageText String?
-  imageUrl   String?
-  createdAt  DateTime @default(now())
-  session    Session  @relation(fields: [sessionId], references: [id])
+  imageUrl    String?
+  createdAt   DateTime @default(now())
+  session     Session  @relation(fields: [sessionId], references: [id])
+  sender      User     @relation(fields: [senderId], references: [id])
+
+  @@index([sessionId, createdAt])
 }
 
 model Newsletter {
-  id    Int    @id @default(autoincrement())
-  email String @unique
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
   createdAt DateTime @default(now())
 }
