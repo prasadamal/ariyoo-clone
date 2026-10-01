@@ -1,32 +1,26 @@
-import express from 'express';
 import http from 'http';
-import cors from 'cors';
-import helmet from 'helmet';
-import path from 'path';
-import { Server } from 'socket.io';
-import { config } from './config';
-import { registerRoutes } from './routes';
+import { loadConfig } from './config';
+import { prisma } from './prisma';
+import { createApp } from './app';
+import { attachRealtime } from './realtime';
 
-const app = express();
-const server = http.createServer(app);
-const io = new Server(server, { cors: { origin: '*' } });
-
-app.use(cors());
-app.use(helmet());
-app.use(express.json({ limit: '5mb' }));
-app.use('/uploads', express.static(path.join(process.cwd(), config.uploadDir)));
-
-registerRoutes(app);
-
-io.on('connection', socket => {
-  socket.on('join', (sessionId: string) => {
-    socket.join(`session-${sessionId}`);
-  });
-  socket.on('message', (payload) => {
-    io.to(`session-${payload.sessionId}`).emit('message', payload);
-  });
-});
+const config = loadConfig();
+const server = http.createServer();
+const realtime = attachRealtime(server, prisma, config);
+server.on('request', createApp({ db: prisma, config, publish: realtime.publish }));
 
 server.listen(config.port, () => {
-  console.log(`API listening on http://localhost:${config.port}`);
+  console.log(`API listening on :${config.port} (${config.env})`);
 });
+
+function shutdown(signal: string) {
+  console.log(`${signal} received, shutting down`);
+  realtime.io?.close();
+  server.close(async () => {
+    await prisma.$disconnect();
+    process.exit(0);
+  });
+  setTimeout(() => process.exit(1), 10_000).unref();
+}
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT', () => shutdown('SIGINT'));

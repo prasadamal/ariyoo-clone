@@ -1,11 +1,14 @@
 import { Router } from 'express';
-import { prisma } from '../prisma';
+import { Db } from '../prisma';
+import { validate, wrap } from '../lib/http';
+import { newsletterBody } from '../lib/schemas';
 
-export const newsletterRouter = Router();
-
-newsletterRouter.post('/', async (req, res) => {
-  const { email } = req.body;
-  if (!email) return res.status(400).json({ message: 'email required' });
-  await prisma.newsletter.create({ data: { email } }).catch(() => {});
-  res.json({ message: 'ok' });
-});
+export function newsletterRouter(db: Db) {
+  const r = Router();
+  // Idempotent and always answers "ok" so the endpoint cannot be used to enumerate subscribers.
+  r.post('/', validate({ body: newsletterBody }), wrap(async (req, res) => {
+    await db.newsletter.upsert({ where: { email: req.body.email }, update: {}, create: { email: req.body.email } });
+    res.json({ message: 'ok' });
+  }));
+  return r;
+}
