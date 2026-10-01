@@ -1,0 +1,185 @@
+body, html {
+  margin: 0;
+  padding: 0;
+  font-family: 'Arial', sans-serif;
+  background-color: #f0f2f5; /* Slightly different background for Guru */
+  color: #333;
+}
+
+.guru-home-page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.guru-header {
+  background-color: #28a745; /* Green theme for Guru */
+  color: white;
+  padding: 15px 30px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.guru-header .logo-area {
+  font-size: 1.8em;
+  font-weight: bold;
+}
+
+.profile-settings-link-guru a {
+  color: white;
+  text-decoration: none;
+  font-size: 0.9em;
+}
+
+.profile-settings-link-guru a:hover {
+  text-decoration: underline;
+}
+
+.main-content-guru {
+  flex-grow: 1;
+  padding: 25px 30px;
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+}
+
+.incoming-questions-section {
+  background-color: #fff;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+
+.incoming-questions-section h3 {
+  margin-top: 0;
+  margin-bottom: 20px;
+  color: #333;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 10px;
+}
+
+.question-list-guru .question-item-guru {
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  padding: 15px;
+  margin-bottom: 15px;
+  background-color: #f9f9f9;
+}
+.question-list-guru .question-item-guru:last-child {
+  margin-bottom: 0;
+}
+
+.question-item-guru h4 {
+  margin-top: 0;
+  margin-bottom: 8px;
+  color: #0056b3; /* Differentiating question title */
+}
+
+.question-details-guru {
+  font-size: 0.9em;
+  color: #555;
+  margin-bottom: 15px;
+}
+
+.question-actions-guru button {
+  padding: 8px 15px;
+  margin-right: 10px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: opacity 0.3s;
+}
+.question-actions-guru button:hover {
+  opacity: 0.8;
+}
+
+.btn-accept-guru {
+  background-color: #28a745; /* Green */
+  color: white;
+}
+
+.btn-decline-guru {
+  background-color: #dc3545; /* Red */
+  color: white;
+}
+
+.live-chat-placeholder-guru,
+.guru-leaderboard-placeholder {
+  background-color: #fff;
+  padding: 30px;
+  border-radius: 8px;
+  text-align: center;
+  color: #777;
+  border: 2px dashed #ccc;
+  min-height: 120px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+
+.live-chat-placeholder-guru h3,
+.guru-leaderboard-placeholder h3 {
+  color: #555;
+  margin-bottom: 10px;
+}
+
+
+.guru-dashboard-leaderboard {
+  display: grid;
+  grid-template-columns: 1fr; /* Default for smaller screens */
+  gap: 25px;
+}
+
+@media (min-width: 768px) {
+  .guru-dashboard-leaderboard {
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); /* Responsive columns */
+  }
+}
+
+.ratings-earnings-dashboard-guru {
+  background-color: #fff;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+
+.ratings-earnings-dashboard-guru h3 {
+  margin-top: 0;
+  margin-bottom: 20px;
+  color: #333;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 10px;
+}
+
+.dashboard-item-guru {
+  padding: 10px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+.dashboard-item-guru:last-child {
+  border-bottom: none;
+}
+.dashboard-item-guru p {
+  margin: 0;
+  font-size: 1em;
+  color: #444;
+}
+.value-guru {
+  font-weight: bold;
+  color: #28a745; /* Green for positive values */
+  float: right;
+}
+
+
+.guru-footer {
+  text-align: center;
+  padding: 20px;
+  background-color: #333;
+  color: #aaa;
+  font-size: 0.9em;
+  margin-top: auto;
+}

@@ -1,0 +1,51 @@
+/* General App styling (can be kept minimal if component-specific styles handle most things) */
+.App {
+  text-align: center; /* Basic centering for overall app, can be overridden */
+}
+
+/* Navigation Bar Styling */
+.main-nav {
+  background-color: #f0f0f0;
+  padding: 10px 0;
+  margin-bottom: 20px;
+  border-bottom: 1px solid #ddd;
+}
+
+.main-nav ul {
+  list-style-type: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap; /* Allow links to wrap on smaller screens */
+}
+
+.main-nav li {
+  margin: 5px 15px;
+}
+
+.main-nav a {
+  text-decoration: none;
+  color: #333;
+  font-weight: bold;
+  padding: 8px 12px;
+  border-radius: 4px;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.main-nav a:hover,
+.main-nav a.active { /* You might need NavLink for active class styling, or implement manually */
+  background-color: #007bff;
+  color: white;
+}
+
+/* Horizontal rule for visual separation */
+hr {
+  border: 0;
+  height: 1px;
+  background: #ddd;
+  margin-bottom: 20px;
+}
+
+/* Add some top margin to the page content if nav is fixed or very prominent */
+/* .page-content { margin-top: 60px; } */
