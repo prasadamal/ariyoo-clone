@@ -1,25 +1,20 @@
-import { Link, router } from 'expo-router';
-import { useEffect } from 'react';
-import { View } from 'react-native';
-import { Button, Text } from 'react-native-paper';
-import * as SecureStore from 'expo-secure-store';
+import { Redirect } from 'expo-router';
+import { ActivityIndicator, View } from 'react-native';
+import { Text } from 'react-native-paper';
+import { useAuth } from '../src/context/AuthContext';
 
 export default function Index() {
-  useEffect(() => {
-    SecureStore.getItemAsync('token').then(t => {
-      if (t) router.replace('/home');
-    });
-  }, []);
+  const { user, loading } = useAuth();
 
-  return (
-    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 16 }}>
-      <Text variant="headlineMedium" style={{ marginBottom: 16 }}>Ariyoo</Text>
-      <Link href="/login" asChild>
-        <Button mode="contained" style={{ marginBottom: 8 }}>Login</Button>
-      </Link>
-      <Link href="/register" asChild>
-        <Button mode="outlined">Register</Button>
-      </Link>
-    </View>
-  );
+  if (loading) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#0f172a' }}>
+        <ActivityIndicator size="large" color="#38bdf8" />
+        <Text style={{ marginTop: 12, color: '#94a3b8' }}>Loading Ariyoo…</Text>
+      </View>
+    );
+  }
+
+  if (user) return <Redirect href="/(tabs)/home" />;
+  return <Redirect href="/login" />;
 }
