@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { ScrollView, View } from 'react-native';
 import { Button, Switch, Text, TextInput } from 'react-native-paper';
-import * as SecureStore from 'expo-secure-store';
 import { api } from '../../src/api/client';
+import { setItem } from '../../src/storage';
 import { useAuth } from '../../src/context/AuthContext';
 import { getApiBaseUrl } from '../../src/config';
 
@@ -30,7 +30,7 @@ export default function ProfileTab() {
         isSolver,
       });
       const updated = { ...user, userName, isSolver };
-      await SecureStore.setItemAsync('user', JSON.stringify(updated));
+      await setItem('user', JSON.stringify(updated));
       await refreshUser();
     } finally {
       setSaving(false);

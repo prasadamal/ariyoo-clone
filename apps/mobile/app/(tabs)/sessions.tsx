@@ -15,13 +15,15 @@ export default function SessionsTab() {
 
   const load = useCallback(async () => {
     if (!user) return;
-    const mode = user.isSolver ? 'solver' : 'seeker';
-    const url =
-      mode === 'seeker'
-        ? `/api/Message/getallsessionsseeker/${user.userId}`
-        : `/api/Message/getallsessionssolver/${user.userId}`;
-    const res = await api.get<SessionRow[]>(url);
-    setSessions(res.data);
+    const [seeker, solver] = await Promise.all([
+      api.get<SessionRow[]>(`/api/Message/getallsessionsseeker/${user.userId}`),
+      user.isSolver
+        ? api.get<SessionRow[]>(`/api/Message/getallsessionssolver/${user.userId}`)
+        : Promise.resolve({ data: [] as SessionRow[] }),
+    ]);
+    const merged = [...seeker.data, ...solver.data];
+    const unique = merged.filter((row, index) => merged.findIndex(other => other.sessionId === row.sessionId) === index);
+    setSessions(unique);
   }, [user]);
 
   useFocusEffect(

@@ -12,6 +12,7 @@ export default function HomeTab() {
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     api.get('/api/Tags/getAll').then(res => {
@@ -42,15 +43,20 @@ export default function HomeTab() {
   const ask = async () => {
     if (!user) return;
     setLoading(true);
+    setError('');
     try {
       const res = await api.post('/api/Message/postQuestion', {
-        seekerId: user.userId,
         message,
         tag: selectedTags.map(t => ({ tagName: t })),
       });
       router.push({ pathname: '/chat/[sessionId]', params: { sessionId: String(res.data.sessionId) } });
       setMessage('');
       setSelectedTags([]);
+    } catch (e: unknown) {
+      const messageText =
+        (e as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+        'Could not send your question. Check that the API is reachable.';
+      setError(messageText);
     } finally {
       setLoading(false);
     }
@@ -85,6 +91,7 @@ export default function HomeTab() {
           <Chip key={t} onClose={() => setSelectedTags(selectedTags.filter(x => x !== t))}>#{t}</Chip>
         ))}
       </View>
+      {error ? <Text style={{ color: '#f87171', marginBottom: 12 }}>{error}</Text> : null}
       <Button mode="contained" onPress={ask} loading={loading} disabled={!message.trim()}>
         Send to experts
       </Button>

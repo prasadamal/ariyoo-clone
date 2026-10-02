@@ -28,15 +28,13 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
         'Ariyoo uses the camera so you can share photos in expert chat sessions.',
       NSPhotoLibraryUsageDescription:
         'Ariyoo accesses your photo library so you can attach images to questions and replies.',
-      NSMicrophoneUsageDescription:
-        'Ariyoo may use the microphone for future voice messages in chat.',
       ITSAppUsesNonExemptEncryption: false,
     },
   },
   android: {
     package: BUNDLE_ID,
     versionCode: 1,
-    permissions: ['INTERNET', 'CAMERA', 'READ_MEDIA_IMAGES', 'READ_EXTERNAL_STORAGE'],
+    permissions: ['INTERNET', 'CAMERA', 'READ_MEDIA_IMAGES'],
     adaptiveIcon: {
       foregroundImage: './assets/adaptive-icon.png',
       backgroundColor: '#0f172a',
@@ -64,6 +62,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
           minSdkVersion: 24,
           targetSdkVersion: 34,
           compileSdkVersion: 34,
+          usesCleartextTraffic: process.env.EAS_BUILD_PROFILE !== 'production',
         },
         ios: {
           deploymentTarget: '13.4',

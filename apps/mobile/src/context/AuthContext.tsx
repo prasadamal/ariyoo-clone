@@ -1,7 +1,7 @@
 import { router } from 'expo-router';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import * as SecureStore from 'expo-secure-store';
 import { AuthUser, login as apiLogin, register as apiRegister } from '../api/client';
+import { deleteItem, getItem, setItem } from '../storage';
 
 type AuthContextValue = {
   user: AuthUser | null;
@@ -21,8 +21,8 @@ type AuthContextValue = {
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 async function persistSession(user: AuthUser) {
-  await SecureStore.setItemAsync('token', user.token);
-  await SecureStore.setItemAsync('user', JSON.stringify(user));
+  await setItem('token', user.token);
+  await setItem('user', JSON.stringify(user));
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -30,7 +30,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   const refreshUser = useCallback(async () => {
-    const raw = await SecureStore.getItemAsync('user');
+    const raw = await getItem('user');
     if (!raw) {
       setUser(null);
       return;
@@ -66,8 +66,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 
   const signOut = useCallback(async () => {
-    await SecureStore.deleteItemAsync('token');
-    await SecureStore.deleteItemAsync('user');
+    await deleteItem('token');
+    await deleteItem('user');
     setUser(null);
     router.replace('/login');
   }, []);
