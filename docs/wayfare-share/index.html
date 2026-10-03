@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Shared Wayfare journey</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 40rem; margin: 0 auto; padding: 1.5rem; line-height: 1.5; color: #1c1917; background: #fafaf9; }
+    .entry { background: #fff; border-radius: 8px; padding: 12px 16px; margin-bottom: 12px; border-left: 3px solid #0f766e; }
+    time { font-size: 12px; color: #78716c; }
+    .place { color: #0f766e; font-weight: 600; }
+    #err { color: #b91c1c; }
+  </style>
+</head>
+<body>
+  <h1 id="title">Wayfare journey</h1>
+  <p id="sub"></p>
+  <p id="err"></p>
+  <div id="entries"></div>
+  <p><small>Open in the Wayfare app for photos, maps, and voice notes.</small></p>
+  <script>
+    // Replace with your Supabase project values (same as EXPO_PUBLIC_* in the app).
+    const SUPABASE_URL = 'https://YOUR_PROJECT.supabase.co';
+    const SUPABASE_ANON_KEY = 'YOUR_ANON_KEY';
+
+    const params = new URLSearchParams(location.search);
+    const shareId = params.get('id');
+    const err = document.getElementById('err');
+    const title = document.getElementById('title');
+    const sub = document.getElementById('sub');
+    const entries = document.getElementById('entries');
+
+    if (!shareId) {
+      err.textContent = 'Missing share id in URL (?id=...)';
+    } else if (SUPABASE_URL.includes('YOUR_PROJECT')) {
+      err.textContent = 'Configure SUPABASE_URL and SUPABASE_ANON_KEY in this HTML file (see supabase/README.md).';
+    } else {
+      fetch(SUPABASE_URL + '/rest/v1/rpc/get_shared_trip', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          apikey: SUPABASE_ANON_KEY,
+          Authorization: 'Bearer ' + SUPABASE_ANON_KEY,
+        },
+        body: JSON.stringify({ p_share_id: shareId }),
+      })
+        .then(r => r.json())
+        .then(data => {
+          if (!data || !data.trip) {
+            err.textContent = 'Trip not found or sharing disabled.';
+            return;
+          }
+          const t = data.trip;
+          title.textContent = t.title;
+          sub.textContent = [t.destination, t.trip_type, t.starts_on, t.ends_on].filter(Boolean).join(' · ');
+          (data.entries || []).forEach(e => {
+            const div = document.createElement('div');
+            div.className = 'entry';
+            div.innerHTML =
+              '<time>' + new Date(e.recorded_at).toLocaleString() + '</time>' +
+              (e.place_name ? '<div class="place">' + e.place_name + '</div>' : '') +
+              '<p>' + (e.body || '') + '</p>' +
+              (e.mood ? '<div>' + e.mood + '</div>' : '') +
+              (e.weather ? '<div><small>' + e.weather + '</small></div>' : '');
+            entries.appendChild(div);
+          });
+        })
+        .catch(() => { err.textContent = 'Could not load trip.'; });
+    }
+  </script>
+</body>
+</html>
