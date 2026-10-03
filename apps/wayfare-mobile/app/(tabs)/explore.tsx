@@ -1,25 +1,41 @@
-import { ScrollView, View } from 'react-native';
-import { Card, Text } from 'react-native-paper';
+import { router } from 'expo-router';
+import { ScrollView } from 'react-native';
+import { Button, Card, Chip, Text } from 'react-native-paper';
 import { TREK_GUIDES } from '../../src/content/treks';
 
 export default function ExploreTab() {
   return (
-    <ScrollView contentContainerStyle={{ padding: 16 }}>
-      <Text variant="headlineSmall" style={{ marginBottom: 8 }}>Trek guides (India)</Text>
+    <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 32 }}>
+      <Text variant="headlineSmall" style={{ marginBottom: 4 }}>Explore India</Text>
       <Text style={{ color: '#57534e', marginBottom: 16 }}>
-        Utility slice for Himalayan beachhead — permits, seasons, connectivity, and transport.
+        Curated Himalayan treks with permits, seasons, and connectivity—start a journal in one tap.
       </Text>
       {TREK_GUIDES.map(trek => (
-        <Card key={trek.id} style={{ marginBottom: 12 }}>
+        <Card key={trek.id} style={{ marginBottom: 14, backgroundColor: '#fff' }}>
           <Card.Title title={trek.name} subtitle={`${trek.region} · ${trek.difficulty}`} />
           <Card.Content>
-            <Text>Best season: {trek.bestSeason}</Text>
-            <Text style={{ marginTop: 6 }}>Permits: {trek.permits}</Text>
-            <Text style={{ marginTop: 6 }}>Acclimatisation: {trek.acclimatisation}</Text>
-            <Text style={{ marginTop: 6, fontWeight: '600' }}>Connectivity</Text>
-            <Text>{trek.connectivity}</Text>
-            <Text style={{ marginTop: 6, fontWeight: '600' }}>Transport</Text>
-            <Text>{trek.transport}</Text>
+            <Chip icon="weather-sunny" style={{ alignSelf: 'flex-start', marginBottom: 8 }} compact>
+              {trek.bestSeason}
+            </Chip>
+            <Text variant="bodyMedium" style={{ fontWeight: '600' }}>Permits</Text>
+            <Text style={{ marginBottom: 8 }}>{trek.permits}</Text>
+            <Text variant="bodyMedium" style={{ fontWeight: '600' }}>Acclimatisation</Text>
+            <Text style={{ marginBottom: 8 }}>{trek.acclimatisation}</Text>
+            <Text variant="bodyMedium" style={{ fontWeight: '600' }}>Connectivity</Text>
+            <Text style={{ marginBottom: 8 }}>{trek.connectivity}</Text>
+            <Text variant="bodyMedium" style={{ fontWeight: '600' }}>Transport</Text>
+            <Text style={{ marginBottom: 12 }}>{trek.transport}</Text>
+            <Button
+              mode="contained"
+              onPress={() =>
+                router.push({
+                  pathname: '/trip/new',
+                  params: { trekId: trek.id, title: trek.name, destination: trek.region, tripType: 'trek' },
+                })
+              }
+            >
+              Start {trek.name} journal
+            </Button>
           </Card.Content>
         </Card>
       ))}

@@ -44,7 +44,33 @@ export const TREK_GUIDES: TrekGuide[] = [
     connectivity: 'Works until McLeod Ganj; limited on ridge.',
     transport: 'Dharamshala → McLeod Ganj → trek start.',
   },
+  {
+    id: 'valley-of-flowers',
+    name: 'Valley of Flowers',
+    region: 'Uttarakhand',
+    difficulty: 'Moderate',
+    bestSeason: 'Jul–Sep (blooms)',
+    permits: 'UNESCO zone fees; stay in Ghangaria.',
+    acclimatisation: 'Gradual ascent from Govindghat; watch for rain.',
+    connectivity: 'No trail signal; satellite SOS recommended.',
+    transport: 'Haridwar/Rishikesh → Joshimath → Govindghat.',
+  },
+  {
+    id: 'chadar',
+    name: 'Chadar Trek',
+    region: 'Ladakh',
+    difficulty: 'Challenging',
+    bestSeason: 'Jan–Feb (frozen river)',
+    permits: 'IMF/medical clearance; local guide mandatory.',
+    acclimatisation: 'Leh acclimatisation 2–3 days minimum.',
+    connectivity: 'None on river; emergency protocols only.',
+    transport: 'Fly to Leh; operator handles Zanskar roadhead.',
+  },
 ];
+
+export function getTrekById(id: string) {
+  return TREK_GUIDES.find(t => t.id === id);
+}
 
 export const PACKING_TEMPLATES: Record<string, string[]> = {
   trek: [

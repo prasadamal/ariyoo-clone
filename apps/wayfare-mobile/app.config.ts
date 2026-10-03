@@ -6,7 +6,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
   name: 'Wayfare',
   slug: 'wayfare',
-  version: '1.0.0',
+  version: '1.1.0',
   orientation: 'portrait',
   scheme: 'wayfare',
   userInterfaceStyle: 'automatic',
@@ -18,7 +18,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   },
   ios: {
     bundleIdentifier: BUNDLE_ID,
-    buildNumber: '1',
+    buildNumber: '2',
     supportsTablet: true,
     config: { usesNonExemptEncryption: false },
     infoPlist: {
@@ -33,7 +33,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   },
   android: {
     package: BUNDLE_ID,
-    versionCode: 1,
+    versionCode: 2,
     permissions: [
       'INTERNET',
       'ACCESS_COARSE_LOCATION',

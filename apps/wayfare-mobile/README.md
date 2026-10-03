@@ -2,23 +2,23 @@
 
 **Your journey, journaled. Your people, found.** — Phase 1 MVP inside the ariyoo monorepo (separate product).
 
-## What ships in this MVP
+## What ships (v1.1 — Play Store ready)
 
-- Offline-first trip journal (SQLite on device)
-- Trip wizard, timeline entries, mood & place tags
-- **Journal photos** (local + Supabase Storage when synced)
-- Budget log (INR) and packing checklists by trip type
-- GPS route recording (foreground/background task) + **GeoJSON export**
-- Trek utility cards (Himalayan beachhead content)
-- **Full cloud sync** (trips, entries, expenses, packing, track points, media) via Profile → Sync now
-- Supabase auth (when configured)
-- Production bundle id: `com.wayfare.app`
+- **Onboarding** + polished journeys home with trip stats synopsis
+- Offline-first journal (SQLite) with **mood chips**, place tags, **live weather** (Open-Meteo)
+- **Photos** per entry + cloud sync (Supabase Storage)
+- Budget (INR categories) + packing progress
+- **Route map** (polyline), GPS recording, GeoJSON share
+- **PDF travel journal** export (share sheet)
+- **Explore** — 5 Himalayan trek guides → one-tap trip wizard
+- **Biometric app lock** (optional), auto-sync on foreground
+- Full cloud sync when Supabase is configured
+- Bundle id: `com.wayfare.app`
 
-## Not in this MVP (later phases)
+## Later phases
 
-- Place chat rooms, public feed, Year Wrapped
-- Server-side tier verification pipeline
-- Mapbox route playback, offline tiles, PDF travel books
+- Social feed, place chat, Year Wrapped
+- Server verification tiers, Mapbox offline tiles
 - Voice notes and on-device AI summaries
 
 ## Setup
