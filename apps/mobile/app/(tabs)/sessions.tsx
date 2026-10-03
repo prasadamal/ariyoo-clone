@@ -22,7 +22,9 @@ export default function SessionsTab() {
         : Promise.resolve({ data: [] as SessionRow[] }),
     ]);
     const merged = [...seeker.data, ...solver.data];
-    const unique = merged.filter((row, index) => merged.findIndex(other => other.sessionId === row.sessionId) === index);
+    const unique = merged.filter(
+      (row, index) => merged.findIndex(other => other.sessionId === row.sessionId) === index
+    );
     setSessions(unique);
   }, [user]);
 

@@ -17,6 +17,6 @@ Committed `node_modules` and `rn-platform/server/.env` were stripped from histor
 | **Ariyoo** (expert Q&A) | `apps/mobile` | `com.ariyoo.mobile` |
 | **Wayfare** (travel journal + utility) | `apps/wayfare-mobile` | `com.wayfare.app` |
 
-Wayfare uses Supabase + offline SQLite; see `apps/wayfare-mobile/README.md` and `supabase/migrations/`.
+The Ariyoo Expo app is configured for production builds via EAS. See `apps/mobile/README.md` and `apps/mobile/store/SUBMISSION_CHECKLIST.md` for build and store submission steps.
 
-Ariyoo store docs: `apps/mobile/store/SUBMISSION_CHECKLIST.md`.
+Wayfare uses Supabase + offline SQLite; see `apps/wayfare-mobile/README.md` and `supabase/migrations/`.
