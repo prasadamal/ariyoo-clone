@@ -11,6 +11,7 @@ export type LocalTrip = {
   companions: string | null;
   status: string;
   notes: string | null;
+  share_id: string | null;
   sync_status: string;
   updated_at: string;
 };
@@ -88,8 +89,16 @@ export async function getDb() {
         updated_at TEXT NOT NULL
       );
     `);
+    await migrateTripsShareId(db);
   }
   return db;
+}
+
+async function migrateTripsShareId(database: SQLite.SQLiteDatabase) {
+  const cols = await database.getAllAsync<{ name: string }>('PRAGMA table_info(trips)');
+  if (!cols.some(c => c.name === 'share_id')) {
+    await database.execAsync('ALTER TABLE trips ADD COLUMN share_id TEXT');
+  }
 }
 
 export async function listTrips(): Promise<LocalTrip[]> {
@@ -105,13 +114,13 @@ export async function getTrip(id: string): Promise<LocalTrip | null> {
 export async function upsertTrip(trip: LocalTrip) {
   const database = await getDb();
   await database.runAsync(
-    `INSERT INTO trips (id, title, trip_type, destination, starts_on, ends_on, visibility, companions, status, notes, sync_status, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `INSERT INTO trips (id, title, trip_type, destination, starts_on, ends_on, visibility, companions, status, notes, share_id, sync_status, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
      ON CONFLICT(id) DO UPDATE SET
        title=excluded.title, trip_type=excluded.trip_type, destination=excluded.destination,
        starts_on=excluded.starts_on, ends_on=excluded.ends_on, visibility=excluded.visibility,
        companions=excluded.companions, status=excluded.status, notes=excluded.notes,
-       sync_status=excluded.sync_status, updated_at=excluded.updated_at`,
+       share_id=excluded.share_id, sync_status=excluded.sync_status, updated_at=excluded.updated_at`,
     [
       trip.id,
       trip.title,
@@ -123,6 +132,7 @@ export async function upsertTrip(trip: LocalTrip) {
       trip.companions,
       trip.status,
       trip.notes,
+      trip.share_id ?? null,
       trip.sync_status,
       trip.updated_at,
     ]

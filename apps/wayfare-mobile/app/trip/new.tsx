@@ -51,6 +51,7 @@ export default function NewTripScreen() {
       companions: companions.trim() || null,
       status: 'active',
       notes: notes.trim() || null,
+      share_id: null,
       sync_status: 'pending',
       updated_at: now,
     });

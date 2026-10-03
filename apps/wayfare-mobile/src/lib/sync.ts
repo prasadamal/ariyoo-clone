@@ -81,6 +81,7 @@ async function pushTrips(userId: string, result: SyncResult) {
       companions: trip.companions,
       status: trip.status,
       notes: trip.notes,
+      share_id: trip.share_id,
       updated_at: trip.updated_at,
     });
     if (error) {
@@ -244,6 +245,7 @@ async function pullTrips(userId: string, result: SyncResult) {
       companions: row.companions,
       status: row.status,
       notes: row.notes,
+      share_id: row.share_id ?? null,
       sync_status: 'synced',
       updated_at: remoteUpdated,
     };

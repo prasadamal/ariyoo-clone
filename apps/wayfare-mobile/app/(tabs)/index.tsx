@@ -7,11 +7,13 @@ import { listTrips, type LocalTrip } from '../../src/lib/localDb';
 import { computeTripStats, buildTripSynopsis } from '../../src/lib/tripStats';
 import { syncAll } from '../../src/lib/sync';
 import { useAuth } from '../../src/context/AuthContext';
+import { useWayfareTheme } from '../../src/context/ThemeContext';
 
 type TripRow = LocalTrip & { synopsis: string; packingRatio: number };
 
 export default function JournalTab() {
   const { user } = useAuth();
+  const { paperTheme } = useWayfareTheme();
   const [trips, setTrips] = useState<TripRow[]>([]);
   const [syncMsg, setSyncMsg] = useState('');
   const [refreshing, setRefreshing] = useState(false);
@@ -52,7 +54,7 @@ export default function JournalTab() {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#fafaf9' }}>
+    <View style={{ flex: 1, backgroundColor: paperTheme.colors.background }}>
       <View style={{ padding: 16, paddingBottom: 8 }}>
         <Text variant="headlineSmall">Your journeys</Text>
         <Text style={{ color: '#57534e', marginTop: 4 }}>Private by default. Yours forever.</Text>
@@ -65,7 +67,7 @@ export default function JournalTab() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#c2410c" />}
         contentContainerStyle={{ padding: 16, paddingBottom: 96 }}
         ListEmptyComponent={
-          <Card style={{ padding: 20, backgroundColor: '#fff' }}>
+          <Card style={{ padding: 20 }}>
             <Text variant="titleLarge">Start your first trip</Text>
             <Text style={{ marginTop: 10, color: '#57534e', lineHeight: 22 }}>
               Log journal entries offline, track budget and packing, record your route, and export a PDF travel log when you are done.
@@ -79,7 +81,7 @@ export default function JournalTab() {
           </Card>
         }
         renderItem={({ item }) => (
-          <Card style={{ marginBottom: 14, backgroundColor: '#fff' }} onPress={() => router.push(`/trip/${item.id}`)}>
+          <Card style={{ marginBottom: 14 }} onPress={() => router.push(`/trip/${item.id}`)}>
             <Card.Title
               title={item.title}
               subtitle={`${item.trip_type} · ${item.destination ?? 'Destination TBD'}`}

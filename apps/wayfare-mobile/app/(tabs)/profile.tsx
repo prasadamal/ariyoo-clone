@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Linking, ScrollView } from 'react-native';
-import { ActivityIndicator, Button, Card, Switch, Text } from 'react-native-paper';
+import { ActivityIndicator, Button, Card, SegmentedButtons, Switch, Text } from 'react-native-paper';
 import { isSupabaseConfigured } from '../../src/config';
 import { useAppLock } from '../../src/context/AppLockContext';
+import { useWayfareTheme, type ThemeMode } from '../../src/context/ThemeContext';
 import { useAuth } from '../../src/context/AuthContext';
 import { countPendingSync } from '../../src/lib/localDb';
 import { syncAll } from '../../src/lib/sync';
@@ -12,6 +13,7 @@ const PRIVACY_URL = 'https://prasadamal.github.io/ariyoo-clone/privacy/wayfare.h
 export default function ProfileTab() {
   const { user, profile, signOut, offlineMode } = useAuth();
   const { enabled: bioLock, setEnabled: setBioLock } = useAppLock();
+  const { mode: themeMode, setMode: setThemeMode, paperTheme } = useWayfareTheme();
   const [pending, setPending] = useState(0);
   const [syncing, setSyncing] = useState(false);
   const [lastSync, setLastSync] = useState<string | null>(null);
@@ -42,20 +44,33 @@ export default function ProfileTab() {
   };
 
   return (
-    <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 32 }}>
+    <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 32, backgroundColor: paperTheme.colors.background }}>
       <Text variant="headlineSmall">Profile</Text>
-      <Card style={{ marginTop: 16, padding: 12, backgroundColor: '#fff' }}>
+      <Card style={{ marginTop: 16, padding: 12 }}>
         <Text variant="titleMedium">{profile?.display_name ?? 'Traveler'}</Text>
         <Text style={{ marginTop: 4, color: '#57534e' }}>Tier: {profile?.tier ?? 'traveler'}</Text>
         {user?.email ? <Text style={{ marginTop: 8 }}>{user.email}</Text> : null}
         {offlineMode ? <Text style={{ marginTop: 8, color: '#78716c' }}>Offline journal mode</Text> : null}
       </Card>
-      <Card style={{ marginTop: 12, padding: 12, backgroundColor: '#fff' }}>
+      <Card style={{ marginTop: 12, padding: 12 }}>
+        <Text variant="titleSmall">Appearance</Text>
+        <SegmentedButtons
+          value={themeMode}
+          onValueChange={v => setThemeMode(v as ThemeMode)}
+          buttons={[
+            { value: 'system', label: 'Auto' },
+            { value: 'light', label: 'Light' },
+            { value: 'dark', label: 'Dark' },
+          ]}
+          style={{ marginTop: 8 }}
+        />
+      </Card>
+      <Card style={{ marginTop: 12, padding: 12 }}>
         <Text variant="titleSmall">Privacy vault</Text>
         <Text style={{ marginTop: 6, color: '#57534e' }}>Require biometrics when opening the app.</Text>
         <Switch value={bioLock} onValueChange={v => setBioLock(v)} style={{ marginTop: 8 }} />
       </Card>
-      <Card style={{ marginTop: 12, padding: 12, backgroundColor: '#fff' }}>
+      <Card style={{ marginTop: 12, padding: 12 }}>
         <Text variant="titleSmall">Cloud sync</Text>
         <Text style={{ marginTop: 6, color: '#57534e' }}>
           {isSupabaseConfigured
@@ -80,7 +95,7 @@ export default function ProfileTab() {
       {!offlineMode ? (
         <Button mode="outlined" style={{ marginTop: 8 }} onPress={signOut}>Sign out</Button>
       ) : null}
-      <Text style={{ marginTop: 24, color: '#a8a29e', fontSize: 12 }}>Wayfare 1.1.0 · com.wayfare.app</Text>
+      <Text style={{ marginTop: 24, color: '#a8a29e', fontSize: 12 }}>Wayfare 1.2.0 · com.wayfare.app</Text>
     </ScrollView>
   );
 }

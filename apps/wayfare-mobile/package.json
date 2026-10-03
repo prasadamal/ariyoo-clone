@@ -1,6 +1,6 @@
 {
   "name": "wayfare-mobile",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "private": true,
   "main": "expo-router/entry",
   "scripts": {
@@ -20,6 +20,7 @@
     "@react-native-async-storage/async-storage": "1.23.1",
     "@supabase/supabase-js": "^2.49.1",
     "expo": "^51.0.16",
+    "expo-av": "~14.0.7",
     "expo-build-properties": "~0.12.5",
     "expo-constants": "^16.0.2",
     "expo-file-system": "^17.0.1",

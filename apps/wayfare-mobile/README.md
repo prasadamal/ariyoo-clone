@@ -2,7 +2,7 @@
 
 **Your journey, journaled. Your people, found.** — Phase 1 MVP inside the ariyoo monorepo (separate product).
 
-## What ships (v1.1 — Play Store ready)
+## What ships (v1.2 — Play Store ready)
 
 - **Onboarding** + polished journeys home with trip stats synopsis
 - Offline-first journal (SQLite) with **mood chips**, place tags, **live weather** (Open-Meteo)
@@ -12,6 +12,10 @@
 - **PDF travel journal** export (share sheet)
 - **Explore** — 5 Himalayan trek guides → one-tap trip wizard
 - **Biometric app lock** (optional), auto-sync on foreground
+- **Dark mode** (system / light / dark in Profile)
+- **Voice notes** on journal entries (local + cloud sync as audio)
+- **Read-only share links** (web + `wayfare://share/…` deep link, Supabase RPC)
+- **Google Maps API key** support for Android map tiles (`EXPO_PUBLIC_GOOGLE_MAPS_API_KEY`)
 - Full cloud sync when Supabase is configured
 - Bundle id: `com.wayfare.app`
 
@@ -19,7 +23,7 @@
 
 - Social feed, place chat, Year Wrapped
 - Server verification tiers, Mapbox offline tiles
-- Voice notes and on-device AI summaries
+- On-device AI daily summaries
 
 ## Setup
 

@@ -10,6 +10,7 @@ Run in order:
 
 1. `migrations/20261003000000_wayfare_mvp.sql`
 2. `migrations/20261003120000_wayfare_media_storage.sql`
+3. `migrations/20261003180000_wayfare_share_links.sql`
 
 CLI example:
 

@@ -8,8 +8,10 @@ import { Button, Card, Chip, IconButton, Menu, SegmentedButtons, Text, TextInput
 import { useFocusEffect } from '@react-navigation/native';
 import { v4 as uuid } from 'uuid';
 import { EntryMediaStrip } from '../../src/components/EntryMediaStrip';
+import { EntryVoiceNotes } from '../../src/components/EntryVoiceNotes';
 import { MoodChips } from '../../src/components/MoodChips';
 import { RouteMap } from '../../src/components/RouteMap';
+import { useWayfareTheme } from '../../src/context/ThemeContext';
 import {
   countTrackPoints,
   deleteTrip,
@@ -32,6 +34,8 @@ import { buildTripGeoJson } from '../../src/lib/geoExport';
 import { exportTripJournalPdf } from '../../src/lib/tripPdf';
 import { computeTripStats, buildTripSynopsis } from '../../src/lib/tripStats';
 import { startTripTracking, stopTripTracking, getActiveTrackingTripId } from '../../src/lib/tracking';
+import { copyShareTrip } from '../../src/lib/shareTrip';
+import { startVoiceRecording, stopVoiceRecordingAndSave } from '../../src/lib/voiceNote';
 import { fetchWeatherSummary } from '../../src/lib/weather';
 
 type Tab = 'journal' | 'budget' | 'packing' | 'route';
@@ -57,6 +61,9 @@ export default function TripDetailScreen() {
   const [tracking, setTracking] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [useLocationWeather, setUseLocationWeather] = useState(true);
+  const [recordingVoice, setRecordingVoice] = useState(false);
+  const [voiceEntryId, setVoiceEntryId] = useState<string | null>(null);
+  const { paperTheme } = useWayfareTheme();
 
   const load = useCallback(async () => {
     const t = await getTrip(tripId);
@@ -151,6 +158,44 @@ export default function TripDetailScreen() {
     await exportTripJournalPdf(trip);
   };
 
+  const shareTripLink = async () => {
+    if (!trip) return;
+    await copyShareTrip(trip);
+    await load();
+  };
+
+  const toggleVoiceRecording = async () => {
+    try {
+      if (!recordingVoice) {
+        const now = new Date().toISOString();
+        const entryId = uuid();
+        await upsertEntry({
+          id: entryId,
+          trip_id: tripId,
+          recorded_at: now,
+          body: entryText.trim() || '🎙 Voice note',
+          mood: mood || null,
+          place_name: place || null,
+          weather: null,
+          sync_status: 'pending',
+          updated_at: now,
+        });
+        setVoiceEntryId(entryId);
+        await startVoiceRecording();
+        setRecordingVoice(true);
+      } else if (voiceEntryId) {
+        await stopVoiceRecordingAndSave(tripId, voiceEntryId);
+        setRecordingVoice(false);
+        setVoiceEntryId(null);
+        setEntryText('');
+        await load();
+      }
+    } catch (e) {
+      Alert.alert('Voice note', e instanceof Error ? e.message : 'Could not record');
+      setRecordingVoice(false);
+    }
+  };
+
   const markComplete = async () => {
     if (!trip) return;
     await upsertTrip({
@@ -226,7 +271,7 @@ export default function TripDetailScreen() {
   const packedCount = packing.filter(p => p.packed).length;
 
   return (
-    <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 48, backgroundColor: '#fafaf9' }}>
+    <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 48, backgroundColor: paperTheme.colors.background }}>
       <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
         <View style={{ flex: 1 }}>
           <Text variant="headlineSmall">{trip.title}</Text>
@@ -234,12 +279,13 @@ export default function TripDetailScreen() {
           {trip.status === 'completed' ? <Chip compact style={{ alignSelf: 'flex-start', marginTop: 8 }}>Completed</Chip> : null}
         </View>
         <Menu visible={menuOpen} onDismiss={() => setMenuOpen(false)} anchor={<IconButton icon="dots-vertical" onPress={() => setMenuOpen(true)} />}>
+          <Menu.Item onPress={() => { setMenuOpen(false); shareTripLink(); }} title="Share read-only link" />
           <Menu.Item onPress={() => { setMenuOpen(false); exportPdf(); }} title="Export PDF journal" />
           <Menu.Item onPress={() => { setMenuOpen(false); markComplete(); }} title="Mark trip complete" />
           <Menu.Item onPress={() => { setMenuOpen(false); confirmDelete(); }} title="Delete trip" />
         </Menu>
       </View>
-      <Card style={{ marginVertical: 12, backgroundColor: '#fff' }}>
+      <Card style={{ marginVertical: 12, backgroundColor: paperTheme.colors.surface }}>
         <Card.Content>
           <Text style={{ color: '#44403c' }}>{synopsis}</Text>
           {trip.notes ? <Text style={{ marginTop: 8, fontSize: 13, color: '#78716c' }}>{trip.notes}</Text> : null}
@@ -260,7 +306,7 @@ export default function TripDetailScreen() {
       {tab === 'journal' && (
         <View>
           {entries.map(e => (
-            <Card key={e.id} style={{ marginBottom: 12, backgroundColor: '#fff' }}>
+            <Card key={e.id} style={{ marginBottom: 12, backgroundColor: paperTheme.colors.surface }}>
               <Card.Content>
                 <Text variant="labelSmall">{new Date(e.recorded_at).toLocaleString()}</Text>
                 {e.place_name ? <Text style={{ color: '#0f766e', fontWeight: '600' }}>{e.place_name}</Text> : null}
@@ -268,6 +314,7 @@ export default function TripDetailScreen() {
                 {e.mood ? <Text style={{ marginTop: 6, color: '#57534e' }}>{e.mood}</Text> : null}
                 {e.weather ? <Text style={{ marginTop: 4, fontSize: 12, color: '#78716c' }}>☁ {e.weather}</Text> : null}
                 <EntryMediaStrip entryId={e.id} />
+                <EntryVoiceNotes entryId={e.id} />
                 <Button mode="text" compact onPress={() => attachPhotoToEntry(e.id)}>Add photo</Button>
               </Card.Content>
             </Card>
@@ -281,6 +328,14 @@ export default function TripDetailScreen() {
           </Chip>
           <Button mode="contained" onPress={addEntry}>Save entry</Button>
           <Button mode="outlined" style={{ marginTop: 8 }} onPress={addEntryWithPhoto}>Save + photo</Button>
+          <Button
+            mode={recordingVoice ? 'contained' : 'outlined'}
+            style={{ marginTop: 8 }}
+            icon="microphone"
+            onPress={toggleVoiceRecording}
+          >
+            {recordingVoice ? 'Stop & save voice note' : 'Record voice note'}
+          </Button>
         </View>
       )}
 
