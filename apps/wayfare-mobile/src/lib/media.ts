@@ -8,6 +8,7 @@ export function buildStoragePath(userId: string, tripId: string, mediaId: string
 }
 
 export function guessExt(uri: string, mimeType?: string | null) {
+  if (mimeType?.includes('audio') || mimeType?.includes('m4a')) return 'm4a';
   if (mimeType?.includes('png')) return 'png';
   if (mimeType?.includes('webp')) return 'webp';
   if (mimeType?.includes('heic')) return 'heic';

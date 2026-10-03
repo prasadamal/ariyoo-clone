@@ -32,14 +32,10 @@ https://github.com/prasadamal/ariyoo-clone
 https://github.com/prasadamal/ariyoo-clone
 
 ## Privacy Policy URL
-(Same HTTPS URL as Play Store — host `PRIVACY_POLICY.md` publicly.)
+https://prasadamal.github.io/ariyoo-clone/privacy/ariyoo.html
 
 ## App Review notes
-Demo account for Apple review:
-- Email: solver@example.com
-- Password: password
-
-Backend API must be reachable at production URL configured in EAS (`EXPO_PUBLIC_API_URL`).
+See `store/APP_REVIEW_NOTES.md` (demo accounts + reviewer steps).
 
 ## Export compliance
 Uses standard HTTPS only — `ITSAppUsesNonExemptEncryption` set to false in app config.

@@ -31,9 +31,9 @@ Everyone (questionnaire: user-generated chat content)
 support@ariyoo.app
 
 ## Privacy policy URL
-https://github.com/prasadamal/ariyoo-clone/blob/main/apps/mobile/store/PRIVACY_POLICY.md
+https://prasadamal.github.io/ariyoo-clone/privacy/ariyoo.html
 
-*(Host this policy on a public HTTPS URL before submission — e.g. GitHub Pages or your marketing site.)*
+*(Enable GitHub Pages → Actions once: see `docs/STORE_START_HERE.md`.)*
 
 ## Feature graphic
 Use `store/feature-graphic.png` (1024×500) after export.

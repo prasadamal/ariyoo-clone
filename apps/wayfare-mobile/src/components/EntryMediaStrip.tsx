@@ -8,7 +8,9 @@ export function EntryMediaStrip({ entryId }: { entryId: string }) {
   const [urls, setUrls] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    listEntryMedia(entryId).then(setItems);
+    listEntryMedia(entryId).then(all =>
+      setItems(all.filter(m => !(m.mime_type ?? '').startsWith('audio')))
+    );
   }, [entryId]);
 
   useEffect(() => {

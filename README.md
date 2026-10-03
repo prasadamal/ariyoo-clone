@@ -20,3 +20,5 @@ Committed `node_modules` and `rn-platform/server/.env` were stripped from histor
 The Ariyoo Expo app is configured for production builds via EAS. See `apps/mobile/README.md` and `apps/mobile/store/SUBMISSION_CHECKLIST.md` for build and store submission steps.
 
 Wayfare uses Supabase + offline SQLite; see `apps/wayfare-mobile/README.md` and `supabase/migrations/`.
+
+**Publishing both apps:** start at [`docs/STORE_START_HERE.md`](docs/STORE_START_HERE.md) (full checklist: [`docs/STORE_PUBLISHING_CHECKLIST.md`](docs/STORE_PUBLISHING_CHECKLIST.md)).

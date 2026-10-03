@@ -7,10 +7,12 @@
     },
     "preview": {
       "distribution": "internal",
-      "android": { "buildType": "apk" }
+      "android": { "buildType": "apk" },
+      "ios": { "simulator": false }
     },
     "production": {
       "autoIncrement": true,
+      "channel": "production",
       "env": {
         "EXPO_PUBLIC_SUPABASE_URL": "https://YOUR_PROJECT.supabase.co",
         "EXPO_PUBLIC_SUPABASE_ANON_KEY": "YOUR_ANON_KEY"

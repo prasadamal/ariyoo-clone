@@ -1,39 +1,72 @@
-# Wayfare — Play Store & App Store (no Mac required for builds)
+# Wayfare — Play Store & App Store checklist
 
-Wayfare is separate from Ariyoo (`com.wayfare.app`).
+Package / bundle: **`com.wayfare.app`** · App path: **`apps/wayfare-mobile`**
 
-## Costs (minimize)
+Full dual-app guide: **[`docs/STORE_PUBLISHING_CHECKLIST.md`](../../../docs/STORE_PUBLISHING_CHECKLIST.md)** · **Your next steps:** [`docs/STORE_START_HERE.md`](../../../docs/STORE_START_HERE.md).
 
-| Item | Cost | When |
-| --- | --- | --- |
-| Supabase | $0 free tier | Now |
-| Google Play | $25 once | Before Android public listing |
-| Apple Developer | $99/year | Only when you want TestFlight / App Store |
-| EAS | Free tier builds/month | MVP testing |
+### Repo-ready
 
-Build **iOS on Expo EAS** from Linux/Windows — no Mac needed for compiling.
+- [x] `eas.json`, listings, Play assets, privacy HTML, data safety + review notes
+- [x] Supabase migrations + `supabase/README.md`
 
-## Before submit
+## 1. Expo / EAS
 
-- [ ] Supabase project live with migration applied
-- [ ] Privacy policy hosted at public HTTPS URL
-- [ ] `eas init` + production env vars
-- [ ] Physical device QA: offline entry, sync, GPS recording, budget/packing
-- [ ] Screenshots from real app (Android phone; borrow iPhone for Apple sizes)
+```bash
+cd apps/wayfare-mobile
+npm ci
+npm i -g eas-cli
+eas login
+eas init
+```
 
-## Android
+- [ ] Real `extra.eas.projectId` in `app.config.ts`
+- [ ] Production secrets in EAS (not placeholders in `eas.json`):
+  - `EXPO_PUBLIC_SUPABASE_URL`
+  - `EXPO_PUBLIC_SUPABASE_ANON_KEY`
 
-1. `npm run build:android` → AAB
-2. Play Console → internal → closed test → production
-3. Data safety: location, photos, account — no sale of data
+```bash
+npm run typecheck
+npm run build:android
+npm run build:ios
+npm run submit:android   # after service account configured
+npm run submit:ios
+```
 
-## iOS (no Mac)
+## 2. Supabase (production)
 
-1. Apple Developer enrollment (browser)
-2. `npm run build:ios` on EAS
-3. `eas submit --platform ios`
-4. TestFlight → App Store review
+- [ ] Run migrations `20261003000000_wayfare_mvp.sql` then `20261003120000_wayfare_media_storage.sql`
+- [ ] Reviewer demo user + sample trip with photo synced
+- [ ] Email auth tested on physical device
 
-## Demo account for review
+## 3. Google Play
 
-Create a reviewer login on production Supabase with a sample trek trip synced.
+- [ ] App created with package `com.wayfare.app`
+- [ ] Listing: `store/play-store-listing.md`
+- [ ] Privacy policy HTTPS URL (draft: `store/PRIVACY_POLICY.md`)
+- [ ] Data safety: account, photos, location, user content
+- [ ] AAB from EAS production → Internal → Production
+- [ ] `store/google-play-service-account.json` for `eas submit` (gitignored; copy from Ariyoo `.example` pattern)
+
+## 4. Apple App Store (no Mac for compile)
+
+- [ ] Developer Program + App ID `com.wayfare.app`
+- [ ] App Store Connect app record
+- [ ] `eas.json` submit.ios: `appleId`, `ascAppId`, `appleTeamId`
+- [ ] Listing: `store/app-store-listing.md`
+- [ ] App Privacy labels (account, content, location)
+- [ ] TestFlight → App Review with demo credentials
+
+## 5. Device QA
+
+- [ ] Offline trip + journal + budget + packing
+- [ ] Sign in + Sync now (all entity types)
+- [ ] Photo attach + sync
+- [ ] GPS record + GeoJSON export
+
+## Costs
+
+| Item | Cost |
+| --- | --- |
+| Google Play | $25 once |
+| Apple Developer | $99/year |
+| Supabase / EAS | Free tier for MVP |

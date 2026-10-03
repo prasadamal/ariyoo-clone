@@ -1,4 +1,15 @@
-# App Store & Play Store submission checklist
+# App Store & Play Store submission checklist — Ariyoo
+
+Package / bundle: **`com.ariyoo.mobile`** · App path: **`apps/mobile`**
+
+Full dual-app guide: **[`docs/STORE_PUBLISHING_CHECKLIST.md`](../../../docs/STORE_PUBLISHING_CHECKLIST.md)** · **Your next steps:** [`docs/STORE_START_HERE.md`](../../../docs/STORE_START_HERE.md).
+
+### Repo-ready (no account needed)
+
+- [x] `eas.json`, `app.config.ts`, listing markdown, `play-icon-512.png`, `feature-graphic.png`
+- [x] `PRIVACY_POLICY.md` + hosted HTML (`docs/privacy/ariyoo.html`)
+- [x] `DATA_SAFETY_AND_PRIVACY.md`, `APP_REVIEW_NOTES.md`, `EAS_SECRETS.md`
+- [x] API `Dockerfile` + `DEPLOY_PRODUCTION.md`
 
 Complete these steps once before your first store upload.
 
