@@ -1,24 +1,28 @@
-/** Free weather snapshot via Open-Meteo (no API key). */
+/** Free weather snapshot via Open-Meteo (no API key, no identifiers sent). */
 export async function fetchWeatherSummary(latitude: number, longitude: number): Promise<string | null> {
+  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return null;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 6000);
   try {
     const url =
-      `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}` +
+      `https://api.open-meteo.com/v1/forecast?latitude=${latitude.toFixed(3)}&longitude=${longitude.toFixed(3)}` +
       '&current=temperature_2m,weather_code,wind_speed_10m&timezone=auto';
-    const res = await fetch(url);
+    const res = await fetch(url, { signal: controller.signal });
     if (!res.ok) return null;
     const data = await res.json();
     const t = data?.current?.temperature_2m;
-    const code = data?.current?.weather_code;
     const wind = data?.current?.wind_speed_10m;
-    const label = weatherCodeLabel(code);
+    const label = weatherCodeLabel(data?.current?.weather_code);
     if (t == null) return label;
     return `${label}, ${Math.round(t)}°C${wind != null ? `, wind ${Math.round(wind)} km/h` : ''}`;
   } catch {
     return null;
+  } finally {
+    clearTimeout(timer);
   }
 }
 
-function weatherCodeLabel(code: number | undefined) {
+export function weatherCodeLabel(code: number | undefined) {
   if (code == null) return 'Weather';
   if (code === 0) return 'Clear';
   if (code <= 3) return 'Partly cloudy';

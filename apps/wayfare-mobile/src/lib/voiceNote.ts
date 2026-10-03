@@ -1,38 +1,51 @@
-import { Audio } from 'expo-av';
-import { v4 as uuid } from 'uuid';
+import { RecordingPresets, requestRecordingPermissionsAsync, setAudioModeAsync, useAudioRecorder } from 'expo-audio';
+import { useCallback, useState } from 'react';
+import { newId } from './id';
+import { persistLocalFile } from './media';
 import { upsertEntryMedia } from './localDb';
 
-let activeRecording: Audio.Recording | null = null;
+export class MicPermissionError extends Error {}
 
-export async function startVoiceRecording() {
-  const perm = await Audio.requestPermissionsAsync();
-  if (!perm.granted) throw new Error('Microphone permission is required for voice notes.');
-  await Audio.setAudioModeAsync({ allowsRecordingIOS: true, playsInSilentModeIOS: true });
-  const recording = new Audio.Recording();
-  await recording.prepareToRecordAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY);
-  await recording.startAsync();
-  activeRecording = recording;
+/** Hook around expo-audio's recorder. `stop()` resolves with the recorded file, or null. */
+export function useVoiceNoteRecorder() {
+  const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
+  const [recording, setRecording] = useState(false);
+
+  const start = useCallback(async () => {
+    const perm = await requestRecordingPermissionsAsync();
+    if (!perm.granted) throw new MicPermissionError('Microphone permission is needed to record voice notes.');
+    await setAudioModeAsync({ allowsRecording: true, playsInSilentMode: true });
+    await recorder.prepareToRecordAsync();
+    recorder.record();
+    setRecording(true);
+  }, [recorder]);
+
+  const stop = useCallback(async (): Promise<string | null> => {
+    try {
+      await recorder.stop();
+      return recorder.uri;
+    } finally {
+      setRecording(false);
+      await setAudioModeAsync({ allowsRecording: false, playsInSilentMode: true }).catch(() => {});
+    }
+  }, [recorder]);
+
+  return { recording, start, stop };
 }
 
-export async function stopVoiceRecordingAndSave(tripId: string, entryId: string) {
-  if (!activeRecording) return;
-  await activeRecording.stopAndUnloadAsync();
-  const uri = activeRecording.getURI();
-  activeRecording = null;
-  if (!uri) return;
-  const now = new Date().toISOString();
+/** Copies a finished recording into durable storage and queues it for sync. */
+export async function saveVoiceNote(tripId: string, entryId: string, recordedUri: string) {
+  const { uri, size } = persistLocalFile(recordedUri, 'audio/mp4');
   await upsertEntryMedia({
-    id: uuid(),
+    id: newId(),
     trip_id: tripId,
     entry_id: entryId,
     local_uri: uri,
     storage_path: null,
-    mime_type: 'audio/m4a',
+    mime_type: 'audio/mp4',
+    kind: 'audio',
+    size_bytes: size,
     sync_status: 'pending',
-    updated_at: now,
+    updated_at: new Date().toISOString(),
   });
-}
-
-export function isRecordingVoice() {
-  return activeRecording != null;
 }

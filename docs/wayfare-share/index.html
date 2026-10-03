@@ -3,69 +3,70 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex, nofollow" />
+  <meta name="referrer" content="no-referrer" />
   <title>Shared Wayfare journey</title>
   <style>
-    body { font-family: system-ui, sans-serif; max-width: 40rem; margin: 0 auto; padding: 1.5rem; line-height: 1.5; color: #1c1917; background: #fafaf9; }
-    .entry { background: #fff; border-radius: 8px; padding: 12px 16px; margin-bottom: 12px; border-left: 3px solid #0f766e; }
-    time { font-size: 12px; color: #78716c; }
-    .place { color: #0f766e; font-weight: 600; }
-    #err { color: #b91c1c; }
+    :root { color-scheme: light dark; --bg:#fafaf9; --fg:#1c1917; --card:#fff; --muted:#78716c; --accent:#0f766e; --err:#b91c1c; }
+    @media (prefers-color-scheme: dark) { :root { --bg:#0c0a09; --fg:#f5f5f4; --card:#1c1917; --muted:#a8a29e; --accent:#2dd4bf; --err:#fca5a5; } }
+    body { font-family: system-ui, sans-serif; max-width: 40rem; margin: 0 auto; padding: 1.5rem; line-height: 1.55; color: var(--fg); background: var(--bg); }
+    .entry { background: var(--card); border-radius: 8px; padding: 12px 16px; margin-bottom: 12px; border-left: 3px solid var(--accent); }
+    .entry p { white-space: pre-wrap; margin: .4rem 0; }
+    time, .meta { font-size: 12px; color: var(--muted); }
+    .place { color: var(--accent); font-weight: 600; }
+    #err { color: var(--err); }
+    footer { margin-top: 2rem; font-size: 13px; color: var(--muted); }
   </style>
 </head>
 <body>
   <h1 id="title">Wayfare journey</h1>
-  <p id="sub"></p>
-  <p id="err"></p>
+  <p id="sub" class="meta"></p>
+  <p id="notes"></p>
+  <p id="err" role="alert"></p>
   <div id="entries"></div>
-  <p><small>Open in the Wayfare app for photos, maps, and voice notes.</small></p>
+  <footer>Read-only link. Open the Wayfare app for photos, maps and voice notes. The owner can stop sharing at any time.</footer>
   <script>
-    // Replace with your Supabase project values (same as EXPO_PUBLIC_* in the app).
-    const SUPABASE_URL = 'https://YOUR_PROJECT.supabase.co';
-    const SUPABASE_ANON_KEY = 'YOUR_ANON_KEY';
+    // Public client values (safe to publish; access is limited to get_shared_trip by the database).
+    var SUPABASE_URL = 'https://ujtylwimukufmbungnju.supabase.co';
+    var SUPABASE_KEY = 'sb_publishable_QuNfyAkk9RGxLIreVX8xsw_SG73ky7q';
 
-    const params = new URLSearchParams(location.search);
-    const shareId = params.get('id');
-    const err = document.getElementById('err');
-    const title = document.getElementById('title');
-    const sub = document.getElementById('sub');
-    const entries = document.getElementById('entries');
+    var $ = function (id) { return document.getElementById(id); };
+    var shareId = new URLSearchParams(location.search).get('id') || '';
 
-    if (!shareId) {
-      err.textContent = 'Missing share id in URL (?id=...)';
-    } else if (SUPABASE_URL.includes('YOUR_PROJECT')) {
-      err.textContent = 'Configure SUPABASE_URL and SUPABASE_ANON_KEY in this HTML file (see supabase/README.md).';
+    function el(tag, className, text) {
+      var n = document.createElement(tag);
+      if (className) n.className = className;
+      if (text != null) n.textContent = text; // never innerHTML: entries are user content
+      return n;
+    }
+
+    if (!/^[A-Za-z0-9-]{20,100}$/.test(shareId)) {
+      $('err').textContent = 'This link is missing or malformed.';
     } else {
       fetch(SUPABASE_URL + '/rest/v1/rpc/get_shared_trip', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          apikey: SUPABASE_ANON_KEY,
-          Authorization: 'Bearer ' + SUPABASE_ANON_KEY,
-        },
-        body: JSON.stringify({ p_share_id: shareId }),
+        headers: { 'Content-Type': 'application/json', apikey: SUPABASE_KEY },
+        body: JSON.stringify({ p_share_id: shareId })
       })
-        .then(r => r.json())
-        .then(data => {
-          if (!data || !data.trip) {
-            err.textContent = 'Trip not found or sharing disabled.';
-            return;
-          }
-          const t = data.trip;
-          title.textContent = t.title;
-          sub.textContent = [t.destination, t.trip_type, t.starts_on, t.ends_on].filter(Boolean).join(' · ');
-          (data.entries || []).forEach(e => {
-            const div = document.createElement('div');
-            div.className = 'entry';
-            div.innerHTML =
-              '<time>' + new Date(e.recorded_at).toLocaleString() + '</time>' +
-              (e.place_name ? '<div class="place">' + e.place_name + '</div>' : '') +
-              '<p>' + (e.body || '') + '</p>' +
-              (e.mood ? '<div>' + e.mood + '</div>' : '') +
-              (e.weather ? '<div><small>' + e.weather + '</small></div>' : '');
-            entries.appendChild(div);
+        .then(function (r) { if (!r.ok) throw new Error('http ' + r.status); return r.json(); })
+        .then(function (data) {
+          if (!data || !data.trip) { $('err').textContent = 'Trip not found, or sharing was turned off.'; return; }
+          var t = data.trip;
+          document.title = t.title + ' · Wayfare';
+          $('title').textContent = t.title;
+          $('sub').textContent = [t.destination, t.trip_type, t.starts_on, t.ends_on].filter(Boolean).join(' · ');
+          if (t.notes) $('notes').textContent = t.notes;
+          (data.entries || []).forEach(function (e) {
+            var div = el('div', 'entry');
+            div.appendChild(el('time', null, new Date(e.recorded_at).toLocaleString()));
+            if (e.place_name) div.appendChild(el('div', 'place', e.place_name));
+            div.appendChild(el('p', null, e.body || ''));
+            if (e.mood) div.appendChild(el('div', null, e.mood));
+            if (e.weather) div.appendChild(el('div', 'meta', e.weather));
+            $('entries').appendChild(div);
           });
         })
-        .catch(() => { err.textContent = 'Could not load trip.'; });
+        .catch(function () { $('err').textContent = 'Could not load this trip. Please try again.'; });
     }
   </script>
 </body>

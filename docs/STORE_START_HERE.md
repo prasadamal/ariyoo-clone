@@ -12,6 +12,7 @@ This repo is prepared so **you** only need accounts, cloud projects, and EAS lin
 | --- | --- |
 | Ariyoo | `https://prasadamal.github.io/ariyoo-clone/privacy/ariyoo.html` |
 | Wayfare | `https://prasadamal.github.io/ariyoo-clone/privacy/wayfare.html` |
+| Wayfare account deletion (Play requires this URL) | `https://prasadamal.github.io/ariyoo-clone/privacy/wayfare-delete-account.html` |
 
 Support email used in listings: **support@ariyoo.app** · Privacy: **privacy@ariyoo.app**
 
@@ -61,9 +62,9 @@ Support email used in listings: **support@ariyoo.app** · Privacy: **privacy@ari
 
 ### 3. Wayfare backend
 
-- [ ] Create Supabase project; run migrations per `supabase/README.md`
-- [ ] Run `supabase/scripts/reviewer_demo_seed.sql` (edit emails/passwords first)
-- [ ] EAS secrets: `EXPO_PUBLIC_SUPABASE_URL`, `EXPO_PUBLIC_SUPABASE_ANON_KEY`
+- [x] Supabase project `wayfare` is created and migrated (see `supabase/README.md`); remaining dashboard settings are listed in `apps/wayfare-mobile/store/SUBMISSION_CHECKLIST.md`
+- [ ] Create the reviewer user, then run `supabase/scripts/reviewer_demo_seed.sql`
+- [x] Supabase URL/key are in `eas.json`; add the Android Google Maps key as an EAS secret (`EXPO_PUBLIC_GOOGLE_MAPS_API_KEY`)
 
 ### 4. EAS (per app)
 

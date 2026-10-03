@@ -4,25 +4,32 @@
 Wayfare – Travel Journal
 
 ## Short description (80 chars max)
-Offline trek journal with maps, photos, PDF export & cloud sync. Built for India.
+Offline travel journal: photos, voice notes, route map, budget, PDF export.
 
 ## Full description
-Wayfare is your offline-first travel journal for treks, road trips, and city breaks—built for places where signal is weak.
+Wayfare is a private travel journal for treks, road trips and city breaks — built for places where the signal is weak.
 
 **Journal**
-- Trip timeline with mood and place tags
-- Attach photos to entries
-- Works offline; sync to your account when online
+• Write entries with mood, place and optional local weather
+• Attach photos and record short voice notes
+• Works fully offline; changes back up automatically when you are online
 
-**Trip utilities**
-- Budget tracker (INR-friendly)
-- Packing checklists (including Himalayan trek templates)
-- GPS route recording and GeoJSON export
+**Everything for the trip**
+• Budget tracker in rupees, by category
+• Packing checklists, including Himalayan trek templates — add your own items
+• Record your GPS route (you start and stop it) and see it on a map
+• Export your journal as a PDF, or your route as GeoJSON
 
 **Explore**
-- Curated trek guides to start your next adventure
+• Curated trek guides with permits, seasons and connectivity notes — start a journal in one tap
 
-Privacy-first: your journal is yours. Social feeds and public sharing come in later phases.
+**Private by default**
+• Optional app lock with fingerprint, face or passcode
+• Nothing is shared unless you create a read-only link — and you can switch it off any time
+• No ads, no tracking
+• Delete your account and all cloud data from inside the app
+
+Use it without an account, or sign in to back up and sync across devices.
 
 ## Category
 Travel & Local
@@ -38,7 +45,7 @@ https://prasadamal.github.io/ariyoo-clone/privacy/wayfare.html
 
 ## Data safety (summary for form)
 
-- **Collected:** email (account), user-generated content (journal, photos), location (optional route recording)
-- **Purpose:** app functionality, account management
-- **Encrypted in transit:** yes
-- **Data deletion:** available on request via support
+See `DATA_SAFETY_AND_PRIVACY.md` for the exact answers.
+
+## Account deletion URL (required)
+https://prasadamal.github.io/ariyoo-clone/privacy/wayfare-delete-account.html

@@ -2,7 +2,7 @@ name: Deploy docs (privacy + share viewer)
 
 on:
   push:
-    branches: [main, cursor/wayfare-mobile-mvp-85c3]
+    branches: [main]
     paths:
       - 'docs/privacy/**'
       - 'docs/wayfare-share/**'

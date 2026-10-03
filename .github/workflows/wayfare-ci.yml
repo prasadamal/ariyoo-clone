@@ -1,0 +1,49 @@
+name: Wayfare CI
+
+on:
+  pull_request:
+    paths:
+      - 'apps/wayfare-mobile/**'
+      - 'supabase/**'
+      - '.github/workflows/wayfare-*.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'apps/wayfare-mobile/**'
+      - 'supabase/**'
+      - '.github/workflows/wayfare-*.yml'
+
+concurrency:
+  group: wayfare-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/wayfare-mobile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/wayfare-mobile/package-lock.json
+      - run: npm ci
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Unit + sync tests
+        run: npm test
+      - name: Bundle JS for Android and iOS (catches import/transform errors)
+        env:
+          CI: '1'
+          EXPO_PUBLIC_SUPABASE_URL: https://example.supabase.co
+          EXPO_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder
+        run: npx expo export --platform android --platform ios --output-dir dist
+      - name: Native config sanity (prebuild both platforms)
+        env:
+          CI: '1'
+        run: npx expo prebuild --no-install --clean
+      - name: Check the generated native config
+        run: node scripts/check-native-config.mjs

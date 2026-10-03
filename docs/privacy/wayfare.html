@@ -5,35 +5,59 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Wayfare Privacy Policy</title>
   <style>
-    body { font-family: system-ui, sans-serif; max-width: 42rem; margin: 2rem auto; padding: 0 1rem; line-height: 1.6; color: #1c1917; }
-    h1 { font-size: 1.5rem; } h2 { font-size: 1.1rem; margin-top: 1.5rem; }
+    body { font-family: system-ui, sans-serif; max-width: 44rem; margin: 2rem auto; padding: 0 1rem; line-height: 1.65; color: #1c1917; }
+    h1 { font-size: 1.6rem; } h2 { font-size: 1.1rem; margin-top: 1.8rem; }
+    table { border-collapse: collapse; width: 100%; font-size: .92rem; } td, th { border: 1px solid #d6d3d1; padding: 6px 8px; text-align: left; vertical-align: top; }
   </style>
 </head>
 <body>
   <h1>Wayfare Privacy Policy</h1>
-  <p><strong>Effective date:</strong> October 3, 2026<br />
+  <p><strong>Effective date:</strong> October 4, 2026<br />
   <strong>Contact:</strong> <a href="mailto:privacy@ariyoo.app">privacy@ariyoo.app</a></p>
-  <p>Wayfare (&quot;we&quot;, &quot;the app&quot;) is the offline-first travel journal product in the Ariyoo family of apps (bundle ID <code>com.wayfare.app</code>).</p>
+  <p>Wayfare is a private travel journal (bundle ID <code>com.wayfare.app</code>). Your journal lives on your device first. If you create an account, it is also backed up to your private cloud space so you can restore it on a new phone.</p>
+
   <h2>What we collect</h2>
+  <table>
+    <tr><th>Data</th><th>Why</th><th>Where it goes</th></tr>
+    <tr><td>Email address and display name (account)</td><td>Sign-in, password reset</td><td>Supabase Auth</td></tr>
+    <tr><td>Trips, journal entries, moods, place names, budgets, packing lists</td><td>The journal itself, backup, sync between your devices</td><td>On device; Supabase database if you have an account</td></tr>
+    <tr><td>Photos and voice notes you attach</td><td>The journal itself</td><td>On device; private Supabase Storage bucket if you have an account</td></tr>
+    <tr><td>GPS route points</td><td>Only while you press &ldquo;Start recording route&rdquo; on a trip</td><td>On device; Supabase database if you have an account</td></tr>
+    <tr><td>Your current coordinates (no account or device identifiers)</td><td>Looking up the weather when you turn on &ldquo;Attach weather&rdquo;</td><td>Sent to Open-Meteo (open-meteo.com)</td></tr>
+  </table>
+  <p>We do <strong>not</strong> use advertising or analytics SDKs, do not track you across apps, and do not sell or share your personal information for advertising.</p>
+
+  <h2>Location</h2>
+  <p>Wayfare asks for location only while you use the app (&ldquo;While Using&rdquo;). Route recording continues in the background only after you start it, and shows a persistent notification (Android) or status indicator (iOS) until you stop it. You can stop at any time.</p>
+
+  <h2>Sharing</h2>
+  <p>Your journal is private by default. If you choose &ldquo;Share read-only link&rdquo; for a trip, anyone who has that link can read the trip title, destination, dates, notes and journal entry text (including place, mood and weather). Photos, voice notes, route, budget and companions are <strong>not</strong> included. You can turn the link off at any time, and it stops working immediately.</p>
+
+  <h2>Service providers</h2>
   <ul>
-    <li><strong>Account information:</strong> email and profile fields when you register (Supabase Auth).</li>
-    <li><strong>Trip and journal data:</strong> trip titles, destinations, journal text, moods, places, budgets, packing lists, and GPS route points you record.</li>
-    <li><strong>Photos:</strong> images you attach to journal entries (on device; in cloud when you sync).</li>
-    <li><strong>Location:</strong> latitude/longitude while you actively record a route on a trip.</li>
+    <li><strong>Supabase</strong> &mdash; authentication, database and file storage (region: Mumbai, India). Data is encrypted in transit and at rest, protected by row-level security so each account can only read its own rows, and photos/voice notes are stored in a private bucket.</li>
+    <li><strong>Open-Meteo</strong> &mdash; weather lookup (coordinates only).</li>
+    <li><strong>Google Maps (Android) / Apple Maps (iOS)</strong> &mdash; map display for your recorded route.</li>
   </ul>
-  <h2>How we use data</h2>
+
+  <h2>Security</h2>
+  <p>Sign-in tokens are kept in the device&rsquo;s secure keychain/keystore. Optional biometric lock protects the app on your device; biometric data never leaves your device and is not accessible to us.</p>
+
+  <h2>Retention and deletion</h2>
   <ul>
-    <li>Offline journaling and optional cloud backup/sync</li>
-    <li>Authentication and associating data with your account</li>
+    <li>Deleting a trip, entry, expense or photo in the app removes it from the cloud the next time the app syncs.</li>
+    <li><strong>Delete account:</strong> Profile &rarr; Delete account permanently erases your account, cloud journal and files. See <a href="wayfare-delete-account.html">how to delete your account</a>, including without the app.</li>
+    <li>Short-lived infrastructure backups may persist for a limited period after deletion and are then overwritten.</li>
+    <li>Without an account, everything stays on your device; uninstalling the app removes it.</li>
   </ul>
-  <p>We do <strong>not</strong> sell your personal information.</p>
-  <h2>Storage and security</h2>
-  <p>Local data is stored in on-device SQLite. Cloud data is stored in Supabase with row-level security. Photos use private storage buckets with authenticated access.</p>
-  <h2>Your choices</h2>
-  <p>You may use offline-only mode without an account. Sign out and contact us to request account deletion.</p>
+
+  <h2>Your rights</h2>
+  <p>You can access, correct, export (PDF/GeoJSON from within the app) and delete your data. Under India&rsquo;s DPDP Act, the GDPR/UK GDPR and similar laws you may also withdraw consent, object to processing, or lodge a complaint with your data protection authority. Email <a href="mailto:privacy@ariyoo.app">privacy@ariyoo.app</a> and we will respond within 30 days.</p>
+
   <h2>Children</h2>
-  <p>Wayfare is not directed at children under 13.</p>
+  <p>Wayfare is not directed at children under 13 (or the minimum age in your country), and we do not knowingly collect their data.</p>
+
   <h2>Changes</h2>
-  <p>We may update this policy; the effective date above will change when we do.</p>
+  <p>If we change this policy we will update the date above and, for material changes, tell you in the app.</p>
 </body>
 </html>

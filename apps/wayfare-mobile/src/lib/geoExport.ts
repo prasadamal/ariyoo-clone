@@ -2,7 +2,6 @@ import { listTrackPointsForExport } from './localDb';
 
 export async function buildTripGeoJson(tripId: string, title: string) {
   const points = await listTrackPointsForExport(tripId);
-  const coordinates = points.map(p => [p.longitude, p.latitude, p.altitude_m ?? 0]);
   return {
     type: 'FeatureCollection',
     features: [
@@ -11,7 +10,7 @@ export async function buildTripGeoJson(tripId: string, title: string) {
         properties: { name: title, pointCount: points.length },
         geometry: {
           type: 'LineString',
-          coordinates,
+          coordinates: points.map(p => [p.longitude, p.latitude, p.altitude_m ?? 0]),
         },
       },
     ],

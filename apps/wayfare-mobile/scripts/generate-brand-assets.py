@@ -1,4 +1,11 @@
 #!/usr/bin/env python3
+"""Generates Wayfare's icon set.
+
+  icon.png                 1024x1024 RGB, opaque (App Store rejects icons with an alpha channel)
+  adaptive-icon.png        Android adaptive foreground: transparent, mark inside the 66% safe zone
+  splash-icon.png          Transparent logo shown centred on the splash background
+  notification-icon.png    96x96 white-on-transparent glyph (Android status bar / foreground service)
+"""
 from pathlib import Path
 from PIL import Image, ImageDraw
 
@@ -9,31 +16,30 @@ PRIMARY = (194, 65, 12)
 SAND = (250, 250, 249)
 
 
-def draw_mark(size: int) -> Image.Image:
-    img = Image.new("RGBA", (size, size), BG + (255,))
-    draw = ImageDraw.Draw(img)
-    w = size * 0.12
-    draw.rounded_rectangle((size * 0.2, size * 0.55, size * 0.8, size * 0.55 + w), radius=int(w / 2), fill=PRIMARY + (255,))
-    draw.polygon(
-        [
-            (size * 0.35, size * 0.55),
-            (size * 0.5, size * 0.28),
-            (size * 0.65, size * 0.55),
-        ],
-        fill=SAND + (255,),
-    )
+def draw_mark(size: int, bg=None, scale: float = 1.0, mono=None) -> Image.Image:
+    """Mountain-over-trail mark. `scale` shrinks it inside the canvas; `mono` forces one colour."""
+    img = Image.new("RGBA", (size, size), (bg + (255,)) if bg else (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    c = size / 2
+
+    def p(x: float, y: float):
+        return (c + (x - 0.5) * size * scale, c + (y - 0.5) * size * scale)
+
+    trail = (mono or PRIMARY) + (255,)
+    peak = (mono or SAND) + (255,)
+    w = 0.12
+    r = int(w * size * scale / 2)
+    d.rounded_rectangle((*p(0.2, 0.55), *p(0.8, 0.55 + w)), radius=r, fill=trail)
+    d.polygon([p(0.35, 0.55), p(0.5, 0.28), p(0.65, 0.55)], fill=peak)
     return img
 
 
 def main() -> None:
     ASSETS.mkdir(parents=True, exist_ok=True)
-    icon = draw_mark(1024)
-    icon.save(ASSETS / "icon.png")
-    icon.save(ASSETS / "adaptive-icon.png")
-    splash = Image.new("RGBA", (1284, 2778), BG + (255,))
-    mark = draw_mark(400)
-    splash.paste(mark, ((1284 - 400) // 2, 900), mark)
-    splash.save(ASSETS / "splash.png")
+    draw_mark(1024, bg=BG).convert("RGB").save(ASSETS / "icon.png")
+    draw_mark(1024, scale=0.82).save(ASSETS / "adaptive-icon.png")
+    draw_mark(1024).save(ASSETS / "splash-icon.png")
+    draw_mark(96, mono=(255, 255, 255), scale=1.15).save(ASSETS / "notification-icon.png")
     print("Wrote", ASSETS)
 
 

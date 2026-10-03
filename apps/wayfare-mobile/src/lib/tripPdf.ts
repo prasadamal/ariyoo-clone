@@ -3,16 +3,12 @@ import * as Sharing from 'expo-sharing';
 import { listEntries, listExpenses, type LocalTrip } from './localDb';
 import { computeTripStats } from './tripStats';
 
-function esc(s: string) {
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+export function esc(s: string) {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
 export async function exportTripJournalPdf(trip: LocalTrip) {
-  const [entries, expenses, stats] = await Promise.all([
-    listEntries(trip.id),
-    listExpenses(trip.id),
-    computeTripStats(trip.id),
-  ]);
+  const [entries, expenses, stats] = await Promise.all([listEntries(trip.id), listExpenses(trip.id), computeTripStats(trip.id)]);
 
   const entryHtml = entries
     .map(
@@ -20,7 +16,7 @@ export async function exportTripJournalPdf(trip: LocalTrip) {
     <section class="entry">
       <time>${esc(new Date(e.recorded_at).toLocaleString())}</time>
       ${e.place_name ? `<div class="place">${esc(e.place_name)}</div>` : ''}
-      <p>${esc(e.body ?? '')}</p>
+      <p>${esc(e.body ?? '').replace(/\n/g, '<br/>')}</p>
       ${e.mood ? `<div class="meta">Mood: ${esc(e.mood)}</div>` : ''}
       ${e.weather ? `<div class="meta">${esc(e.weather)}</div>` : ''}
     </section>`
@@ -28,9 +24,10 @@ export async function exportTripJournalPdf(trip: LocalTrip) {
     .join('');
 
   const expenseHtml = expenses.length
-    ? `<ul>${expenses.map(e => `<li>${esc(e.category)}: ₹${e.amount}</li>`).join('')}</ul>`
+    ? `<ul>${expenses.map(x => `<li>${esc(x.category)}${x.note ? ` — ${esc(x.note)}` : ''}: ₹${x.amount.toLocaleString('en-IN')}</li>`).join('')}</ul>`
     : '<p>No expenses logged.</p>';
 
+  const dates = [trip.starts_on, trip.ends_on].filter(Boolean).join(' – ');
   const html = `
   <html><head><meta charset="utf-8" />
   <style>
@@ -38,15 +35,16 @@ export async function exportTripJournalPdf(trip: LocalTrip) {
     h1 { color: #c2410c; font-size: 28px; }
     .sub { color: #57534e; margin-bottom: 24px; }
     .stats { background: #fafaf9; padding: 12px 16px; border-radius: 8px; margin-bottom: 24px; }
-    .entry { border-left: 3px solid #0f766e; padding-left: 12px; margin-bottom: 20px; }
+    .entry { border-left: 3px solid #0f766e; padding-left: 12px; margin-bottom: 20px; page-break-inside: avoid; }
     time { font-size: 12px; color: #78716c; }
     .place { color: #0f766e; font-weight: 600; margin: 4px 0; }
     .meta { font-size: 13px; color: #57534e; margin-top: 4px; }
     h2 { font-size: 18px; margin-top: 32px; }
   </style></head><body>
     <h1>${esc(trip.title)}</h1>
-    <div class="sub">${esc(trip.destination ?? '')} · ${esc(trip.trip_type)} · ${esc(trip.starts_on ?? '')} – ${esc(trip.ends_on ?? '')}</div>
-    <div class="stats">${stats.entryCount} entries · ${stats.distanceKm.toFixed(1)} km · ₹${Math.round(stats.spendInr)}</div>
+    <div class="sub">${esc([trip.destination, trip.trip_type, dates].filter(Boolean).join(' · '))}</div>
+    <div class="stats">${stats.entryCount} entries · ${stats.distanceKm.toFixed(1)} km · ₹${Math.round(stats.spendInr).toLocaleString('en-IN')}</div>
+    ${trip.notes ? `<p>${esc(trip.notes).replace(/\n/g, '<br/>')}</p>` : ''}
     <h2>Journal</h2>
     ${entryHtml || '<p>No entries yet.</p>'}
     <h2>Budget</h2>
@@ -56,7 +54,7 @@ export async function exportTripJournalPdf(trip: LocalTrip) {
 
   const { uri } = await Print.printToFileAsync({ html });
   if (await Sharing.isAvailableAsync()) {
-    await Sharing.shareAsync(uri, { mimeType: 'application/pdf', dialogTitle: `${trip.title} journal` });
+    await Sharing.shareAsync(uri, { mimeType: 'application/pdf', UTI: 'com.adobe.pdf', dialogTitle: `${trip.title} journal` });
   }
   return uri;
 }

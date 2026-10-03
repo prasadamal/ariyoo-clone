@@ -1,64 +1,43 @@
 # Wayfare Mobile
 
-**Your journey, journaled. Your people, found.** — Phase 1 MVP inside the ariyoo monorepo (separate product).
+**Your journey, journaled.** Offline-first travel journal for Android and iOS (Expo SDK 57, React Native 0.86).
 
-## What ships (v1.2 — Play Store ready)
+## Features
 
-- **Onboarding** + polished journeys home with trip stats synopsis
-- Offline-first journal (SQLite) with **mood chips**, place tags, **live weather** (Open-Meteo)
-- **Photos** per entry + cloud sync (Supabase Storage)
-- Budget (INR categories) + packing progress
-- **Route map** (polyline), GPS recording, GeoJSON share
-- **PDF travel journal** export (share sheet)
-- **Explore** — 5 Himalayan trek guides → one-tap trip wizard
-- **Biometric app lock** (optional), auto-sync on foreground
-- **Dark mode** (system / light / dark in Profile)
-- **Voice notes** on journal entries (local + cloud sync as audio)
-- **Read-only share links** (web + `wayfare://share/…` deep link, Supabase RPC)
-- **Google Maps API key** support for Android map tiles (`EXPO_PUBLIC_GOOGLE_MAPS_API_KEY`)
-- Full cloud sync when Supabase is configured
-- Bundle id: `com.wayfare.app`
+- Offline-first journal (SQLite): mood, place, optional weather, **photos**, **voice notes**; edit and delete entries
+- Budget (₹, by category) and packing lists (templates + your own items)
+- GPS route recording (foreground service on Android, location background mode on iOS), map, GeoJSON export
+- PDF journal export; read-only share links you can switch off
+- Cloud backup and multi-device sync (Supabase) with tombstoned deletes, incremental pulls and server-stamped timestamps
+- Email sign-up with confirmation, password reset, **in-app account deletion**, guest mode (no account)
+- App lock (biometrics / device passcode), dark mode, accessibility labels
 
-## Later phases
-
-- Social feed, place chat, Year Wrapped
-- Server verification tiers, Mapbox offline tiles
-- On-device AI daily summaries
-
-## Setup
+## Develop
 
 ```bash
 cd apps/wayfare-mobile
 npm ci
-npm run assets:generate
-cp .env.example .env.local   # optional
+cp .env.example .env.local     # optional: points at the hosted Supabase project
+npm run assets:generate        # regenerate icons (needs Pillow)
+npm start                      # needs a development build: expo-location/maps/etc. are native modules
+npm test                       # 45 unit/integration tests (real SQLite, fake Supabase server)
+npm run typecheck
 ```
 
-### Supabase (recommended)
+Native-module note: Expo Go does not include every module used here (background location, Maps). Use `eas build --profile development` for a dev client.
 
-1. Create a free Supabase project.
-2. Run migrations (in order):
-   - `supabase/migrations/20261003000000_wayfare_mvp.sql`
-   - `supabase/migrations/20261003120000_wayfare_media_storage.sql`
-3. Set in `.env.local` or EAS secrets:
-   - `EXPO_PUBLIC_SUPABASE_URL`
-   - `EXPO_PUBLIC_SUPABASE_ANON_KEY`
+## Architecture
 
-Without Supabase, the app runs in **offline journal mode** (local only).
+| Layer | Where |
+| --- | --- |
+| Screens (Expo Router) | `app/` |
+| Local database + migrations (`PRAGMA user_version`) | `src/lib/localDb.ts` |
+| Sync engine | `src/lib/sync.ts` — push pending → tombstones → pull by server cursor; single-flight; local edits win |
+| Account/data ownership | `claimLocalData()` — guest data is adopted on first sign-in; another account's data is never uploaded |
+| Supabase schema, RLS, storage, edge function | `/supabase` |
 
-## Run
+Sync rules in one paragraph: the server stamps `updated_at`, so device clocks never matter; each table has a pull cursor with a 2-minute overlap; a row edited locally stays "pending" and is pushed over the server copy; deletes are tombstones (`deleted_at`) so other devices learn about them; deleting a trip hard-deletes its cloud children first, then tombstones the trip.
 
-```bash
-npm start
-# Android: press a or npm run android
-# iOS (Mac or EAS): npm run ios / eas build --platform ios
-```
+## Release
 
-## Store builds
-
-```bash
-eas login && eas init
-npm run build:all
-```
-
-See `store/SUBMISSION_CHECKLIST.md`.
+See `store/SUBMISSION_CHECKLIST.md`. CI (`wayfare-ci.yml`) runs typecheck, tests, a Metro bundle for both platforms, a native prebuild and `scripts/check-native-config.mjs` (permission guard). `wayfare-eas-build.yml` is a manual release trigger.

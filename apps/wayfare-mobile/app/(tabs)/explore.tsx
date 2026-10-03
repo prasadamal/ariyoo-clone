@@ -1,22 +1,21 @@
 import { router } from 'expo-router';
 import { ScrollView } from 'react-native';
-import { Button, Card, Chip, Text } from 'react-native-paper';
+import { Button, Card, Chip, Text, useTheme } from 'react-native-paper';
 import { TREK_GUIDES } from '../../src/content/treks';
 
 export default function ExploreTab() {
+  const theme = useTheme();
   return (
-    <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 32 }}>
+    <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 32 }} style={{ backgroundColor: theme.colors.background }}>
       <Text variant="headlineSmall" style={{ marginBottom: 4 }}>Explore India</Text>
-      <Text style={{ color: '#57534e', marginBottom: 16 }}>
-        Curated Himalayan treks with permits, seasons, and connectivity—start a journal in one tap.
+      <Text style={{ color: theme.colors.onSurfaceVariant, marginBottom: 16 }}>
+        Curated Himalayan treks with permits, seasons and connectivity — start a journal in one tap. Check current conditions locally before you go.
       </Text>
       {TREK_GUIDES.map(trek => (
-        <Card key={trek.id} style={{ marginBottom: 14, backgroundColor: '#fff' }}>
+        <Card key={trek.id} style={{ marginBottom: 14 }}>
           <Card.Title title={trek.name} subtitle={`${trek.region} · ${trek.difficulty}`} />
           <Card.Content>
-            <Chip icon="weather-sunny" style={{ alignSelf: 'flex-start', marginBottom: 8 }} compact>
-              {trek.bestSeason}
-            </Chip>
+            <Chip icon="weather-sunny" style={{ alignSelf: 'flex-start', marginBottom: 8 }} compact>{trek.bestSeason}</Chip>
             <Text variant="bodyMedium" style={{ fontWeight: '600' }}>Permits</Text>
             <Text style={{ marginBottom: 8 }}>{trek.permits}</Text>
             <Text variant="bodyMedium" style={{ fontWeight: '600' }}>Acclimatisation</Text>
