@@ -1,4 +1,8 @@
-# App Store & Play Store submission checklist
+# App Store & Play Store submission checklist — Ariyoo
+
+Package / bundle: **`com.ariyoo.mobile`** · App path: **`apps/mobile`**
+
+Full dual-app guide: **[`docs/STORE_PUBLISHING_CHECKLIST.md`](../../../docs/STORE_PUBLISHING_CHECKLIST.md)** (Ariyoo + Wayfare).
 
 Complete these steps once before your first store upload.
 
