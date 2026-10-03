@@ -4,7 +4,7 @@
 Wayfare – Travel Journal
 
 ## Short description (80 chars max)
-Offline trek journal, budget & packing. Sync trips when you're back online.
+Offline trek journal with maps, photos, PDF export & cloud sync. Built for India.
 
 ## Full description
 Wayfare is your offline-first travel journal for treks, road trips, and city breaks—built for places where signal is weak.
