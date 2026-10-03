@@ -64,6 +64,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
           minSdkVersion: 24,
           targetSdkVersion: 34,
           compileSdkVersion: 34,
+          usesCleartextTraffic: process.env.EAS_BUILD_PROFILE !== 'production',
         },
         ios: {
           deploymentTarget: '13.4',

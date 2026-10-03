@@ -1,7 +1,7 @@
 import * as ImagePicker from 'expo-image-picker';
 import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { FlatList, KeyboardAvoidingView, Platform, View } from 'react-native';
+import { FlatList, Image, KeyboardAvoidingView, Platform, View } from 'react-native';
 import { Button, Text, TextInput } from 'react-native-paper';
 import io, { Socket } from 'socket.io-client';
 import { api } from '../../src/api/client';
@@ -104,7 +104,11 @@ export default function ChatScreen() {
             >
               {item.messageText ? <Text style={{ color: '#f8fafc' }}>{item.messageText}</Text> : null}
               {item.imageUrl ? (
-                <Text style={{ color: '#bae6fd', marginTop: 4 }}>📷 Image shared</Text>
+                <Image
+                  source={{ uri: item.imageUrl.startsWith('http') ? item.imageUrl : `${getApiBaseUrl()}${item.imageUrl}` }}
+                  style={{ width: 220, height: 160, borderRadius: 8, marginTop: 6 }}
+                  resizeMode="cover"
+                />
               ) : null}
               <Text style={{ color: '#cbd5e1', fontSize: 11, marginTop: 4 }}>
                 {new Date(item.createdAt).toLocaleTimeString()}
