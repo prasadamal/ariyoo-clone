@@ -33,7 +33,14 @@ export async function uploadEntryPhoto(params: {
   const response = await fetch(params.localUri);
   const bytes = await response.arrayBuffer();
   const contentType =
-    params.mimeType ?? (ext === 'png' ? 'image/png' : ext === 'webp' ? 'image/webp' : 'image/jpeg');
+    params.mimeType ??
+    (ext === 'm4a'
+      ? 'audio/mp4'
+      : ext === 'png'
+        ? 'image/png'
+        : ext === 'webp'
+          ? 'image/webp'
+          : 'image/jpeg');
 
   const { error } = await supabase.storage.from(BUCKET).upload(path, bytes, {
     contentType,

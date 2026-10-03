@@ -15,9 +15,10 @@ export default function HomeTab() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    api.get('/api/Tags/getAll').then(res => {
-      setTags(res.data.map((t: { tagName: string }) => t.tagName));
-    });
+    api
+      .get('/api/Tags/getAll')
+      .then(res => setTags(res.data.map((t: { tagName: string }) => t.tagName)))
+      .catch(() => setError('Could not load tags. Is the API running?'));
   }, []);
 
   const onChange = (text: string) => {
