@@ -23,7 +23,15 @@ export default function ChatScreen() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
+  const [error, setError] = useState('');
   const socketRef = useRef<Socket | null>(null);
+
+  const appendMessage = (m: ChatMessage) => {
+    setMessages(prev => {
+      if (m.id && prev.some(p => p.id === m.id)) return prev;
+      return [...prev, m];
+    });
+  };
 
   const loadMessages = async () => {
     const res = await api.get<ChatMessage[]>(`/api/Message/getMessagesBySessionId/${sid}`);
@@ -36,7 +44,7 @@ export default function ChatScreen() {
     socketRef.current = socket;
     socket.emit('join', String(sid));
     socket.on('message', (m: ChatMessage & { sessionId: number }) => {
-      if (Number(m.sessionId) === sid) setMessages(prev => [...prev, m]);
+      if (Number(m.sessionId) === sid) appendMessage(m);
     });
     return () => {
       socket.disconnect();
@@ -47,13 +55,18 @@ export default function ChatScreen() {
     if (!user || !text.trim()) return;
     setSending(true);
     try {
+      setError('');
       await api.post('/api/Message/postMessage', {
-        senderId: user.userId,
         messageText: text.trim(),
         sessionId: sid,
       });
       setText('');
       await loadMessages();
+    } catch (e: unknown) {
+      const msg =
+        (e as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+        'Could not send message.';
+      setError(msg);
     } finally {
       setSending(false);
     }
@@ -117,6 +130,7 @@ export default function ChatScreen() {
           );
         }}
       />
+      {error ? <Text style={{ color: '#f87171', paddingHorizontal: 12 }}>{error}</Text> : null}
       <View style={{ flexDirection: 'row', gap: 8, padding: 12, borderTopWidth: 1, borderTopColor: '#334155' }}>
         <Button mode="outlined" onPress={pickImage} style={{ alignSelf: 'center' }}>Photo</Button>
         <TextInput

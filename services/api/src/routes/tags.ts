@@ -33,14 +33,21 @@ tagsRouter.get('/getUserPlaceTags/:userId', async (req, res) => {
 });
 
 tagsRouter.post('/addUserTags', requireAuth, async (req: AuthRequest, res) => {
-  const payload = req.body as { tagId?: number; tagName?: string; userId: number }[];
+  const userId = req.user!.userId;
+  const payload = req.body as { tagId?: number; tagName?: string }[];
   for (const t of payload) {
     let tagId = t.tagId;
     if (!tagId && t.tagName) {
       const created = await prisma.tag.upsert({ where: { name: t.tagName }, update: {}, create: { name: t.tagName } });
       tagId = created.id;
     }
-    if (tagId) await prisma.userTag.upsert({ where: { userId_tagId: { userId: t.userId, tagId } }, update: {}, create: { userId: t.userId, tagId } });
+    if (tagId) {
+      await prisma.userTag.upsert({
+        where: { userId_tagId: { userId, tagId } },
+        update: {},
+        create: { userId, tagId },
+      });
+    }
   }
   res.json({ message: 'ok' });
 });

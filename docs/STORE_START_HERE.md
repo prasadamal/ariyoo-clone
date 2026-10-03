@@ -64,6 +64,8 @@ Support email used in listings: **support@ariyoo.app** · Privacy: **privacy@ari
 - [ ] Create Supabase project; run migrations per `supabase/README.md`
 - [ ] Run `supabase/scripts/reviewer_demo_seed.sql` (edit emails/passwords first)
 - [ ] EAS secrets: `EXPO_PUBLIC_SUPABASE_URL`, `EXPO_PUBLIC_SUPABASE_ANON_KEY`
+- [ ] Optional: `EXPO_PUBLIC_GOOGLE_MAPS_API_KEY` (Android Maps SDK)
+- [ ] Edit `docs/wayfare-share/index.html` with Supabase URL/key for web share links
 
 ### 4. EAS (per app)
 

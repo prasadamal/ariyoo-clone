@@ -61,6 +61,7 @@ export default function TripDetailScreen() {
   const [tracking, setTracking] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [useLocationWeather, setUseLocationWeather] = useState(true);
+  const [packLabel, setPackLabel] = useState('');
   const [recordingVoice, setRecordingVoice] = useState(false);
   const [voiceEntryId, setVoiceEntryId] = useState<string | null>(null);
   const { paperTheme } = useWayfareTheme();
@@ -362,6 +363,28 @@ export default function TripDetailScreen() {
 
       {tab === 'packing' && (
         <View>
+          <TextInput label="Add item" value={packLabel} onChangeText={setPackLabel} mode="outlined" style={{ marginBottom: 8 }} />
+          <Button
+            mode="contained"
+            style={{ marginBottom: 12 }}
+            disabled={!packLabel.trim()}
+            onPress={async () => {
+              const now = new Date().toISOString();
+              await upsertPackingItem({
+                id: uuid(),
+                trip_id: tripId,
+                label: packLabel.trim(),
+                packed: 0,
+                sort_order: packing.length,
+                sync_status: 'pending',
+                updated_at: now,
+              });
+              setPackLabel('');
+              await load();
+            }}
+          >
+            Add to list
+          </Button>
           {packing.map(item => (
             <Button key={item.id} mode={item.packed ? 'contained-tonal' : 'outlined'} onPress={() => togglePacked(item)} style={{ marginBottom: 6 }}>
               {item.packed ? '✓ ' : ''}{item.label}

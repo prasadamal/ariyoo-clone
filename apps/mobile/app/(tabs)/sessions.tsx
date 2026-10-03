@@ -12,9 +12,12 @@ export default function SessionsTab() {
   const { user } = useAuth();
   const [sessions, setSessions] = useState<SessionRow[]>([]);
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState('');
 
   const load = useCallback(async () => {
     if (!user) return;
+    setError('');
+    try {
     const [seeker, solver] = await Promise.all([
       api.get<SessionRow[]>(`/api/Message/getallsessionsseeker/${user.userId}`),
       user.isSolver
@@ -26,6 +29,9 @@ export default function SessionsTab() {
       (row, index) => merged.findIndex(other => other.sessionId === row.sessionId) === index
     );
     setSessions(unique);
+    } catch {
+      setError('Could not load conversations. Pull to retry.');
+    }
   }, [user]);
 
   useFocusEffect(
@@ -48,7 +54,9 @@ export default function SessionsTab() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#38bdf8" />}
         ListEmptyComponent={
           <View style={{ padding: 24 }}>
-            <Text style={{ color: '#94a3b8' }}>No conversations yet. Ask a question from the Ask tab.</Text>
+            <Text style={{ color: '#94a3b8' }}>
+              {error || 'No conversations yet. Ask a question from the Ask tab.'}
+            </Text>
           </View>
         }
         renderItem={({ item }) => (

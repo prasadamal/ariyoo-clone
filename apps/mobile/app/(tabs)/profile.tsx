@@ -11,6 +11,9 @@ export default function ProfileTab() {
   const [userName, setUserName] = useState('');
   const [isSolver, setIsSolver] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [oldPassword, setOldPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [message, setMessage] = useState('');
 
   useEffect(() => {
     if (user) {
@@ -32,8 +35,26 @@ export default function ProfileTab() {
       const updated = { ...user, userName, isSolver };
       await setItem('user', JSON.stringify(updated));
       await refreshUser();
+      setMessage('Profile saved');
+    } catch {
+      setMessage('Could not save profile');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const changePassword = async () => {
+    setMessage('');
+    try {
+      await api.put('/api/user/updatepassword', { oldPassword, newPassword });
+      setOldPassword('');
+      setNewPassword('');
+      setMessage('Password updated');
+    } catch (e: unknown) {
+      const text =
+        (e as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+        'Could not update password';
+      setMessage(text);
     }
   };
 
@@ -54,6 +75,13 @@ export default function ProfileTab() {
       <Button mode="contained" onPress={save} loading={saving} style={{ marginBottom: 12 }}>
         Save profile
       </Button>
+      <Text variant="titleMedium" style={{ marginTop: 8, marginBottom: 8 }}>Change password</Text>
+      <TextInput mode="outlined" label="Current password" value={oldPassword} onChangeText={setOldPassword} secureTextEntry style={{ marginBottom: 8 }} />
+      <TextInput mode="outlined" label="New password (8+)" value={newPassword} onChangeText={setNewPassword} secureTextEntry style={{ marginBottom: 8 }} />
+      <Button mode="outlined" onPress={changePassword} disabled={!oldPassword || newPassword.length < 8}>
+        Update password
+      </Button>
+      {message ? <Text style={{ marginTop: 12, color: '#94a3b8' }}>{message}</Text> : null}
       <Button mode="outlined" onPress={signOut} textColor="#f87171">
         Sign out
       </Button>
