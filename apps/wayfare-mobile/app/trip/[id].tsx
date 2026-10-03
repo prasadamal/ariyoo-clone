@@ -1,6 +1,7 @@
+import * as ImagePicker from 'expo-image-picker';
 import { useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { ScrollView, View } from 'react-native';
+import { ScrollView, Share, View } from 'react-native';
 import { Button, SegmentedButtons, Text, TextInput } from 'react-native-paper';
 import { useFocusEffect } from '@react-navigation/native';
 import { v4 as uuid } from 'uuid';
@@ -12,12 +13,15 @@ import {
   listPacking,
   upsertEntry,
   upsertExpense,
+  upsertEntryMedia,
   upsertPackingItem,
   type LocalEntry,
   type LocalExpense,
   type LocalPackingItem,
   type LocalTrip,
 } from '../../src/lib/localDb';
+import { EntryMediaStrip } from '../../src/components/EntryMediaStrip';
+import { buildTripGeoJson } from '../../src/lib/geoExport';
 import { startTripTracking, stopTripTracking, getActiveTrackingTripId } from '../../src/lib/tracking';
 
 type Tab = 'journal' | 'budget' | 'packing' | 'route';
@@ -49,11 +53,35 @@ export default function TripDetailScreen() {
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
+  const attachPhotoToEntry = async (entryId: string) => {
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) return;
+    const picked = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      quality: 0.85,
+    });
+    if (picked.canceled || !picked.assets[0]) return;
+    const asset = picked.assets[0];
+    const now = new Date().toISOString();
+    await upsertEntryMedia({
+      id: uuid(),
+      trip_id: tripId,
+      entry_id: entryId,
+      local_uri: asset.uri,
+      storage_path: null,
+      mime_type: asset.mimeType ?? 'image/jpeg',
+      sync_status: 'pending',
+      updated_at: now,
+    });
+    await load();
+  };
+
   const addEntry = async () => {
     if (!entryText.trim()) return;
     const now = new Date().toISOString();
+    const entryId = uuid();
     await upsertEntry({
-      id: uuid(),
+      id: entryId,
       trip_id: tripId,
       recorded_at: now,
       body: entryText.trim(),
@@ -67,6 +95,21 @@ export default function TripDetailScreen() {
     setMood('');
     setPlace('');
     await load();
+    return entryId;
+  };
+
+  const addEntryWithOptionalPhoto = async () => {
+    const entryId = await addEntry();
+    if (entryId) await attachPhotoToEntry(entryId);
+  };
+
+  const exportRoute = async () => {
+    if (!trip) return;
+    const geo = await buildTripGeoJson(tripId, trip.title);
+    await Share.share({
+      message: JSON.stringify(geo, null, 2),
+      title: `${trip.title} route`,
+    });
   };
 
   const addExpense = async () => {
@@ -137,12 +180,19 @@ export default function TripDetailScreen() {
               {e.place_name ? <Text style={{ color: '#0f766e' }}>{e.place_name}</Text> : null}
               <Text>{e.body}</Text>
               {e.mood ? <Text style={{ marginTop: 4, color: '#57534e' }}>Mood: {e.mood}</Text> : null}
+              <EntryMediaStrip entryId={e.id} />
+              <Button mode="text" compact onPress={() => attachPhotoToEntry(e.id)} style={{ alignSelf: 'flex-start' }}>
+                Add photo
+              </Button>
             </View>
           ))}
           <TextInput label="Journal entry" value={entryText} onChangeText={setEntryText} multiline style={{ marginBottom: 8 }} />
           <TextInput label="Place tag" value={place} onChangeText={setPlace} style={{ marginBottom: 8 }} />
           <TextInput label="Mood" value={mood} onChangeText={setMood} style={{ marginBottom: 8 }} />
           <Button mode="contained" onPress={addEntry}>Save entry</Button>
+          <Button mode="outlined" style={{ marginTop: 8 }} onPress={addEntryWithOptionalPhoto}>
+            Save entry + photo
+          </Button>
         </View>
       )}
 
@@ -176,6 +226,9 @@ export default function TripDetailScreen() {
           </Text>
           <Button mode="contained" onPress={toggleTracking}>
             {tracking ? 'Stop recording route' : 'Start recording route'}
+          </Button>
+          <Button mode="outlined" style={{ marginTop: 12 }} onPress={exportRoute} disabled={points < 2}>
+            Export route (GeoJSON)
           </Button>
         </View>
       )}

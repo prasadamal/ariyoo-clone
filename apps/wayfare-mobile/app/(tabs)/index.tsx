@@ -4,7 +4,7 @@ import { useCallback, useState } from 'react';
 import { FlatList, View } from 'react-native';
 import { Button, Card, FAB, Text } from 'react-native-paper';
 import { listTrips, type LocalTrip } from '../../src/lib/localDb';
-import { syncTripsToCloud } from '../../src/lib/sync';
+import { syncAll } from '../../src/lib/sync';
 import { useAuth } from '../../src/context/AuthContext';
 
 export default function JournalTab() {
@@ -27,8 +27,19 @@ export default function JournalTab() {
       setSyncMsg('Sign in to sync to cloud');
       return;
     }
-    const result = await syncTripsToCloud(user.id);
-    setSyncMsg(result.errors.length ? result.errors[0] : `Synced ${result.synced} trip(s)`);
+    const result = await syncAll(user.id);
+    const pushed =
+      result.pushed.trips +
+      result.pushed.entries +
+      result.pushed.expenses +
+      result.pushed.packing +
+      result.pushed.track_points +
+      result.pushed.media;
+    setSyncMsg(
+      result.errors.length
+        ? result.errors[0]
+        : `Synced (pushed ${pushed}, pulled ${result.pulled.trips + result.pulled.entries} items)`
+    );
     await load();
   };
 

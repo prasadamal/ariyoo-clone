@@ -77,13 +77,15 @@ export async function getDb() {
         accuracy_m REAL,
         sync_status TEXT NOT NULL DEFAULT 'pending'
       );
-      CREATE TABLE IF NOT EXISTS sync_queue (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        entity TEXT NOT NULL,
-        entity_id TEXT NOT NULL,
-        action TEXT NOT NULL,
-        payload TEXT NOT NULL,
-        created_at TEXT NOT NULL
+      CREATE TABLE IF NOT EXISTS entry_media (
+        id TEXT PRIMARY KEY NOT NULL,
+        trip_id TEXT NOT NULL,
+        entry_id TEXT NOT NULL,
+        local_uri TEXT NOT NULL,
+        storage_path TEXT,
+        mime_type TEXT,
+        sync_status TEXT NOT NULL DEFAULT 'pending',
+        updated_at TEXT NOT NULL
       );
     `);
   }
@@ -129,6 +131,7 @@ export async function upsertTrip(trip: LocalTrip) {
 
 export async function deleteTrip(id: string) {
   const database = await getDb();
+  await database.runAsync('DELETE FROM entry_media WHERE trip_id = ?', [id]);
   await database.runAsync('DELETE FROM entries WHERE trip_id = ?', [id]);
   await database.runAsync('DELETE FROM expenses WHERE trip_id = ?', [id]);
   await database.runAsync('DELETE FROM packing_items WHERE trip_id = ?', [id]);
@@ -293,5 +296,136 @@ export async function insertTrackPoint(point: {
       point.altitude_m,
       point.accuracy_m,
     ]
+  );
+}
+
+export async function listPendingTrips() {
+  const database = await getDb();
+  return database.getAllAsync<LocalTrip>("SELECT * FROM trips WHERE sync_status = 'pending'");
+}
+
+export async function listPendingEntries() {
+  const database = await getDb();
+  return database.getAllAsync<LocalEntry>("SELECT * FROM entries WHERE sync_status = 'pending'");
+}
+
+export async function listPendingExpenses() {
+  const database = await getDb();
+  return database.getAllAsync<LocalExpense>("SELECT * FROM expenses WHERE sync_status = 'pending'");
+}
+
+export async function listPendingPacking() {
+  const database = await getDb();
+  return database.getAllAsync<LocalPackingItem>(
+    "SELECT * FROM packing_items WHERE sync_status = 'pending'"
+  );
+}
+
+export async function listPendingTrackPoints(limit = 500) {
+  const database = await getDb();
+  return database.getAllAsync<{
+    id: string;
+    trip_id: string;
+    recorded_at: string;
+    latitude: number;
+    longitude: number;
+    altitude_m: number | null;
+    accuracy_m: number | null;
+    sync_status: string;
+  }>(
+    `SELECT * FROM track_points WHERE sync_status = 'pending' ORDER BY recorded_at ASC LIMIT ?`,
+    [limit]
+  );
+}
+
+export type LocalEntryMedia = {
+  id: string;
+  trip_id: string;
+  entry_id: string;
+  local_uri: string;
+  storage_path: string | null;
+  mime_type: string | null;
+  sync_status: string;
+  updated_at: string;
+};
+
+export async function listEntryMedia(entryId: string) {
+  const database = await getDb();
+  return database.getAllAsync<LocalEntryMedia>(
+    'SELECT * FROM entry_media WHERE entry_id = ? ORDER BY updated_at ASC',
+    [entryId]
+  );
+}
+
+export async function listPendingEntryMedia() {
+  const database = await getDb();
+  return database.getAllAsync<LocalEntryMedia>("SELECT * FROM entry_media WHERE sync_status = 'pending'");
+}
+
+export async function upsertEntryMedia(media: LocalEntryMedia) {
+  const database = await getDb();
+  await database.runAsync(
+    `INSERT INTO entry_media (id, trip_id, entry_id, local_uri, storage_path, mime_type, sync_status, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+     ON CONFLICT(id) DO UPDATE SET
+       local_uri=excluded.local_uri, storage_path=excluded.storage_path, mime_type=excluded.mime_type,
+       sync_status=excluded.sync_status, updated_at=excluded.updated_at`,
+    [
+      media.id,
+      media.trip_id,
+      media.entry_id,
+      media.local_uri,
+      media.storage_path,
+      media.mime_type,
+      media.sync_status,
+      media.updated_at,
+    ]
+  );
+}
+
+export async function markSynced(table: 'trips' | 'entries' | 'expenses' | 'packing_items' | 'entry_media', id: string) {
+  const database = await getDb();
+  if (table === 'entry_media') {
+    await database.runAsync(`UPDATE ${table} SET sync_status = 'synced' WHERE id = ?`, [id]);
+    return;
+  }
+  await database.runAsync(`UPDATE ${table} SET sync_status = 'synced' WHERE id = ?`, [id]);
+}
+
+export async function markTrackPointsSynced(ids: string[]) {
+  if (!ids.length) return;
+  const database = await getDb();
+  const placeholders = ids.map(() => '?').join(',');
+  await database.runAsync(
+    `UPDATE track_points SET sync_status = 'synced' WHERE id IN (${placeholders})`,
+    ids
+  );
+}
+
+export async function countPendingSync() {
+  const database = await getDb();
+  const row = await database.getFirstAsync<{ c: number }>(`
+    SELECT (
+      (SELECT COUNT(*) FROM trips WHERE sync_status = 'pending') +
+      (SELECT COUNT(*) FROM entries WHERE sync_status = 'pending') +
+      (SELECT COUNT(*) FROM expenses WHERE sync_status = 'pending') +
+      (SELECT COUNT(*) FROM packing_items WHERE sync_status = 'pending') +
+      (SELECT COUNT(*) FROM track_points WHERE sync_status = 'pending') +
+      (SELECT COUNT(*) FROM entry_media WHERE sync_status = 'pending')
+    ) as c
+  `);
+  return row?.c ?? 0;
+}
+
+export async function listTrackPointsForExport(tripId: string) {
+  const database = await getDb();
+  return database.getAllAsync<{
+    recorded_at: string;
+    latitude: number;
+    longitude: number;
+    altitude_m: number | null;
+  }>(
+    'SELECT recorded_at, latitude, longitude, altitude_m FROM track_points WHERE trip_id = ? ORDER BY recorded_at ASC',
+    [tripId]
   );
 }
