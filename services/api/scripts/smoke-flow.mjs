@@ -1,4 +1,4 @@
-const base = process.env.API_BASE || 'http://localhost:5296';
+const base = process.env.API_URL || process.env.API_BASE || 'http://localhost:5296';
 
 async function main() {
   const health = await fetch(`${base}/health`);
@@ -17,7 +17,6 @@ async function main() {
     method: 'POST',
     headers,
     body: JSON.stringify({
-      seekerId: 999,
       message: 'Smoke test: quiet cafes in Mumbai #mumbai',
       tag: [{ tagName: 'mumbai' }, { tagName: 'food' }],
     }),

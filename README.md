@@ -21,4 +21,4 @@ The Ariyoo Expo app is configured for production builds via EAS. See `apps/mobil
 
 Wayfare uses Supabase + offline SQLite; see `apps/wayfare-mobile/README.md` and `supabase/migrations/`.
 
-**Publishing both apps:** see [`docs/STORE_PUBLISHING_CHECKLIST.md`](docs/STORE_PUBLISHING_CHECKLIST.md).
+**Publishing both apps:** start at [`docs/STORE_START_HERE.md`](docs/STORE_START_HERE.md) (full checklist: [`docs/STORE_PUBLISHING_CHECKLIST.md`](docs/STORE_PUBLISHING_CHECKLIST.md)).

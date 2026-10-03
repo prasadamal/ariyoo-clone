@@ -2,7 +2,12 @@
 
 Package / bundle: **`com.wayfare.app`** · App path: **`apps/wayfare-mobile`**
 
-Full dual-app guide: **[`docs/STORE_PUBLISHING_CHECKLIST.md`](../../../docs/STORE_PUBLISHING_CHECKLIST.md)** (Ariyoo + Wayfare).
+Full dual-app guide: **[`docs/STORE_PUBLISHING_CHECKLIST.md`](../../../docs/STORE_PUBLISHING_CHECKLIST.md)** · **Your next steps:** [`docs/STORE_START_HERE.md`](../../../docs/STORE_START_HERE.md).
+
+### Repo-ready
+
+- [x] `eas.json`, listings, Play assets, privacy HTML, data safety + review notes
+- [x] Supabase migrations + `supabase/README.md`
 
 ## 1. Expo / EAS
 

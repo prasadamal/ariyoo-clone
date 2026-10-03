@@ -28,21 +28,17 @@ Primary: Travel
 Secondary: Lifestyle
 
 ## Support URL
-[https://yourdomain.com/wayfare-support]
+https://github.com/prasadamal/ariyoo-clone
 
 ## Marketing URL (optional)
-[https://yourdomain.com/wayfare]
+https://github.com/prasadamal/ariyoo-clone
 
 ## Privacy policy URL
-[https://yourdomain.com/wayfare-privacy]
+https://prasadamal.github.io/ariyoo-clone/privacy/wayfare.html
 
 ## App Review notes (paste into Connect)
 
-Demo account:  
-Email: [reviewer@yourdomain.com]  
-Password: [secure password]  
-
-Steps: Sign in → open sample trek trip → view journal → Profile → Sync now.
+See `store/APP_REVIEW_NOTES.md`.
 
 Location is used only when user taps "Start recording route" on a trip.
 

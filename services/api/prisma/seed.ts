@@ -17,6 +17,12 @@ async function main() {
     create: { email: 'solver@example.com', passwordHash, fullName: 'Demo Solver', isSolver: true, isSeeker: true }
   });
 
+  await prisma.user.upsert({
+    where: { email: 'seeker@example.com' },
+    update: {},
+    create: { email: 'seeker@example.com', passwordHash, fullName: 'Demo Seeker', isSolver: false, isSeeker: true }
+  });
+
   const travel = await prisma.tag.findUnique({ where: { name: 'travel' } });
   if (travel) await prisma.userTag.upsert({ where: { userId_tagId: { userId: solver.id, tagId: travel.id } }, update: {}, create: { userId: solver.id, tagId: travel.id } });
 

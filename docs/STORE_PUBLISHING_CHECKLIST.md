@@ -1,6 +1,18 @@
 # Store publishing checklist — Ariyoo & Wayfare
 
+> **Start here:** [`STORE_START_HERE.md`](STORE_START_HERE.md) lists what is already done in the repo vs what you must do (accounts, EAS init, deploy).
+
 Both apps live in this monorepo, ship with **Expo EAS**, and can be built **without a Mac** (iOS via EAS cloud + TestFlight).
+
+## Already completed in repository
+
+- [x] App configs, permissions, EAS profiles, submit templates
+- [x] Store listing copy + Play icon 512 + feature graphics
+- [x] Privacy HTML + GitHub Pages workflow (`docs/privacy/`)
+- [x] Data safety / App Privacy answer sheets + App Review note templates
+- [x] Ariyoo API Dockerfile + deploy guide + demo seed users
+- [x] Wayfare Supabase migrations + setup README
+- [x] CI typecheck (+ optional EAS when `EXPO_TOKEN` is set)
 
 | App | Folder | Android package / iOS bundle | Backend |
 | --- | --- | --- | --- |

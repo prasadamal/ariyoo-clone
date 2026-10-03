@@ -1,42 +1,38 @@
-# Wayfare Privacy Policy (draft)
+# Wayfare Privacy Policy
 
-**Last updated:** [DATE]  
-**Contact:** [support@yourdomain.com]
+**Effective date:** October 3, 2026  
+**Contact:** privacy@ariyoo.app
 
-Wayfare (“we”, “the app”) is operated by [Your legal entity name]. This policy describes how we handle information when you use the Wayfare mobile app (`com.wayfare.app`).
+Wayfare is the offline-first travel journal app (`com.wayfare.app`) operated as part of the Ariyoo product family.
 
 ## What we collect
 
-- **Account information:** email and profile fields you provide when you register (via Supabase Auth).
+- **Account information:** email and profile fields when you register (Supabase Auth).
 - **Trip and journal data:** trip titles, destinations, journal text, moods, places, budgets, packing lists, and GPS route points you choose to record.
-- **Photos:** images you attach to journal entries, stored on your device and, when you sync, in our cloud storage.
-- **Location:** latitude/longitude (and optional altitude/accuracy) while you actively record a route on a trip.
+- **Photos:** images you attach to journal entries.
+- **Location:** latitude/longitude while you actively record a route on a trip.
 
 ## How we use data
 
-- To provide offline-first journaling and optional cloud backup/sync.
-- To authenticate you and associate your data with your account.
-- We do **not** sell your personal information.
+- Provide offline journaling and optional cloud backup/sync.
+- Authenticate you and associate your data with your account.
+
+We do **not** sell your personal information.
 
 ## Storage and security
 
-- Local data is stored in on-device SQLite.
-- Cloud data is stored in [Supabase](https://supabase.com) (region: [YOUR REGION]) with row-level security so only you can access your trips.
-- Photos in cloud sync use private storage buckets; access is authenticated.
+- Local data: on-device SQLite.
+- Cloud data: Supabase with row-level security; photos in private storage buckets.
 
 ## Your choices
 
-- Use the app in **offline-only mode** without creating an account (no cloud sync).
-- Sign out and request account deletion by contacting support.
+- Offline-only mode without an account (no cloud sync).
+- Request account deletion: privacy@ariyoo.app
 
 ## Children
 
-Wayfare is not directed at children under 13.
+Not directed at children under 13.
 
-## Changes
+## Public URL
 
-We may update this policy; the “Last updated” date will change.
-
----
-
-*Host this document at a public HTTPS URL before submitting to Google Play or the App Store.*
+https://prasadamal.github.io/ariyoo-clone/privacy/wayfare.html

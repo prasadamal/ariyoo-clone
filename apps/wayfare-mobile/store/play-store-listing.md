@@ -31,10 +31,10 @@ Travel & Local
 Everyone (user-generated travel content; location when recording routes)
 
 ## Contact email
-[support@yourdomain.com]
+support@ariyoo.app
 
 ## Privacy policy URL
-[https://yourdomain.com/wayfare-privacy]
+https://prasadamal.github.io/ariyoo-clone/privacy/wayfare.html
 
 ## Data safety (summary for form)
 
