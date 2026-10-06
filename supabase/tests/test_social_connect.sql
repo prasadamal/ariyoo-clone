@@ -151,9 +151,11 @@ select tests.check((select count(*) from public.feed_page('following')) = 3, 'fo
 select tests.check((select count(*) from public.feed_page('discover')) = 2, 'discover feed: public posts only');
 select tests.check((select count(*) from public.feed_page('place', 'kedarkantha')) = 2, 'place feed');
 select tests.check((select count(*) from public.feed_page('user', null, tests.uid('bob@example.com'))) = 2, 'profile feed for follower');
+select tests.check((select body from public.feed_page('post', p_post => tests.id('bob_private'))) like 'Followers only%', 'single post read model');
 
 select tests.act_as('frank@example.com');
 select tests.check((select count(*) from public.posts where user_id = tests.uid('bob@example.com')) = 1, 'non-follower sees public only');
+select tests.check((select count(*) from public.feed_page('post', p_post => tests.id('bob_private'))) = 0, 'single post respects visibility');
 select tests.expect_error(format('insert into public.post_likes (post_id, user_id) values (%L, auth.uid())', tests.id('bob_private')), 'row-level security');
 
 select tests.act_as('alice@example.com');
@@ -337,6 +339,7 @@ select tests.remember('board_chat', public.respond_board_request(tests.id('req_a
 select tests.expect_error(format('select public.respond_board_request(%L, true)', tests.id('req_dave')), 'no spots');
 select public.respond_board_request(tests.id('req_dave'), false);
 select tests.check((select status from public.board_posts where id = tests.id('board')) = 'full', 'post fills up');
+select tests.check((select status from public.board_page(p_post => tests.id('board'))) = 'full', 'single board post read model');
 
 select tests.act_as('alice@example.com');
 select tests.check((select my_request_status from public.board_page() where id = tests.id('board')) = 'accepted', 'request accepted');

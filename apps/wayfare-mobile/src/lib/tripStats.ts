@@ -1,60 +1,74 @@
-import { listEntries, listExpenses, listPacking, listTrackPointsForExport } from './localDb';
+import { formatMoney } from './currencyMath';
+import { formatKm } from './format';
+import { elevationStats, trackDistanceKm } from './geo';
+import { listEntries, listExpenses, listItinerary, listPacking, listTrackPoints, listTripMedia } from './localDb';
+import { isAudio } from './media';
 
-const R = 6371e3;
+export type TripStats = {
+  entryCount: number;
+  photoCount: number;
+  voiceCount: number;
+  distanceKm: number;
+  gainM: number;
+  maxAltitudeM: number | null;
+  gpsPoints: number;
+  spendByCurrency: Record<string, number>;
+  packingDone: number;
+  packingTotal: number;
+  planDone: number;
+  planTotal: number;
+  topMood: string | null;
+  lastEntryAt: string | null;
+};
 
-function haversineM(a: { latitude: number; longitude: number }, b: { latitude: number; longitude: number }) {
-  const φ1 = (a.latitude * Math.PI) / 180;
-  const φ2 = (b.latitude * Math.PI) / 180;
-  const Δφ = ((b.latitude - a.latitude) * Math.PI) / 180;
-  const Δλ = ((b.longitude - a.longitude) * Math.PI) / 180;
-  const x =
-    Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
-    Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
-  return 2 * R * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x));
-}
-
-export async function computeTripStats(tripId: string) {
-  const [entries, expenses, packing, points] = await Promise.all([
+export async function computeTripStats(tripId: string): Promise<TripStats> {
+  const [entries, expenses, packing, points, plan, media] = await Promise.all([
     listEntries(tripId),
     listExpenses(tripId),
     listPacking(tripId),
-    listTrackPointsForExport(tripId),
+    listTrackPoints(tripId),
+    listItinerary(tripId),
+    listTripMedia(tripId),
   ]);
-  let distanceM = 0;
-  for (let i = 1; i < points.length; i++) {
-    distanceM += haversineM(
-      { latitude: points[i - 1].latitude, longitude: points[i - 1].longitude },
-      { latitude: points[i].latitude, longitude: points[i].longitude }
-    );
-  }
-  const packed = packing.filter(p => p.packed).length;
-  const spend = expenses.reduce((s, e) => s + e.amount, 0);
-  const moods = entries.map(e => e.mood).filter(Boolean) as string[];
-  const topMood = moods.length
-    ? moods.sort((a, b) => moods.filter(m => m === b).length - moods.filter(m => m === a).length)[0]
-    : null;
-
+  const elev = elevationStats(points);
+  const spendByCurrency: Record<string, number> = {};
+  for (const e of expenses) spendByCurrency[e.currency] = (spendByCurrency[e.currency] ?? 0) + e.amount;
+  const moodCounts = new Map<string, number>();
+  for (const e of entries) if (e.mood) moodCounts.set(e.mood, (moodCounts.get(e.mood) ?? 0) + 1);
+  const topMood = [...moodCounts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
   return {
     entryCount: entries.length,
-    photoReadyEntries: entries.length,
-    distanceKm: distanceM / 1000,
+    photoCount: media.filter(m => !isAudio(m.mime_type)).length,
+    voiceCount: media.filter(m => isAudio(m.mime_type)).length,
+    distanceKm: trackDistanceKm(points),
+    gainM: elev.gainM,
+    maxAltitudeM: elev.maxM,
     gpsPoints: points.length,
-    spendInr: spend,
-    packingDone: packed,
+    spendByCurrency,
+    packingDone: packing.filter(p => p.packed).length,
     packingTotal: packing.length,
+    planDone: plan.filter(p => p.done).length,
+    planTotal: plan.length,
     topMood,
     lastEntryAt: entries.length ? entries[entries.length - 1].recorded_at : null,
   };
 }
 
-export function buildTripSynopsis(title: string, stats: Awaited<ReturnType<typeof computeTripStats>>) {
+export function formatSpend(spendByCurrency: Record<string, number>) {
+  const parts = Object.entries(spendByCurrency)
+    .filter(([, v]) => v > 0)
+    .map(([c, v]) => formatMoney(v, c, { compact: true }));
+  return parts.join(' + ');
+}
+
+export function buildTripSynopsis(title: string, stats: TripStats) {
   const parts: string[] = [];
-  if (stats.entryCount) parts.push(`${stats.entryCount} journal moment${stats.entryCount === 1 ? '' : 's'}`);
-  if (stats.distanceKm >= 0.5) parts.push(`${stats.distanceKm.toFixed(1)} km tracked`);
-  if (stats.spendInr > 0) parts.push(`₹${Math.round(stats.spendInr)} spent`);
-  if (stats.packingTotal) {
-    parts.push(`${stats.packingDone}/${stats.packingTotal} packed`);
-  }
-  if (!parts.length) return `Your ${title} journal is ready for the first entry.`;
+  if (stats.entryCount) parts.push(`${stats.entryCount} moment${stats.entryCount === 1 ? '' : 's'}`);
+  if (stats.photoCount) parts.push(`${stats.photoCount} photo${stats.photoCount === 1 ? '' : 's'}`);
+  if (stats.distanceKm >= 0.5) parts.push(`${formatKm(stats.distanceKm)} tracked`);
+  const spend = formatSpend(stats.spendByCurrency);
+  if (spend) parts.push(`${spend} spent`);
+  if (stats.packingTotal) parts.push(`${stats.packingDone}/${stats.packingTotal} packed`);
+  if (!parts.length) return `Your ${title} journal is ready for its first moment.`;
   return parts.join(' · ');
 }

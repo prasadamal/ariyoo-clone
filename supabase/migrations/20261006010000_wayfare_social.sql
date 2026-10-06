@@ -810,7 +810,8 @@ create or replace function public.feed_page(
   p_user uuid default null,
   p_before timestamptz default null,
   p_limit int default 20,
-  p_offset int default 0
+  p_offset int default 0,
+  p_post uuid default null
 )
 returns table (
   id uuid,
@@ -859,6 +860,7 @@ as $$
       when 'trending' then p.visibility = 'public' and p.created_at > now() - interval '14 days'
       when 'place' then p.visibility = 'public' and p.place_key = p_place_key
       when 'user' then p.user_id = p_user
+      when 'post' then p.id = p_post
       else false
     end
   order by
@@ -1070,7 +1072,7 @@ declare
   fn text;
 begin
   foreach fn in array array[
-    'public.feed_page(text, text, uuid, timestamptz, int, int)',
+    'public.feed_page(text, text, uuid, timestamptz, int, int, uuid)',
     'public.post_comments_page(uuid, int)',
     'public.get_profile(uuid, text)',
     'public.search_travellers(text, int)',

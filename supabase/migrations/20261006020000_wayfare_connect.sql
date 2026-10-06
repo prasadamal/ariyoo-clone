@@ -862,7 +862,8 @@ create or replace function public.board_page(
   p_place_key text default null,
   p_mine boolean default false,
   p_before timestamptz default null,
-  p_limit int default 20
+  p_limit int default 20,
+  p_post uuid default null
 )
 returns table (
   id uuid,
@@ -903,17 +904,21 @@ as $$
     (select r.status from public.board_requests r where r.post_id = b.id and r.user_id = auth.uid())
   from public.board_posts b
   join public.profiles pr on pr.id = b.user_id
-  where (p_kind is null or b.kind = p_kind)
-    and (p_place_key is null or b.place_key = p_place_key)
-    and (p_before is null or b.created_at < p_before)
-    and (
-      (p_mine and (
-        b.user_id = auth.uid()
-        or exists (select 1 from public.board_requests r where r.post_id = b.id and r.user_id = auth.uid())
-      ))
-      or (not p_mine
-        and b.status <> 'closed'
-        and coalesce(b.ends_on, b.starts_on, (b.meet_at at time zone 'utc')::date, current_date) >= current_date - 1)
+  where (p_post is not null and b.id = p_post)
+    or (
+      p_post is null
+      and (p_kind is null or b.kind = p_kind)
+      and (p_place_key is null or b.place_key = p_place_key)
+      and (p_before is null or b.created_at < p_before)
+      and (
+        (p_mine and (
+          b.user_id = auth.uid()
+          or exists (select 1 from public.board_requests r where r.post_id = b.id and r.user_id = auth.uid())
+        ))
+        or (not p_mine
+          and b.status <> 'closed'
+          and coalesce(b.ends_on, b.starts_on, (b.meet_at at time zone 'utc')::date, current_date) >= current_date - 1)
+      )
     )
   order by b.created_at desc
   limit least(greatest(coalesce(p_limit, 20), 1), 50)
@@ -1416,7 +1421,7 @@ begin
     'public.conversation_messages(uuid, timestamptz, int)',
     'public.place_rooms(text, int)',
     'public.respond_board_request(uuid, boolean)',
-    'public.board_page(text, text, boolean, timestamptz, int)',
+    'public.board_page(text, text, boolean, timestamptz, int, uuid)',
     'public.board_requests_for_post(uuid)',
     'public.place_tips_page(text, int)',
     'public.nearby_travellers(double precision, double precision, double precision, int)',

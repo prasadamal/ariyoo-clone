@@ -1,6 +1,6 @@
 {
   "name": "wayfare-mobile",
-  "version": "1.2.0",
+  "version": "2.0.0",
   "private": true,
   "main": "expo-router/entry",
   "scripts": {
@@ -8,6 +8,9 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "typecheck": "tsc --noEmit",
+    "test": "node --import tsx --test 'src/**/*.test.ts'",
+    "test:db": "../../supabase/tests/run_local.sh",
+    "verify": "npm run typecheck && npm test",
     "assets:generate": "python3 scripts/generate-brand-assets.py",
     "build:android": "eas build --platform android --profile production",
     "build:ios": "eas build --platform ios --profile production",

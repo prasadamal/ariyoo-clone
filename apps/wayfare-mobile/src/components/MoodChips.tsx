@@ -1,16 +1,15 @@
-import { View } from 'react-native';
-import { Chip } from 'react-native-paper';
+import { ChipSelect } from '../ui/ChipSelect';
 
-const MOODS = ['😊 Great', '😌 Calm', '😮 Wow', '😴 Tired', '🥶 Cold', '🔥 Epic'];
+export const MOODS = ['😊 Great', '😌 Calm', '😮 Wow', '🔥 Epic', '😴 Tired', '🥶 Cold', '🥵 Hot', '😅 Tough', '🥹 Grateful'];
 
 export function MoodChips({ value, onChange }: { value: string; onChange: (m: string) => void }) {
   return (
-    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
-      {MOODS.map(m => (
-        <Chip key={m} selected={value === m} onPress={() => onChange(value === m ? '' : m)} compact>
-          {m}
-        </Chip>
-      ))}
-    </View>
+    <ChipSelect
+      scroll
+      allowDeselect
+      value={value || null}
+      onChange={v => onChange(v)}
+      options={MOODS.map(m => ({ value: m, label: m }))}
+    />
   );
 }

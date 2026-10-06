@@ -1,6 +1,7 @@
 import { Audio } from 'expo-av';
 import { v4 as uuid } from 'uuid';
 import { upsertEntryMedia } from './localDb';
+import { persistVoiceNote } from './media';
 
 let activeRecording: Audio.Recording | null = null;
 
@@ -14,23 +15,34 @@ export async function startVoiceRecording() {
   activeRecording = recording;
 }
 
+/** Stops, moves the clip out of the cache directory and attaches it to the entry. */
 export async function stopVoiceRecordingAndSave(tripId: string, entryId: string) {
   if (!activeRecording) return;
-  await activeRecording.stopAndUnloadAsync();
-  const uri = activeRecording.getURI();
+  const recording = activeRecording;
   activeRecording = null;
+  await recording.stopAndUnloadAsync();
+  await Audio.setAudioModeAsync({ allowsRecordingIOS: false, playsInSilentModeIOS: true }).catch(() => undefined);
+  const uri = recording.getURI();
   if (!uri) return;
-  const now = new Date().toISOString();
+  const mediaId = uuid();
+  const stored = await persistVoiceNote(uri, mediaId);
   await upsertEntryMedia({
-    id: uuid(),
+    id: mediaId,
     trip_id: tripId,
     entry_id: entryId,
-    local_uri: uri,
+    local_uri: stored,
     storage_path: null,
     mime_type: 'audio/m4a',
     sync_status: 'pending',
-    updated_at: now,
+    updated_at: new Date().toISOString(),
   });
+}
+
+export async function cancelVoiceRecording() {
+  if (!activeRecording) return;
+  const recording = activeRecording;
+  activeRecording = null;
+  await recording.stopAndUnloadAsync().catch(() => undefined);
 }
 
 export function isRecordingVoice() {
