@@ -1,6 +1,6 @@
 import * as Location from 'expo-location';
 import * as TaskManager from 'expo-task-manager';
-import { v4 as uuid } from 'uuid';
+import { uuid } from './id';
 import { createLiveShare, endLiveShare, pushLiveLocation } from './liveShare';
 import { insertTrackPoint } from './localDb';
 import {
@@ -44,8 +44,8 @@ TaskManager.defineTask(WAYFARE_LOCATION_TASK, async ({ data, error }) => {
 async function requestPermissions() {
   const fg = await Location.requestForegroundPermissionsAsync();
   if (!fg.granted) throw new Error('Location permission is required for route recording and live location.');
-  // Background is optional: without it, recording continues while Wayfare is open.
-  await Location.requestBackgroundPermissionsAsync().catch(() => undefined);
+  // "While using" is enough: updates continue in the background through the Android foreground
+  // service and the iOS location background mode, so Wayfare never asks for "Allow all the time".
 }
 
 /** Starts or stops OS location updates to match what is active (route recording / live share). */

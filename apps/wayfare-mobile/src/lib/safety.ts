@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SMS from 'expo-sms';
 import { Linking, Platform } from 'react-native';
-import { v4 as uuid } from 'uuid';
+import { uuid } from './id';
 import { cancelLocal, scheduleLocal } from './notifications';
 
 const CONTACTS_KEY = 'wayfare_emergency_contacts_v1';

@@ -15,7 +15,7 @@ accounts first (sign up in the app, then run `supabase/scripts/reviewer_demo_see
 Wayfare is a travel journal plus a traveller community.
 
 1. **Journal (works offline):** Journeys → open "Hampta Pass (demo)" → Journal: write a moment, add a photo, record a voice note. Plan / Budget / Pack tabs work offline too.
-2. **Route recording:** Route tab → *Start recording route* → allow location. Background location is used only while recording is on; Android shows a persistent notification. Tap *Stop recording* to end.
+2. **Route recording:** Route tab → *Start recording route* → allow location (*While using the app* is all Wayfare asks for). Recording keeps running with the screen off — iOS shows the blue location indicator, Android a persistent notification. Tap *Stop recording* to end.
 3. **Community:** accept the Community Guidelines when prompted (shown once before any community feature).
    - Discover → Feed: posts from the demo buddy.
    - Connect → Board: open the demo ride share → *Ask to join*.
@@ -32,9 +32,9 @@ Terms of use: https://prasadamal.github.io/ariyoo-clone/privacy/wayfare-terms.ht
 
 | Permission | When it is requested |
 | --- | --- |
-| Location (when in use) | Saving a moment with "Add location", Nearby, chat location, SOS |
-| Location (always / background) | Only after *Start recording route* or *Share live* |
-| Camera / Photos | Adding photos to entries, posts, chats, avatar |
+| Location (while using the app) | Saving a moment with "Add location", Nearby, chat location, SOS, *Start recording route*, *Share live*. Wayfare never asks for "Always": recording continues in the background through the iOS location background mode / an Android foreground service started by the user. |
+| Camera | Taking a photo for an entry, post or chat |
+| Photos | None needed — the system photo picker shares only the photos the user picks |
 | Microphone | Recording a voice note |
 | Notifications | Turning on notifications (Inbox prompt or Settings), check-in reminders |
 | Face ID | Turning on App lock |

@@ -1,7 +1,6 @@
 // Registers the background location task as early as possible (background relaunches need it).
 import '../src/lib/locationTask';
-import { DarkTheme, DefaultTheme, ThemeProvider as NavigationThemeProvider } from '@react-navigation/native';
-import { Stack } from 'expo-router';
+import { Stack, DarkTheme, DefaultTheme, ThemeProvider as NavigationThemeProvider } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useMemo } from 'react';
 import { Button, Dialog, Provider as PaperProvider, Portal, Text } from 'react-native-paper';

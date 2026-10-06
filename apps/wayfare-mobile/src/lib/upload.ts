@@ -1,5 +1,5 @@
-import * as FileSystem from 'expo-file-system';
-import * as ImageManipulator from 'expo-image-manipulator';
+import * as FileSystem from 'expo-file-system/legacy';
+import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 import { supabaseAnonKey, supabaseUrl } from '../config';
 import { supabase } from './supabase';
 
@@ -15,20 +15,26 @@ export async function prepareImage(
   quality = 0.8,
   size?: { width?: number; height?: number }
 ): Promise<PreparedImage> {
-  let width = size?.width ?? 0;
-  let height = size?.height ?? 0;
-  if (!width || !height) {
-    const probe = await ImageManipulator.manipulateAsync(uri, [], { compress: 1 });
-    width = probe.width;
-    height = probe.height;
+  const context = ImageManipulator.manipulate(uri);
+  try {
+    let width = size?.width ?? 0;
+    let height = size?.height ?? 0;
+    if (!width || !height) {
+      const probeContext = ImageManipulator.manipulate(uri);
+      const probe = await probeContext.renderAsync();
+      width = probe.width;
+      height = probe.height;
+      probe.release();
+      probeContext.release();
+    }
+    if (Math.max(width, height) > maxEdge) context.resize(width >= height ? { width: maxEdge } : { height: maxEdge });
+    const image = await context.renderAsync();
+    const out = await image.saveAsync({ compress: quality, format: SaveFormat.JPEG });
+    image.release();
+    return { uri: out.uri, width: out.width, height: out.height, mimeType: 'image/jpeg' };
+  } finally {
+    context.release();
   }
-  const actions: ImageManipulator.Action[] =
-    Math.max(width, height) > maxEdge ? [{ resize: width >= height ? { width: maxEdge } : { height: maxEdge } }] : [];
-  const out = await ImageManipulator.manipulateAsync(uri, actions, {
-    compress: quality,
-    format: ImageManipulator.SaveFormat.JPEG,
-  });
-  return { uri: out.uri, width: out.width, height: out.height, mimeType: 'image/jpeg' };
 }
 
 /** Copies a cache file (picker / recorder output) into durable app storage. */

@@ -69,7 +69,7 @@ export function DateField({ label, value, onChange, minimumDate, maximumDate, cl
                 themeVariant={dark ? 'dark' : 'light'}
                 minimumDate={minimumDate}
                 maximumDate={maximumDate}
-                onChange={(_, d) => d && setDraft(d)}
+                onValueChange={(_, d) => setDraft(d)}
                 accentColor={colors.primary}
               />
               <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 8 }}>

@@ -1,12 +1,11 @@
-import { useFocusEffect } from '@react-navigation/native';
 import * as Clipboard from 'expo-clipboard';
 import { Image } from 'expo-image';
 import * as Location from 'expo-location';
-import { router, Stack, useLocalSearchParams } from 'expo-router';
+import { router, Stack, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, FlatList, KeyboardAvoidingView, Linking, Platform, Pressable, Share, View } from 'react-native';
 import { Button, Dialog, IconButton, Menu, Portal, Text, TextInput } from 'react-native-paper';
-import { v4 as uuid } from 'uuid';
+import { uuid } from '../../src/lib/id';
 import { conversationTitle } from '../../src/components/ConversationRow';
 import { GuidelinesGate } from '../../src/components/GuidelinesGate';
 import { ReportDialog } from '../../src/components/ReportDialog';

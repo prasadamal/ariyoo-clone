@@ -1,4 +1,4 @@
-import { v4 as uuid } from 'uuid';
+import { uuid } from '../lib/id';
 import { screenText } from '../lib/contentFilter';
 import { prepareImage, publicUrl, uploadFile } from '../lib/upload';
 import { CommunityError, currentUserId, db, friendly, rpc } from './client';

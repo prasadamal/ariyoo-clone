@@ -1,6 +1,6 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import type { ComponentProps } from 'react';
-import type { StyleProp, TextStyle } from 'react-native';
+import type { ColorValue, StyleProp, TextStyle } from 'react-native';
 
 export type IconName = ComponentProps<typeof MaterialCommunityIcons>['name'];
 
@@ -13,7 +13,7 @@ export function Icon({
 }: {
   name: string;
   size?: number;
-  color?: string;
+  color?: ColorValue;
   style?: StyleProp<TextStyle>;
 }) {
   return <MaterialCommunityIcons name={name as IconName} size={size} color={color} style={style} />;

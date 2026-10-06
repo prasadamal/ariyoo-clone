@@ -1,5 +1,5 @@
 import * as SQLite from 'expo-sqlite';
-import { v4 as uuid } from 'uuid';
+import { uuid } from './id';
 
 /** Bump when adding a migration step in `migrate()`. */
 const SCHEMA_VERSION = 2;

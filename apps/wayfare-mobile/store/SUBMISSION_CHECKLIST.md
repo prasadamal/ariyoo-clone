@@ -50,7 +50,10 @@ npm run submit:ios
 - [ ] App created with package `com.wayfare.app`
 - [ ] Listing: `store/play-store-listing.md`
 - [ ] Privacy policy HTTPS URL (draft: `store/PRIVACY_POLICY.md`)
-- [ ] Data safety + background-location declaration: `store/DATA_SAFETY_AND_PRIVACY.md`
+- [ ] Data safety + foreground-service (location) declaration: `store/DATA_SAFETY_AND_PRIVACY.md`
+  (no background-location or photo-permission declarations: those permissions are not requested)
+- [ ] Target API: Expo SDK 57 builds target Android 16 / API 36, which Play requires for new apps
+  and updates since 31 Aug 2026; iOS builds use Xcode 26 on EAS (required since 28 Apr 2026)
 - [ ] Content rating questionnaire (users interact / share location)
 - [ ] AAB from EAS production → Internal → Production
 - [ ] `store/google-play-service-account.json` for `eas submit` (gitignored; copy from Ariyoo `.example` pattern)

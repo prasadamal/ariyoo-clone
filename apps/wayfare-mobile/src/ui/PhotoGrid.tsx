@@ -17,7 +17,7 @@ export function PhotoGrid({ uris, height = 220, radius = 14 }: Props) {
     <Pressable key={uri + i} style={[{ overflow: 'hidden' }, style]} onPress={() => setOpen(i)} accessibilityLabel={`Photo ${i + 1} of ${uris.length}`}>
       <Image source={{ uri }} style={{ width: '100%', height: '100%' }} contentFit="cover" transition={120} />
       {i === 3 && extra > 0 ? (
-        <View style={[StyleSheet.absoluteFillObject, { backgroundColor: 'rgba(0,0,0,0.45)', alignItems: 'center', justifyContent: 'center' }]}>
+        <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.45)', alignItems: 'center', justifyContent: 'center' }]}>
           <Text style={{ color: '#fff', fontSize: 22, fontWeight: '800' }}>+{extra}</Text>
         </View>
       ) : null}

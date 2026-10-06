@@ -1,7 +1,7 @@
 # Wayfare Mobile
 
 **Your journey, journaled. Your people, found.** A travel journal that works offline, plus a
-traveller network for finding people heading where you are going — built with Expo (SDK 51),
+traveller network for finding people heading where you are going — built with Expo (SDK 57),
 React Native Paper and Supabase.
 
 ## What's in 2.0

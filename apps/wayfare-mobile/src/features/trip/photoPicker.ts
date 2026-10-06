@@ -11,11 +11,10 @@ async function fromCamera(): Promise<PickedPhoto[]> {
   return res.assets.map(a => ({ uri: a.uri, width: a.width, height: a.height }));
 }
 
+// The system photo picker needs no library permission (Android Photo Picker / iOS PHPicker).
 async function fromLibrary(multiple: boolean): Promise<PickedPhoto[]> {
-  const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
-  if (!perm.granted) throw new Error('Photo library permission is needed to add photos.');
   const res = await ImagePicker.launchImageLibraryAsync({
-    mediaTypes: ImagePicker.MediaTypeOptions.Images,
+    mediaTypes: ['images'],
     quality: 0.9,
     allowsMultipleSelection: multiple,
     selectionLimit: multiple ? 10 : 1,

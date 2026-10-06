@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert, Pressable, View } from 'react-native';
 import { Button, ProgressBar, Text, TextInput } from 'react-native-paper';
-import { v4 as uuid } from 'uuid';
+import { uuid } from '../../lib/id';
 import { getRates, type RatesSnapshot } from '../../lib/currency';
 import { POPULAR_CURRENCIES, formatMoney, sumInCurrency } from '../../lib/currencyMath';
 import { timeAgo } from '../../lib/format';

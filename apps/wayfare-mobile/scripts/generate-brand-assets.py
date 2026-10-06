@@ -25,8 +25,24 @@ def draw_mark(size: int) -> Image.Image:
     return img
 
 
+def draw_notification_mark(size: int) -> Image.Image:
+    """Android status-bar icon: white shapes on transparency (the system tints it)."""
+    img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(img)
+    white = (255, 255, 255, 255)
+    w = size * 0.14
+    draw.rounded_rectangle((size * 0.12, size * 0.66, size * 0.88, size * 0.66 + w), radius=int(w / 2), fill=white)
+    draw.polygon([(size * 0.28, size * 0.66), (size * 0.5, size * 0.18), (size * 0.72, size * 0.66)], fill=white)
+    return img
+
+
+def write_notification_icon() -> None:
+    draw_notification_mark(96).save(ASSETS / "notification-icon.png")
+
+
 def main() -> None:
     ASSETS.mkdir(parents=True, exist_ok=True)
+    write_notification_icon()
     icon = draw_mark(1024)
     icon.save(ASSETS / "icon.png")
     icon.save(ASSETS / "adaptive-icon.png")

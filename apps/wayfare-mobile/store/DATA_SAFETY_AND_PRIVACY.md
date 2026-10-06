@@ -26,8 +26,10 @@ Answers mirror the privacy policy (`docs/privacy/wayfare.html`). Re-check them i
 | Financial info | No | — | — | Trip expenses are user-entered notes, not payment data |
 | Contacts | No | — | — | Emergency contacts stay on the device |
 
-**Background location declaration (Play Console → App content → Sensitive permissions):**
-Wayfare records the route of a trip only after the user taps *Start recording route* (and keeps a live-location link updated only after *Share live*). Recording continues with the screen off so the full trek is captured; a persistent notification shows while it runs and the user stops it at any time. Record a short video of: trip → Route → Start recording → notification visible → Stop.
+**Permissions declarations (Play Console → App content):**
+- *Location permissions:* none needed — Wayfare does not request `ACCESS_BACKGROUND_LOCATION` (it is blocked in the manifest).
+- *Photo and video permissions:* none needed — photos come from the system photo picker; `READ_MEDIA_*` are blocked.
+- *Foreground service permissions:* declare **Location** (`FOREGROUND_SERVICE_LOCATION`). Explanation: "Route recording and live-location links the user starts keep updating with the screen off; a persistent notification shows while they run and the user can stop them at any time." Video: trip → Route → *Start recording route* → notification visible → *Stop recording*.
 
 ## Apple — App Privacy (nutrition label)
 

@@ -18,7 +18,12 @@ export function configureNotifications() {
   if (configured) return;
   configured = true;
   Notifications.setNotificationHandler({
-    handleNotification: async () => ({ shouldShowAlert: true, shouldPlaySound: true, shouldSetBadge: false }),
+    handleNotification: async () => ({
+      shouldShowBanner: true,
+      shouldShowList: true,
+      shouldPlaySound: true,
+      shouldSetBadge: false,
+    }),
   });
   if (Platform.OS === 'android') {
     Notifications.setNotificationChannelAsync('messages', {
@@ -127,7 +132,11 @@ export async function scheduleLocal(params: {
       sound: 'default',
       data: params.url ? { url: params.url } : {},
     },
-    trigger: { date: params.at, channelId: params.channelId ?? 'social' },
+    trigger: {
+      type: Notifications.SchedulableTriggerInputTypes.DATE,
+      date: params.at,
+      channelId: params.channelId ?? 'social',
+    },
   });
 }
 
@@ -152,7 +161,11 @@ export function useNotificationRouting() {
         handled = true;
       }
     };
-    Notifications.getLastNotificationResponseAsync().then(go).catch(() => undefined);
+    try {
+      go(Notifications.getLastNotificationResponse());
+    } catch {
+      // no launch notification available
+    }
     const sub = Notifications.addNotificationResponseReceivedListener(go);
     return () => sub.remove();
   }, []);

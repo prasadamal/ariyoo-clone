@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { v4 as uuid } from 'uuid';
+import { uuid } from '../../src/lib/id';
 import { getDestination } from '../../src/content/destinations';
 import { packingTemplate } from '../../src/content/tripTypes';
 import { useAuth } from '../../src/context/AuthContext';

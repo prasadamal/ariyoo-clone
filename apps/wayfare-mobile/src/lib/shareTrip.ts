@@ -1,5 +1,5 @@
 import { Share } from 'react-native';
-import { v4 as uuid } from 'uuid';
+import { uuid } from './id';
 import { getShareBaseUrl, isSupabaseConfigured } from '../config';
 import { supabase } from './supabase';
 import { updateTrip, type LocalTrip } from './localDb';

@@ -1,4 +1,4 @@
-import { Audio, type AVPlaybackStatus } from 'expo-av';
+import { createAudioPlayer, setAudioModeAsync, type AudioPlayer } from 'expo-audio';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, View } from 'react-native';
 import { Button } from 'react-native-paper';
@@ -8,7 +8,7 @@ import { isAudio, resolveMediaUri } from '../lib/media';
 export function EntryVoiceNotes({ entryId, refreshKey = 0 }: { entryId: string; refreshKey?: number }) {
   const [clips, setClips] = useState<LocalEntryMedia[]>([]);
   const [playing, setPlaying] = useState<string | null>(null);
-  const sound = useRef<Audio.Sound | null>(null);
+  const player = useRef<AudioPlayer | null>(null);
 
   const load = useCallback(async () => {
     setClips((await listEntryMedia(entryId)).filter(m => isAudio(m.mime_type)));
@@ -18,16 +18,20 @@ export function EntryVoiceNotes({ entryId, refreshKey = 0 }: { entryId: string; 
     load();
   }, [load, refreshKey]);
 
-  useEffect(
-    () => () => {
-      sound.current?.unloadAsync().catch(() => undefined);
-    },
-    []
-  );
+  const release = () => {
+    const p = player.current;
+    player.current = null;
+    try {
+      p?.remove();
+    } catch {
+      // already released
+    }
+  };
+
+  useEffect(() => release, []);
 
   const stop = async () => {
-    await sound.current?.unloadAsync().catch(() => undefined);
-    sound.current = null;
+    release();
     setPlaying(null);
   };
 
@@ -40,14 +44,16 @@ export function EntryVoiceNotes({ entryId, refreshKey = 0 }: { entryId: string; 
       return;
     }
     try {
-      await Audio.setAudioModeAsync({ allowsRecordingIOS: false, playsInSilentModeIOS: true });
-      const { sound: s } = await Audio.Sound.createAsync({ uri }, { shouldPlay: true });
-      sound.current = s;
-      setPlaying(clip.id);
-      s.setOnPlaybackStatusUpdate((st: AVPlaybackStatus) => {
-        if (st.isLoaded && st.didJustFinish) stop();
+      await setAudioModeAsync({ allowsRecording: false, playsInSilentMode: true });
+      const p = createAudioPlayer({ uri });
+      player.current = p;
+      p.addListener('playbackStatusUpdate', st => {
+        if (st.didJustFinish && player.current === p) stop();
       });
+      p.play();
+      setPlaying(clip.id);
     } catch {
+      release();
       setPlaying(null);
       Alert.alert('Voice note', 'Could not play this clip.');
     }

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert, Pressable, View } from 'react-native';
 import { Button, Checkbox, IconButton, Text, TextInput } from 'react-native-paper';
-import { v4 as uuid } from 'uuid';
+import { uuid } from '../../lib/id';
 import { getDestination } from '../../content/destinations';
 import { dayCount, formatDay, parseDay, toDayString } from '../../lib/format';
 import { deleteItineraryItem, listItinerary, upsertItineraryItem, type LocalItineraryItem, type LocalTrip } from '../../lib/localDb';

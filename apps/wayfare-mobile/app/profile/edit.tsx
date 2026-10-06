@@ -48,9 +48,7 @@ export default function EditProfileScreen() {
   if (!profile) return null;
 
   const pickAvatar = async () => {
-    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!perm.granted) return;
-    const res = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, allowsEditing: true, aspect: [1, 1], quality: 0.9 });
+    const res = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], allowsEditing: true, aspect: [1, 1], quality: 0.9 });
     if (res.canceled || !res.assets[0]) return;
     setAvatarUri(res.assets[0].uri);
     setAvatarSize({ width: res.assets[0].width, height: res.assets[0].height });

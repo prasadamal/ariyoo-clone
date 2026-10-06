@@ -1,6 +1,6 @@
 import * as Localization from 'expo-localization';
 import * as Location from 'expo-location';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import { Alert, Pressable, Share, View } from 'react-native';
 import { Button, IconButton, Text, TextInput } from 'react-native-paper';

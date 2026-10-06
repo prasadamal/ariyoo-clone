@@ -1,10 +1,11 @@
+import { useAudioRecorder } from 'expo-audio';
 import * as Haptics from 'expo-haptics';
 import * as Location from 'expo-location';
 import { router } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert, View } from 'react-native';
 import { Button, Chip, IconButton, Menu, Text, TextInput } from 'react-native-paper';
-import { v4 as uuid } from 'uuid';
+import { uuid } from '../../lib/id';
 import { EntryMediaStrip } from '../../components/EntryMediaStrip';
 import { EntryVoiceNotes } from '../../components/EntryVoiceNotes';
 import { MoodChips } from '../../components/MoodChips';
@@ -13,7 +14,7 @@ import { useToast } from '../../context/ToastContext';
 import { formatDay, toDayString } from '../../lib/format';
 import { deleteEntry, listEntries, upsertEntry, upsertEntryMedia, type LocalEntry, type LocalTrip } from '../../lib/localDb';
 import { persistJournalPhoto } from '../../lib/media';
-import { cancelVoiceRecording, startVoiceRecording, stopVoiceRecordingAndSave } from '../../lib/voiceNote';
+import { VOICE_NOTE_PRESET, cancelVoiceRecording, startVoiceRecording, stopVoiceRecordingAndSave } from '../../lib/voiceNote';
 import { fetchWeatherSummary } from '../../lib/weather';
 import { useAppTheme } from '../../theme';
 import { EmptyState } from '../../ui/EmptyState';
@@ -42,6 +43,7 @@ export function JournalTab({ trip, onChanged }: Props) {
   const [photos, setPhotos] = useState<PickedPhoto[]>([]);
   const [saving, setSaving] = useState(false);
   const [recording, setRecording] = useState<string | null>(null);
+  const recorder = useAudioRecorder(VOICE_NOTE_PRESET);
   const [menuFor, setMenuFor] = useState<string | null>(null);
   const [mediaKey, setMediaKey] = useState(0);
 
@@ -55,9 +57,9 @@ export function JournalTab({ trip, onChanged }: Props) {
 
   useEffect(
     () => () => {
-      cancelVoiceRecording();
+      cancelVoiceRecording(recorder);
     },
-    []
+    [recorder]
   );
 
   const attachPhotos = async (entryId: string, picked: PickedPhoto[]) => {
@@ -149,14 +151,17 @@ export function JournalTab({ trip, onChanged }: Props) {
   };
 
   const toggleVoice = async () => {
+    // The entry this clip belongs to; removed again if recording fails.
+    let entryId = recording;
     try {
-      if (!recording) {
+      if (!entryId) {
         const entry = await createEntry(text.trim() || '🎙 Voice note');
+        entryId = entry.id;
+        await startVoiceRecording(recorder);
         setRecording(entry.id);
-        await startVoiceRecording();
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => undefined);
       } else {
-        await stopVoiceRecordingAndSave(trip.id, recording);
+        await stopVoiceRecordingAndSave(recorder, trip.id, entryId);
         setRecording(null);
         setText('');
         setMediaKey(k => k + 1);
@@ -164,8 +169,10 @@ export function JournalTab({ trip, onChanged }: Props) {
         onChanged();
       }
     } catch (e) {
-      if (recording) await deleteEntry(recording).catch(() => undefined);
+      await cancelVoiceRecording(recorder);
+      if (entryId) await deleteEntry(entryId).catch(() => undefined);
       setRecording(null);
+      await load();
       toast(e instanceof Error ? e.message : 'Could not record');
     }
   };

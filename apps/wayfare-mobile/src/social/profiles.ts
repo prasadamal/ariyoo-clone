@@ -1,4 +1,4 @@
-import { v4 as uuid } from 'uuid';
+import { uuid } from '../lib/id';
 import { prepareImage, uploadFile } from '../lib/upload';
 import { CommunityError, currentUserId, db, friendly, rpc } from './client';
 import type { MyProfile, PublicProfile, TravellerSummary } from './types';
