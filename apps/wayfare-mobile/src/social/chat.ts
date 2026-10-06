@@ -10,10 +10,12 @@ export async function myConversations() {
   return rpc<ConversationSummary[]>('my_conversations');
 }
 
-export async function getConversation(id: string): Promise<ConversationSummary | null> {
+export type ConversationView = ConversationSummary & { joined: boolean };
+
+export async function getConversation(id: string): Promise<ConversationView | null> {
   const mine = await myConversations();
   const hit = mine.find(c => c.id === id);
-  if (hit) return hit;
+  if (hit) return { ...hit, joined: true };
   // A destination room you have not joined yet is still readable as metadata.
   const { data, error } = await db()
     .from('conversations')
@@ -23,7 +25,10 @@ export async function getConversation(id: string): Promise<ConversationSummary |
   if (error) throw new CommunityError(friendly(error));
   if (!data) return null;
   return {
-    ...(data as Omit<ConversationSummary, 'muted' | 'role' | 'unread_count' | 'last_message_preview' | 'other_user_id' | 'other_username' | 'other_display_name' | 'other_avatar_path'>),
+    ...(data as Pick<
+      ConversationSummary,
+      'id' | 'kind' | 'title' | 'place_key' | 'last_message_at' | 'created_at' | 'member_count' | 'invite_code' | 'trip_id' | 'board_post_id'
+    >),
     last_message_preview: null,
     muted: false,
     role: 'member',
@@ -32,6 +37,7 @@ export async function getConversation(id: string): Promise<ConversationSummary |
     other_username: null,
     other_display_name: null,
     other_avatar_path: null,
+    joined: false,
   };
 }
 

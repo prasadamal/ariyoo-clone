@@ -1,6 +1,8 @@
 /** Traveller tiers — mirrors the server's compute_tier() so local previews match verified badges. */
 
 export type Tier = 'traveler' | 'hardcore' | 'legendary';
+/** Tiers that have unlock rules. */
+export type RankedTier = Exclude<Tier, 'traveler'>;
 
 export const TIER_RULES = {
   hardcore: { km: 100, altitudeM: 4000 },
@@ -34,8 +36,8 @@ export function normalizeTier(value: string | null | undefined): Tier {
 /** Progress (0–1) toward the next tier via whichever path (distance or altitude) is closer. */
 export function nextTierProgress(km: number, maxAltitudeM: number) {
   const current = computeTier(km, maxAltitudeM);
-  if (current === 'legendary') return { current, next: null as Tier | null, progress: 1, hint: 'Top tier reached' };
-  const next: Tier = current === 'traveler' ? 'hardcore' : 'legendary';
+  if (current === 'legendary') return { current, next: null as RankedTier | null, progress: 1, hint: 'Top tier reached' };
+  const next: RankedTier = current === 'traveler' ? 'hardcore' : 'legendary';
   const rule = TIER_RULES[next];
   const byKm = Math.min(1, km / rule.km);
   const byAlt = Math.min(1, maxAltitudeM / rule.altitudeM);
