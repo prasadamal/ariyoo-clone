@@ -1,38 +1,17 @@
-# Wayfare Privacy Policy
+# Wayfare Privacy Policy & Terms
 
-**Effective date:** October 3, 2026  
-**Contact:** privacy@ariyoo.app
+The canonical, published versions are the HTML pages (keep this file as a pointer so the two
+cannot drift):
 
-Wayfare is the offline-first travel journal app (`com.wayfare.app`) operated as part of the Ariyoo product family.
+- Privacy policy: `docs/privacy/wayfare.html` → https://prasadamal.github.io/ariyoo-clone/privacy/wayfare.html
+- Terms of use (includes the zero-tolerance UGC clause Apple requires): `docs/privacy/wayfare-terms.html`
+  → https://prasadamal.github.io/ariyoo-clone/privacy/wayfare-terms.html
 
-## What we collect
+Summary of what changed in 2.0: public profiles, posts, chats, travel board, tips, trip matching
+(destination + dates), opt-in approximate "nearby" presence (≤24 h), expiring live-location links
+(≤72 h), push tokens, reports/blocks, in-app account deletion. Emergency contacts stay on the device.
 
-- **Account information:** email and profile fields when you register (Supabase Auth).
-- **Trip and journal data:** trip titles, destinations, journal text, moods, places, budgets, packing lists, and GPS route points you choose to record.
-- **Photos:** images you attach to journal entries.
-- **Location:** latitude/longitude while you actively record a route on a trip.
+Contacts: privacy@ariyoo.app · support@ariyoo.app
 
-## How we use data
-
-- Provide offline journaling and optional cloud backup/sync.
-- Authenticate you and associate your data with your account.
-
-We do **not** sell your personal information.
-
-## Storage and security
-
-- Local data: on-device SQLite.
-- Cloud data: Supabase with row-level security; photos in private storage buckets.
-
-## Your choices
-
-- Offline-only mode without an account (no cloud sync).
-- Request account deletion: privacy@ariyoo.app
-
-## Children
-
-Not directed at children under 13.
-
-## Public URL
-
-https://prasadamal.github.io/ariyoo-clone/privacy/wayfare.html
+Have the updated policy and terms reviewed by counsel before publishing (governing law, age
+requirement and retention periods are business decisions).

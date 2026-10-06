@@ -349,16 +349,35 @@ async function pushTrackPoints(userId: string, result: SyncResult) {
   }
 }
 
-/** Incremental: only points the cloud received since the last pull (other devices). */
+type TrackCursor = { at: string; id: string };
+
+const START_CURSOR: TrackCursor = { at: '1970-01-01T00:00:00+00:00', id: '00000000-0000-0000-0000-000000000000' };
+
+async function readTrackCursor(): Promise<TrackCursor> {
+  try {
+    const raw = await AsyncStorage.getItem(TRACK_CURSOR_KEY);
+    const parsed = raw ? JSON.parse(raw) : null;
+    return parsed?.at && parsed?.id ? parsed : START_CURSOR;
+  } catch {
+    return START_CURSOR;
+  }
+}
+
+/**
+ * Incremental: only points the cloud received since the last pull (other devices).
+ * Keyset on (created_at, id) — a batch upsert gives hundreds of rows the same created_at,
+ * so a timestamp-only cursor would skip rows at a page boundary.
+ */
 async function pullTrackPoints(userId: string, result: SyncResult) {
-  let cursor = (await AsyncStorage.getItem(TRACK_CURSOR_KEY)) ?? '1970-01-01T00:00:00Z';
+  let cursor = await readTrackCursor();
   for (;;) {
     const { data, error } = await supabase!
       .from('track_points')
       .select('id, trip_id, recorded_at, latitude, longitude, altitude_m, accuracy_m, created_at')
       .eq('user_id', userId)
-      .gt('created_at', cursor)
+      .or(`created_at.gt."${cursor.at}",and(created_at.eq."${cursor.at}",id.gt.${cursor.id})`)
       .order('created_at', { ascending: true })
+      .order('id', { ascending: true })
       .limit(PAGE);
     if (error) {
       result.errors.push(`track points: ${error.message}`);
@@ -381,8 +400,9 @@ async function pullTrackPoints(userId: string, result: SyncResult) {
       result.pulled.track_points++;
     }
     if (rows.length) {
-      cursor = rows[rows.length - 1].created_at as string;
-      await AsyncStorage.setItem(TRACK_CURSOR_KEY, cursor);
+      const last = rows[rows.length - 1];
+      cursor = { at: last.created_at as string, id: last.id as string };
+      await AsyncStorage.setItem(TRACK_CURSOR_KEY, JSON.stringify(cursor));
     }
     if (rows.length < PAGE) return;
   }

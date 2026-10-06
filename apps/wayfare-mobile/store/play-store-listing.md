@@ -1,34 +1,40 @@
-# Google Play Store listing — Wayfare (en-US)
+# Google Play Store listing — Wayfare 2.0 (en-US)
 
 ## App name
-Wayfare – Travel Journal
+Wayfare: Travel Journal & Buddies
 
 ## Short description (80 chars max)
-Offline trek journal with maps, photos, PDF export & cloud sync. Built for India.
+Journal trips offline, find travellers on your dates, split costs & stay safe.
 
 ## Full description
-Wayfare is your offline-first travel journal for treks, road trips, and city breaks—built for places where signal is weak.
+Wayfare is the travel journal that connects you with your people — built for treks, road trips and backpacking, and for places where signal disappears.
 
-**Journal**
-- Trip timeline with mood and place tags
-- Attach photos to entries
-- Works offline; sync to your account when online
+**Your journey, journaled**
+• Offline journal with photos, voice notes, mood, weather and altitude
+• GPS route recording with elevation profile, distance and high point
+• Day-by-day plans with forecasts; packing lists that adapt to altitude
+• Split expenses with companions in any currency and settle up instantly
+• Export PDF journals, GPX and GeoJSON
 
-**Trip utilities**
-- Budget tracker (INR-friendly)
-- Packing checklists (including Himalayan trek templates)
-- GPS route recording and GeoJSON export
+**Your people, found**
+• Trip matching — see travellers heading to the same place around your dates
+• Travel board — trek partners, meetups, ride shares and stay shares
+• Nearby — opt in for a few hours to meet travellers around you (approximate area only)
+• Destination rooms and upvoted tips from people who've been there
+• Follow travellers, share moments and GPS-verified journeys, crew chats
 
-**Explore**
-- Curated trek guides to start your next adventure
+**Stay safe**
+• One-tap SOS text with your location to your emergency contacts
+• Expiring live-location links for family
+• Check-in timer, local emergency numbers, altitude-sickness guidance
 
-Privacy-first: your journal is yours. Social feeds and public sharing come in later phases.
+Private by default: nothing is shared unless you choose to. Block and report are always one tap away.
 
 ## Category
 Travel & Local
 
 ## Content rating
-Everyone (user-generated travel content; location when recording routes)
+Complete the IARC questionnaire: users interact, share location and user-generated content → expect Teen / Mature 17+.
 
 ## Contact email
 support@ariyoo.app
@@ -36,9 +42,5 @@ support@ariyoo.app
 ## Privacy policy URL
 https://prasadamal.github.io/ariyoo-clone/privacy/wayfare.html
 
-## Data safety (summary for form)
-
-- **Collected:** email (account), user-generated content (journal, photos), location (optional route recording)
-- **Purpose:** app functionality, account management
-- **Encrypted in transit:** yes
-- **Data deletion:** available on request via support
+## Data safety
+See `DATA_SAFETY_AND_PRIVACY.md` (includes the background-location declaration text).

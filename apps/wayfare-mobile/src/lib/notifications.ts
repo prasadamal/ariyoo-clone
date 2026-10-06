@@ -45,7 +45,9 @@ export async function getPushPreference(): Promise<PushPreference> {
 }
 
 function easProjectId(): string | null {
-  const id = (Constants.expoConfig?.extra as { eas?: { projectId?: string } } | undefined)?.eas?.projectId;
+  const id =
+    (Constants.expoConfig?.extra as { eas?: { projectId?: string } } | undefined)?.eas?.projectId ??
+    Constants.easConfig?.projectId;
   if (!id || id.startsWith('00000000-')) return null;
   return id;
 }
@@ -66,7 +68,14 @@ export async function enablePush(): Promise<{ ok: boolean; message: string }> {
     await AsyncStorage.setItem(PUSH_PREF_KEY, 'on');
     return { ok: true, message: 'Local reminders are on. Remote push activates once this build has an EAS project id.' };
   }
-  const token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
+  let token: string;
+  try {
+    token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
+  } catch {
+    // Offline, or the build has no push credentials (Android needs google-services.json).
+    await AsyncStorage.setItem(PUSH_PREF_KEY, 'on');
+    return { ok: true, message: 'Local reminders are on. Push could not be set up yet — Wayfare will retry on the next launch.' };
+  }
   await registerPushToken(token, Platform.OS);
   await AsyncStorage.multiSet([
     [PUSH_PREF_KEY, 'on'],

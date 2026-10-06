@@ -1,4 +1,4 @@
-name: Deploy docs (privacy + share viewer)
+name: Deploy docs (privacy, terms, share + live viewers)
 
 on:
   push:
@@ -6,6 +6,8 @@ on:
     paths:
       - 'docs/privacy/**'
       - 'docs/wayfare-share/**'
+      - 'docs/wayfare-live/**'
+      - 'docs/wayfare-config.js'
   workflow_dispatch:
 
 permissions:

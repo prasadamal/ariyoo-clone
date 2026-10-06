@@ -10,6 +10,9 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    # `secrets` is not allowed in step conditions; expose it through env instead.
+    env:
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
     defaults:
       run:
         working-directory: apps/wayfare-mobile
@@ -24,8 +27,8 @@ jobs:
         run: npm ci
       - name: Typecheck
         run: npm run typecheck
+      - name: Unit tests
+        run: npm test
       - name: EAS Build (production)
-        if: ${{ secrets.EXPO_TOKEN != '' }}
-        env:
-          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        if: env.EXPO_TOKEN != ''
         run: npx eas-cli build --platform all --profile production --non-interactive --no-wait

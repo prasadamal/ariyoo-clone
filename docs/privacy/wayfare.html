@@ -5,35 +5,92 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Wayfare Privacy Policy</title>
   <style>
-    body { font-family: system-ui, sans-serif; max-width: 42rem; margin: 2rem auto; padding: 0 1rem; line-height: 1.6; color: #1c1917; }
-    h1 { font-size: 1.5rem; } h2 { font-size: 1.1rem; margin-top: 1.5rem; }
+    :root { --ink: #1c1917; --muted: #57534e; --bg: #fff; --line: #e7e5e4; --link: #c2410c; }
+    @media (prefers-color-scheme: dark) { :root { --ink: #fafaf9; --muted: #a8a29e; --bg: #0c0a09; --line: #292524; --link: #fb923c; } }
+    body { font-family: system-ui, sans-serif; max-width: 44rem; margin: 2rem auto; padding: 0 1rem; line-height: 1.65; color: var(--ink); background: var(--bg); }
+    h1 { font-size: 1.6rem; } h2 { font-size: 1.15rem; margin-top: 1.8rem; border-top: 1px solid var(--line); padding-top: 1rem; }
+    a { color: var(--link); } small, .muted { color: var(--muted); }
+    table { border-collapse: collapse; width: 100%; font-size: .92rem; } td, th { border: 1px solid var(--line); padding: .4rem .5rem; text-align: left; vertical-align: top; }
   </style>
 </head>
 <body>
   <h1>Wayfare Privacy Policy</h1>
-  <p><strong>Effective date:</strong> October 3, 2026<br />
+  <p><strong>Effective date:</strong> October 6, 2026<br />
   <strong>Contact:</strong> <a href="mailto:privacy@ariyoo.app">privacy@ariyoo.app</a></p>
-  <p>Wayfare (&quot;we&quot;, &quot;the app&quot;) is the offline-first travel journal product in the Ariyoo family of apps (bundle ID <code>com.wayfare.app</code>).</p>
-  <h2>What we collect</h2>
+  <p>Wayfare (&quot;we&quot;, &quot;the app&quot;, bundle ID <code>com.wayfare.app</code>) is a travel journal and traveller community in the Ariyoo family of apps. Your journal is <strong>private by default</strong>: nothing you write is shown to anyone unless you post it, share a link, or switch on a community feature.</p>
+
+  <h2>1. Using Wayfare without an account</h2>
+  <p>You can journal without signing up. Trips, entries, photos, voice notes, plans, packing lists, expenses and GPS routes then stay only in your phone’s storage and we receive none of it. Weather and currency lookups (section 6) still reach their providers without identifying you.</p>
+
+  <h2>2. What we collect when you have an account</h2>
+  <table>
+    <tr><th>Data</th><th>Details</th><th>Who can see it</th></tr>
+    <tr><td>Account</td><td>Email address, password (stored hashed by our authentication provider), display name, username.</td><td>Email: only you. Name and username: signed-in Wayfare users.</td></tr>
+    <tr><td>Profile</td><td>Photo, bio, home region/country, travel styles, languages, traveller tier, GPS-verified distance and highest altitude, number of trips, followers and posts, last active time.</td><td>Signed-in Wayfare users (not people you block or who block you).</td></tr>
+    <tr><td>Journal (cloud backup)</td><td>Trips, entries, moods, places, weather, entry geotags (latitude, longitude, altitude), photos, voice notes, day plans, packing lists, expenses (including companion names you type), GPS route points.</td><td>Only you — unless you turn on a read-only link for a trip (section 4).</td></tr>
+    <tr><td>Community content</td><td>Posts (text, photos, place, and an optional route shape), comments, likes, follows, travel-board posts and join requests, destination tips and votes, chat messages (text, photos, shared locations).</td><td>As chosen: everyone signed in, your followers, the organiser of a board post, or the members of a chat.</td></tr>
+    <tr><td>Trip matching</td><td>Destination and dates of trips you mark “open to meet”.</td><td>Travellers with an open trip to the same place around the same dates, and visitors of that destination page. Never your journal or location.</td></tr>
+    <tr><td>Nearby</td><td>An approximate position rounded to about 1 km, an optional status line, while you switch it on (at most 24 hours).</td><td>Other travellers who are also sharing nearby. Distances are rounded to whole kilometres.</td></tr>
+    <tr><td>Live location link</td><td>Your precise position, updated about once a minute, while a link you created is active (at most 72 hours).</td><td>Anyone you send the link to.</td></tr>
+    <tr><td>Notifications</td><td>A push token for your device if you enable notifications.</td><td>Used only to deliver notifications.</td></tr>
+    <tr><td>Safety reports</td><td>Reports you file and accounts you block.</td><td>Only you and the Wayfare moderation team.</td></tr>
+  </table>
+  <p><strong>Not collected:</strong> emergency contacts and SOS messages stay on your phone — SOS opens your own SMS app. We do not use advertising identifiers, show ads, or include third-party analytics or tracking SDKs.</p>
+
+  <h2>3. Location in detail</h2>
   <ul>
-    <li><strong>Account information:</strong> email and profile fields when you register (Supabase Auth).</li>
-    <li><strong>Trip and journal data:</strong> trip titles, destinations, journal text, moods, places, budgets, packing lists, and GPS route points you record.</li>
-    <li><strong>Photos:</strong> images you attach to journal entries (on device; in cloud when you sync).</li>
-    <li><strong>Location:</strong> latitude/longitude while you actively record a route on a trip.</li>
+    <li><strong>Route recording</strong> uses precise location, including in the background, only between “Start recording” and “Stop recording”. Android shows a persistent notification while it runs.</li>
+    <li><strong>Entry geotags and weather</strong> read your location once when you save a moment with “Add location” switched on.</li>
+    <li><strong>Nearby</strong> and <strong>live location</strong> are off until you turn them on and switch off automatically.</li>
+    <li><strong>Verified tiers</strong> are computed on our server from your own uploaded route points (distance and altitude only).</li>
   </ul>
-  <h2>How we use data</h2>
+
+  <h2>4. Links you share</h2>
+  <p>A read-only trip link shows that trip’s title, destination, dates, journal text, moods, places, weather, a simplified route shape and your display name to anyone with the link, until you turn it off. Photos and voice notes are not included. A live-location link shows your name, its label and your latest position until it expires or you stop it.</p>
+
+  <h2>5. How we use data</h2>
   <ul>
-    <li>Offline journaling and optional cloud backup/sync</li>
-    <li>Authentication and associating data with your account</li>
+    <li>To provide journaling, backup and sync across your devices.</li>
+    <li>To run community features you choose to use: feeds, profiles, chats, the travel board, tips, trip matching and nearby.</li>
+    <li>To send notifications you enabled (messages, follows, join requests, trip matches).</li>
+    <li>To keep the community safe: on-device filtering of abusive words and scam phrasing, reports and blocks, automatic hiding of content reported by several people, and review by our team.</li>
   </ul>
-  <p>We do <strong>not</strong> sell your personal information.</p>
-  <h2>Storage and security</h2>
-  <p>Local data is stored in on-device SQLite. Cloud data is stored in Supabase with row-level security. Photos use private storage buckets with authenticated access.</p>
-  <h2>Your choices</h2>
-  <p>You may use offline-only mode without an account. Sign out and contact us to request account deletion.</p>
-  <h2>Children</h2>
-  <p>Wayfare is not directed at children under 13.</p>
-  <h2>Changes</h2>
-  <p>We may update this policy; the effective date above will change when we do.</p>
+  <p>We do <strong>not</strong> sell or rent personal information and do not use it for advertising.</p>
+
+  <h2>6. Service providers</h2>
+  <ul>
+    <li><strong>Supabase</strong> — authentication, database, file storage and realtime chat hosting.</li>
+    <li><strong>Expo</strong> — delivers push notifications to your device.</li>
+    <li><strong>Open-Meteo</strong> — weather and forecasts; receives coordinates only.</li>
+    <li><strong>ExchangeRate-API / Frankfurter (ECB)</strong> — currency rates; receive no personal data.</li>
+    <li><strong>Google Maps</strong> (in-app maps) and <strong>OpenStreetMap</strong> (web viewers) — map tiles for the area being displayed.</li>
+  </ul>
+
+  <h2>7. Retention and deletion</h2>
+  <ul>
+    <li>Journal and community data are kept until you delete them or your account.</li>
+    <li>Nearby positions expire within 24 hours; live-location links within 72 hours.</li>
+    <li><strong>Delete your account in the app</strong> (Settings → Delete account). This permanently deletes your profile, cloud journals, uploaded files, posts, comments, messages, board posts, tips and push tokens. Residual copies may remain in encrypted infrastructure backups for up to 30 days.</li>
+    <li>Reports about content are kept as long as needed to keep the community safe.</li>
+  </ul>
+
+  <h2>8. Your choices</h2>
+  <ul>
+    <li>Control who can find you (Discoverable) and who can message you (everyone, people you follow, nobody).</li>
+    <li>Post to everyone or followers only; delete posts, comments and messages you sent at any time.</li>
+    <li>Block or report any traveller or content.</li>
+    <li>Export a trip as PDF, GPX or GeoJSON.</li>
+    <li>Ask us for a copy or correction of your data: <a href="mailto:privacy@ariyoo.app">privacy@ariyoo.app</a>.</li>
+  </ul>
+
+  <h2>9. Security</h2>
+  <p>Data in transit is encrypted (HTTPS). Cloud data is protected with row-level security so each traveller can only access what they are allowed to see; journal media and chat photos are in private storage. Profile photos and post photos are stored as public files at unguessable addresses so feeds load quickly; anyone who obtains such an address can view that image. An optional biometric lock protects the app on your phone.</p>
+
+  <h2>10. Age</h2>
+  <p>Wayfare accounts and community features are for people aged 18 and over. We do not knowingly collect data from children under 13.</p>
+
+  <h2>11. Changes</h2>
+  <p>We will update the effective date above and notify you in the app about material changes.</p>
+  <p class="muted"><small>See also the <a href="wayfare-terms.html">Terms of Use</a>.</small></p>
 </body>
 </html>

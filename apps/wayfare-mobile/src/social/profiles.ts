@@ -165,7 +165,8 @@ export async function deleteMyAccount() {
     }
   }
   await rpc('delete_my_account');
-  await client.auth.signOut();
+  // The account no longer exists server-side, so only clear the local session.
+  await client.auth.signOut({ scope: 'local' }).catch(() => undefined);
 }
 
 async function listAllFiles(bucket: string, prefix: string): Promise<string[]> {

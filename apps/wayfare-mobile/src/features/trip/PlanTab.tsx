@@ -161,6 +161,7 @@ export function PlanTab({ trip, onChanged }: Props) {
                 value={draft.title}
                 onChangeText={t => setDrafts(prev => ({ ...prev, [day.index]: { ...draft, title: t } }))}
                 style={{ flex: 1 }}
+                maxLength={200}
                 onSubmitEditing={() => add(day.index)}
                 returnKeyType="done"
               />

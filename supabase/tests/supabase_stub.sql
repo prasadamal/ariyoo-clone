@@ -23,13 +23,17 @@ create table if not exists auth.users (
   created_at timestamptz not null default now()
 );
 
--- Mirrors Supabase: identity comes from the request's JWT claims.
+-- Same definitions as Supabase: identity comes from the request's JWT claims, either the
+-- legacy per-claim setting or the JSON form PostgREST 10+ sets.
 create or replace function auth.uid()
 returns uuid
 language sql
 stable
 as $$
-  select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid
+  select coalesce(
+    nullif(current_setting('request.jwt.claim.sub', true), ''),
+    (nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'sub')
+  )::uuid
 $$;
 
 create or replace function auth.role()
@@ -37,7 +41,10 @@ returns text
 language sql
 stable
 as $$
-  select nullif(current_setting('request.jwt.claim.role', true), '')
+  select coalesce(
+    nullif(current_setting('request.jwt.claim.role', true), ''),
+    (nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'role')
+  )::text
 $$;
 
 grant usage on schema auth to anon, authenticated, service_role;
