@@ -214,6 +214,9 @@ select tests.expect_error(format('insert into public.follows (follower_id, follo
 select tests.check((select count(*) from public.blocks) = 0, 'cannot see who blocked you');
 select tests.act_as('carol@example.com');
 select tests.check((select count(*) from public.feed_page('user', null, tests.uid('alice@example.com'))) = 0, 'blocker does not see blocked either');
+select tests.check((select username from public.my_blocked_profiles()) = 'alice', 'blocker can list who they blocked');
+select tests.act_as('alice@example.com');
+select tests.check((select count(*) from public.my_blocked_profiles()) = 0, 'blocked user cannot see the block list');
 
 -- ---------------------------------------------------------------------------
 -- Reports auto-hide after three distinct reporters

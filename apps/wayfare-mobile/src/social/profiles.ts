@@ -144,13 +144,10 @@ export async function unblock(userId: string) {
 }
 
 export async function listBlocked(): Promise<TravellerSummary[]> {
-  const me = await currentUserId();
-  const { data, error } = await db().from('blocks').select('blocked_id, created_at').eq('blocker_id', me);
-  if (error) throw new CommunityError(friendly(error));
-  const ids = (data ?? []).map(r => r.blocked_id as string);
-  if (!ids.length) return [];
-  // Blocked profiles are hidden by RLS, so show a neutral placeholder per id.
-  return ids.map(id => ({ id, username: null, display_name: 'Blocked traveller', avatar_path: null, tier: 'traveler' }));
+  const rows = await rpc<{ id: string; username: string | null; display_name: string | null; avatar_path: string | null }[]>(
+    'my_blocked_profiles'
+  );
+  return rows.map(r => ({ ...r, tier: 'traveler' }));
 }
 
 /** Removes the caller's uploaded files, then deletes the account (cascades all rows). */
