@@ -1,49 +1,66 @@
-# App Store Connect listing — Wayfare (en-US)
+# App Store Connect listing — Wayfare 2.0 (en-US)
 
 ## Name
 Wayfare
 
 ## Subtitle (30 chars)
-Offline travel journal
+Travel journal & trip buddies
 
-## Promotional text (170 chars, optional)
-Journal treks offline—budget, packing, GPS routes. Sync when you're back on Wi‑Fi.
+## Promotional text (170 chars)
+See who's heading where you're going, on your dates. Journal offline, split costs with your crew, and share your live location with the people who worry about you.
 
 ## Description
-Wayfare helps you capture trips that matter: Himalayan treks, road trips, and city breaks—with tools that work without signal.
+Wayfare is the travel journal that connects you with your people — built for treks, road trips and backpacking, and for places where signal disappears.
 
-• Offline-first journal with photos, mood, and place tags  
-• Per-trip budget and packing lists  
-• GPS route recording and GeoJSON export  
-• Trek guides to plan your next journey  
-• Optional cloud sync with your account  
+YOUR JOURNEY, JOURNALED
+• Offline journal with photos, voice notes, mood, weather and altitude
+• Record your GPS route — elevation profile, distance and high point
+• Day-by-day plans with live forecasts, packing lists that adapt to altitude
+• Split expenses with companions in any currency and settle up in a tap
+• Export a beautiful PDF journal, GPX or GeoJSON
 
-Built for travelers who want a private vault first—social discovery comes later.
+YOUR PEOPLE, FOUND
+• Trip matching: see travellers heading to the same place around your dates
+• Travel board: find trek partners, meetups, ride shares and stay shares
+• Nearby: opt in for a few hours to meet travellers around you (approximate area only)
+• Destination rooms and upvoted tips from people who've been there
+• Follow travellers, share moments and GPS-verified journeys, chat with your crew
+
+STAY SAFE
+• One-tap SOS text with your location to your emergency contacts
+• Expiring live-location links for family — no app needed to view
+• Check-in timer, local emergency numbers and altitude-sickness guidance
+
+PRIVATE BY DEFAULT
+Your journal stays yours. Nothing is shared unless you post it, send a link or switch on a community feature. Block and report are always one tap away.
 
 ## Keywords
-travel,journal,trek,offline,diary,hiking,GPS,budget,packing,Himalaya
+travel,journal,trek,hiking,travel buddy,backpacking,road trip,GPS,itinerary,split expenses
 
 ## Category
-Primary: Travel  
-Secondary: Lifestyle
+Primary: Travel · Secondary: Social Networking
 
 ## Support URL
-https://github.com/prasadamal/ariyoo-clone
-
-## Marketing URL (optional)
 https://github.com/prasadamal/ariyoo-clone
 
 ## Privacy policy URL
 https://prasadamal.github.io/ariyoo-clone/privacy/wayfare.html
 
-## App Review notes (paste into Connect)
+## License agreement
+Custom EULA → paste https://prasadamal.github.io/ariyoo-clone/privacy/wayfare-terms.html (contains the zero-tolerance UGC clause).
 
+## Age rating
+Expected 17+ (user-generated content, users can chat and meet) — see `DATA_SAFETY_AND_PRIVACY.md`.
+
+## App Review notes
 See `store/APP_REVIEW_NOTES.md`.
 
-Location is used only when user taps "Start recording route" on a trip.
-
-## Screenshot checklist
-
-- [ ] iPhone 6.7" (required)
-- [ ] iPhone 6.5" or 6.1" (if required by current Apple spec)
-- [ ] iPad 12.9" if marketing tablet support
+## Screenshot checklist (6.7" + 6.5"/6.1")
+- [ ] Journeys home with "Next up" countdown
+- [ ] Journey → Journal with photos and weather
+- [ ] Route tab with map + elevation profile
+- [ ] Connect → My trips (travellers on your dates)
+- [ ] Travel board post
+- [ ] Destination page (forecast + tips)
+- [ ] Safety center (SOS + live location)
+- [ ] Year in travel card

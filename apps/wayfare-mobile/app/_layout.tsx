@@ -1,33 +1,133 @@
-import { Stack } from 'expo-router';
-import { Provider as PaperProvider } from 'react-native-paper';
+// Registers the background location task as early as possible (background relaunches need it).
+import '../src/lib/locationTask';
+import { Stack, DarkTheme, DefaultTheme, ThemeProvider as NavigationThemeProvider } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { useEffect, useMemo } from 'react';
+import { Button, Dialog, Provider as PaperProvider, Portal, Text } from 'react-native-paper';
 import { AppLockProvider } from '../src/context/AppLockContext';
-import { AuthProvider } from '../src/context/AuthContext';
-import { SyncOnForeground } from '../src/context/SyncContext';
+import { AuthProvider, useAuth } from '../src/context/AuthContext';
+import { InboxProvider } from '../src/context/InboxContext';
+import { SyncProvider } from '../src/context/SyncContext';
 import { ThemeProvider, useWayfareTheme } from '../src/context/ThemeContext';
+import { ToastProvider } from '../src/context/ToastContext';
+import { refreshPushRegistration, useNotificationRouting } from '../src/lib/notifications';
 
-function Navigation() {
+function OwnerConflictDialog() {
+  const { ownerConflict, resolveOwnerConflict } = useAuth();
+  return (
+    <Portal>
+      <Dialog visible={ownerConflict} dismissable={false}>
+        <Dialog.Title>Journals from another account</Dialog.Title>
+        <Dialog.Content>
+          <Text style={{ lineHeight: 21 }}>
+            This device holds trips that belong to a different Wayfare account, so they will not be synced to this one.
+            You can start fresh here (their copy stays safe in the other account’s cloud backup once synced) or sign out.
+          </Text>
+        </Dialog.Content>
+        <Dialog.Actions>
+          <Button onPress={() => resolveOwnerConflict('signout')}>Sign out</Button>
+          <Button mode="contained" onPress={() => resolveOwnerConflict('wipe')}>
+            Start fresh here
+          </Button>
+        </Dialog.Actions>
+      </Dialog>
+    </Portal>
+  );
+}
+
+function PushRegistrar() {
+  const { user } = useAuth();
+  useEffect(() => {
+    if (user?.id) refreshPushRegistration();
+  }, [user?.id]);
+  return null;
+}
+
+function RootStack() {
+  const { paperTheme } = useWayfareTheme();
+  const c = paperTheme.colors;
+  useNotificationRouting();
+  return (
+    <Stack
+      screenOptions={{
+        headerStyle: { backgroundColor: c.background },
+        headerTintColor: c.onSurface,
+        headerTitleStyle: { fontWeight: '700' },
+        headerShadowVisible: false,
+        contentStyle: { backgroundColor: c.background },
+        headerBackTitle: 'Back',
+      }}
+    >
+      <Stack.Screen name="index" options={{ headerShown: false }} />
+      <Stack.Screen name="onboarding" options={{ headerShown: false }} />
+      <Stack.Screen name="login" options={{ title: 'Sign in' }} />
+      <Stack.Screen name="register" options={{ title: 'Join Wayfare' }} />
+      <Stack.Screen name="forgot-password" options={{ title: 'Reset password' }} />
+      <Stack.Screen name="guidelines" options={{ title: 'Community guidelines', presentation: 'modal' }} />
+      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      <Stack.Screen name="trip/new" options={{ title: 'New journey', presentation: 'modal' }} />
+      <Stack.Screen name="trip/[id]" options={{ title: 'Journey' }} />
+      <Stack.Screen name="trip/edit/[id]" options={{ title: 'Edit journey', presentation: 'modal' }} />
+      <Stack.Screen name="entry/[id]" options={{ title: 'Edit moment', presentation: 'modal' }} />
+      <Stack.Screen name="share/[shareId]" options={{ title: 'Shared journey' }} />
+      <Stack.Screen name="post/new" options={{ title: 'New post', presentation: 'modal' }} />
+      <Stack.Screen name="post/[id]" options={{ title: 'Post' }} />
+      <Stack.Screen name="user/[id]" options={{ title: '' }} />
+      <Stack.Screen name="profile/edit" options={{ title: 'Edit profile', presentation: 'modal' }} />
+      <Stack.Screen name="follows/[id]" options={{ title: 'Travellers' }} />
+      <Stack.Screen name="search" options={{ title: 'Find travellers' }} />
+      <Stack.Screen name="chat/[id]" options={{ title: '' }} />
+      <Stack.Screen name="join/[code]" options={{ title: 'Join crew' }} />
+      <Stack.Screen name="board/new" options={{ title: 'Post to the board', presentation: 'modal' }} />
+      <Stack.Screen name="board/[id]" options={{ title: 'Board' }} />
+      <Stack.Screen name="place/[key]" options={{ title: '' }} />
+      <Stack.Screen name="safety" options={{ title: 'Safety' }} />
+      <Stack.Screen name="live/[id]" options={{ title: 'Live location' }} />
+      <Stack.Screen name="wrapped" options={{ headerShown: false, presentation: 'fullScreenModal' }} />
+      <Stack.Screen name="badges" options={{ title: 'Badges & tiers' }} />
+      <Stack.Screen name="tools/currency" options={{ title: 'Currency converter' }} />
+      <Stack.Screen name="settings" options={{ title: 'Settings' }} />
+      <Stack.Screen name="blocked" options={{ title: 'Blocked travellers' }} />
+    </Stack>
+  );
+}
+
+function ThemedRoot() {
   const { paperTheme, isDark } = useWayfareTheme();
+  const c = paperTheme.colors;
+  const navTheme = useMemo(() => {
+    const base = isDark ? DarkTheme : DefaultTheme;
+    return {
+      ...base,
+      colors: {
+        ...base.colors,
+        primary: c.primary,
+        background: c.background,
+        card: c.background,
+        text: c.onSurface,
+        border: c.border,
+        notification: c.primary,
+      },
+    };
+  }, [isDark, c]);
   return (
     <PaperProvider theme={paperTheme}>
-      <SyncOnForeground />
-      <StatusBar style={isDark ? 'light' : 'dark'} />
-      <Stack
-        screenOptions={{
-          headerStyle: { backgroundColor: paperTheme.colors.surface },
-          headerTintColor: paperTheme.colors.onSurface,
-          contentStyle: { backgroundColor: paperTheme.colors.background },
-        }}
-      >
-        <Stack.Screen name="index" options={{ headerShown: false }} />
-        <Stack.Screen name="onboarding" options={{ headerShown: false }} />
-        <Stack.Screen name="login" options={{ title: 'Sign in' }} />
-        <Stack.Screen name="register" options={{ title: 'Join Wayfare' }} />
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="trip/new" options={{ title: 'New trip' }} />
-        <Stack.Screen name="trip/[id]" options={{ title: 'Trip' }} />
-        <Stack.Screen name="share/[shareId]" options={{ title: 'Shared journey' }} />
-      </Stack>
+      <NavigationThemeProvider value={navTheme}>
+        <ToastProvider>
+          <AuthProvider>
+            <SyncProvider>
+              <InboxProvider>
+                <AppLockProvider>
+                  <StatusBar style={isDark ? 'light' : 'dark'} />
+                  <PushRegistrar />
+                  <RootStack />
+                  <OwnerConflictDialog />
+                </AppLockProvider>
+              </InboxProvider>
+            </SyncProvider>
+          </AuthProvider>
+        </ToastProvider>
+      </NavigationThemeProvider>
     </PaperProvider>
   );
 }
@@ -35,11 +135,7 @@ function Navigation() {
 export default function RootLayout() {
   return (
     <ThemeProvider>
-      <AuthProvider>
-        <AppLockProvider>
-          <Navigation />
-        </AppLockProvider>
-      </AuthProvider>
+      <ThemedRoot />
     </ThemeProvider>
   );
 }

@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex" />
+  <title>Live location · Wayfare</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+  <style>
+    :root { --ink: #1c1917; --muted: #78716c; --bg: #fafaf9; --card: #fff; --line: #e7e5e4; --ok: #15803d; --warn: #b45309; }
+    @media (prefers-color-scheme: dark) { :root { --ink: #fafaf9; --muted: #a8a29e; --bg: #0c0a09; --card: #1c1917; --line: #292524; --ok: #4ade80; --warn: #fbbf24; } }
+    * { box-sizing: border-box; }
+    body { font-family: system-ui, -apple-system, Segoe UI, sans-serif; margin: 0; color: var(--ink); background: var(--bg); }
+    main { max-width: 46rem; margin: 0 auto; padding: 1rem; }
+    h1 { margin: .2rem 0 0; font-size: 1.5rem; }
+    .status { margin: .5rem 0 .8rem; font-size: .95rem; }
+    .live { color: var(--ok); font-weight: 650; }
+    .ended { color: var(--warn); font-weight: 650; }
+    #map { height: 62vh; min-height: 320px; border-radius: 16px; border: 1px solid var(--line); }
+    .actions { display: flex; gap: .6rem; flex-wrap: wrap; margin-top: .8rem; }
+    .btn { display: inline-block; padding: .6rem 1rem; border-radius: 999px; background: #c2410c; color: #fff; text-decoration: none; font-weight: 650; }
+    .btn.secondary { background: transparent; color: var(--ink); border: 1px solid var(--line); }
+    .muted { color: var(--muted); font-size: .85rem; }
+    .error { color: #b91c1c; }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="muted">WAYFARE · LIVE LOCATION</div>
+    <h1 id="name">Loading…</h1>
+    <div id="label" class="muted"></div>
+    <div id="status" class="status" role="status" aria-live="polite"></div>
+    <div id="map" role="img" aria-label="Map with the shared position"></div>
+    <div class="actions">
+      <a id="gmaps" class="btn" href="#" target="_blank" rel="noopener">Open in Google Maps</a>
+      <a id="app" class="btn secondary" href="#">Open in Wayfare</a>
+    </div>
+    <p class="muted">The traveller chose to share this. It updates about once a minute while they move and stops automatically when the link expires.</p>
+    <p id="err" class="error" role="alert"></p>
+  </main>
+  <script src="../wayfare-config.js"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script>
+    (function () {
+      const id = new URLSearchParams(location.search).get('id');
+      const err = document.getElementById('err');
+      const status = document.getElementById('status');
+      let map, marker, circle, timer;
+
+      const ago = iso => {
+        const s = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 1000));
+        if (s < 60) return 'just now';
+        if (s < 3600) return Math.round(s / 60) + ' min ago';
+        return Math.round(s / 3600) + ' h ago';
+      };
+
+      function render(d) {
+        document.getElementById('name').textContent = d.display_name;
+        document.getElementById('label').textContent = d.label || '';
+        status.replaceChildren();
+        const badge = document.createElement('span');
+        badge.className = d.active ? 'live' : 'ended';
+        badge.textContent = d.active ? '● Live' : 'Sharing ended';
+        status.append(badge, document.createTextNode(' · updated ' + ago(d.updated_at)));
+        if (d.latitude == null || d.longitude == null) return;
+        // The maps link must work even if the map library fails to load.
+        document.getElementById('gmaps').href = 'https://maps.google.com/?q=' + d.latitude.toFixed(5) + ',' + d.longitude.toFixed(5);
+        if (!window.L) return;
+        const pos = [d.latitude, d.longitude];
+        if (!map) {
+          map = L.map('map').setView(pos, 14);
+          L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 18,
+            attribution: '&copy; OpenStreetMap contributors',
+          }).addTo(map);
+          marker = L.marker(pos).addTo(map);
+          circle = L.circle(pos, { radius: d.accuracy_m || 25, color: '#c2410c', weight: 1 }).addTo(map);
+        } else {
+          marker.setLatLng(pos);
+          circle.setLatLng(pos).setRadius(d.accuracy_m || 25);
+          map.panTo(pos);
+        }
+      }
+
+      async function refresh() {
+        try {
+          const d = await window.wayfareRpc('get_live_share', { p_id: id });
+          if (!d) {
+            document.getElementById('name').textContent = 'Link expired';
+            status.textContent = 'This live location is no longer shared.';
+            clearInterval(timer);
+            return;
+          }
+          err.textContent = '';
+          render(d);
+          if (!d.active) clearInterval(timer);
+        } catch (e) {
+          err.textContent = e.message;
+        }
+      }
+
+      if (!id || !/^[0-9a-f-]{36}$/i.test(id)) {
+        document.getElementById('name').textContent = 'Invalid link';
+        return;
+      }
+      document.getElementById('app').href = 'wayfare://live/' + id;
+      refresh();
+      timer = setInterval(refresh, 30000);
+    })();
+  </script>
+</body>
+</html>

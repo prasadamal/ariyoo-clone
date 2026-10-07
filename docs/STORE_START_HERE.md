@@ -39,9 +39,13 @@ Support email used in listings: **support@ariyoo.app** · Privacy: **privacy@ari
 
 ## Wayfare — DONE in repo
 
-- [x] Supabase SQL migrations in `supabase/migrations/`
-- [x] Setup guide: `supabase/README.md`
-- [x] Reviewer demo SQL template: `supabase/scripts/reviewer_demo_seed.sql`
+- [x] Supabase migrations (journal sync, traveller network, chat, board, safety) in `supabase/migrations/`
+- [x] Setup guide: `supabase/README.md` · moderation runbook: `supabase/MODERATION.md`
+- [x] Push-notification Edge Function: `supabase/functions/push`
+- [x] Reviewer demo data: `supabase/scripts/reviewer_demo_seed.sql` (two accounts, matched trip, chat)
+- [x] Web viewers for share links + live location: `docs/wayfare-share`, `docs/wayfare-live` (config in `docs/wayfare-config.js`)
+- [x] Privacy policy v2 + Terms of Use (`docs/privacy/wayfare.html`, `docs/privacy/wayfare-terms.html`)
+- [x] CI: `.github/workflows/wayfare-tests.yml` (typecheck, unit tests, bundles, database + API tests)
 
 ---
 
@@ -61,9 +65,12 @@ Support email used in listings: **support@ariyoo.app** · Privacy: **privacy@ari
 
 ### 3. Wayfare backend
 
-- [ ] Create Supabase project; run migrations per `supabase/README.md`
-- [ ] Run `supabase/scripts/reviewer_demo_seed.sql` (edit emails/passwords first)
-- [ ] EAS secrets: `EXPO_PUBLIC_SUPABASE_URL`, `EXPO_PUBLIC_SUPABASE_ANON_KEY`
+- [ ] Create Supabase project; apply **all** migrations per `supabase/README.md`
+- [ ] Deploy the `push` Edge Function + two Database Webhooks (`supabase/README.md` §3)
+- [ ] Put the Supabase URL + anon key in `docs/wayfare-config.js` (web share / live-location pages)
+- [ ] Sign up the two demo accounts, then run `supabase/scripts/reviewer_demo_seed.sql`
+- [ ] Name a moderation owner who checks reports daily (`supabase/MODERATION.md`) — App Store 1.2
+- [ ] EAS environment variables + project id + push credentials: `apps/wayfare-mobile/store/EAS_SECRETS.md`
 
 ### 4. EAS (per app)
 
@@ -74,8 +81,8 @@ eas login
 eas init
 ```
 
-- [ ] Copy real `projectId` into `app.config.ts`
-- [ ] `eas secret:create` for production env vars (preferred over committing secrets)
+- [ ] Copy real `projectId` into `app.config.ts` (Wayfare: the `easProjectId` constant)
+- [ ] Production environment variables on EAS (`eas env:set …`, see each app's `store/` docs)
 - [ ] Fill `eas.json` → `submit.production.ios` (Apple ID, ASC app id, team id)
 - [ ] Add `store/google-play-service-account.json` (from Play Console API access)
 

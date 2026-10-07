@@ -19,13 +19,15 @@ eas login
 eas init
 ```
 
-- [ ] Real `extra.eas.projectId` in `app.config.ts`
-- [ ] Production secrets in EAS (not placeholders in `eas.json`):
+- [ ] Paste the project id `eas init` prints into `easProjectId` in `app.config.ts` and commit
+- [ ] EAS environment variables (`production`, and `preview` for test builds), plain text or sensitive:
   - `EXPO_PUBLIC_SUPABASE_URL`
   - `EXPO_PUBLIC_SUPABASE_ANON_KEY`
+- [ ] Push: accept the iOS push key during the first build; Android `google-services.json` + FCM V1 key
+- Details for all three: [`EAS_SECRETS.md`](EAS_SECRETS.md)
 
 ```bash
-npm run typecheck
+npm run verify            # typecheck + unit tests
 npm run build:android
 npm run build:ios
 npm run submit:android   # after service account configured
@@ -34,16 +36,25 @@ npm run submit:ios
 
 ## 2. Supabase (production)
 
-- [ ] Run migrations `20261003000000_wayfare_mvp.sql` then `20261003120000_wayfare_media_storage.sql`
-- [ ] Reviewer demo user + sample trip with photo synced
-- [ ] Email auth tested on physical device
+- [ ] Apply **all** migrations in `supabase/migrations` in order (see `supabase/README.md`)
+- [ ] Buckets: `entry-media` + `chat-media` private, `avatars` + `post-media` public
+- [ ] Realtime publication includes `messages` and `notifications`
+- [ ] Deploy the `push` Edge Function + two Database Webhooks (notifications, messages)
+- [ ] Fill `docs/wayfare-config.js` (URL + anon key) so share and live links work on the web
+- [ ] Reviewer + buddy demo accounts and `supabase/scripts/reviewer_demo_seed.sql`
+- [ ] Someone owns the daily moderation review (`supabase/MODERATION.md`)
+- [ ] Email auth tested on a physical device (confirmation link opens the app)
 
 ## 3. Google Play
 
 - [ ] App created with package `com.wayfare.app`
 - [ ] Listing: `store/play-store-listing.md`
 - [ ] Privacy policy HTTPS URL (draft: `store/PRIVACY_POLICY.md`)
-- [ ] Data safety: account, photos, location, user content
+- [ ] Data safety + foreground-service (location) declaration: `store/DATA_SAFETY_AND_PRIVACY.md`
+  (no background-location or photo-permission declarations: those permissions are not requested)
+- [ ] Target API: Expo SDK 57 builds target Android 16 / API 36, which Play requires for new apps
+  and updates since 31 Aug 2026; iOS builds use Xcode 26 on EAS (required since 28 Apr 2026)
+- [ ] Content rating questionnaire (users interact / share location)
 - [ ] AAB from EAS production → Internal → Production
 - [ ] `store/google-play-service-account.json` for `eas submit` (gitignored; copy from Ariyoo `.example` pattern)
 
@@ -53,7 +64,8 @@ npm run submit:ios
 - [ ] App Store Connect app record
 - [ ] `eas.json` submit.ios: `appleId`, `ascAppId`, `appleTeamId`
 - [ ] Listing: `store/app-store-listing.md`
-- [ ] App Privacy labels (account, content, location)
+- [ ] App Privacy labels per `store/DATA_SAFETY_AND_PRIVACY.md`
+- [ ] Custom EULA = Terms of Use URL; age rating questionnaire (expect 17+)
 - [ ] TestFlight → App Review with demo credentials
 
 ## 5. Device QA

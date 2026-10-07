@@ -1,0 +1,78 @@
+name: Wayfare tests
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'apps/wayfare-mobile/**'
+      - 'supabase/**'
+      - '.github/workflows/wayfare-tests.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'apps/wayfare-mobile/**'
+      - 'supabase/**'
+      - '.github/workflows/wayfare-tests.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: wayfare-tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  app:
+    name: App (typecheck, unit tests, bundles)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/wayfare-mobile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/wayfare-mobile/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Unit tests
+        run: npm test
+      - name: Android bundle
+        run: npx expo export --platform android --output-dir "$RUNNER_TEMP/export-android"
+      - name: iOS bundle
+        run: npx expo export --platform ios --output-dir "$RUNNER_TEMP/export-ios"
+
+  database:
+    name: Database (RLS / RPC suite, HTTP API)
+    runs-on: ubuntu-latest
+    env:
+      POSTGREST_VERSION: v12.2.3
+      POSTGREST_SHA256: 9f71269e61ac3a940281e93ff415760f5957e430e475ba4c3889f3ede7d5527c
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/wayfare-mobile/package-lock.json
+      - name: Start PostgreSQL
+        run: |
+          sudo systemctl start postgresql.service
+          pg_isready --timeout=30
+      - name: Migrations + RLS / RPC test-suite
+        run: supabase/tests/run_local.sh
+      - name: Install app dependencies (HTTP tests use the app's postgrest-js)
+        working-directory: apps/wayfare-mobile
+        run: npm ci
+      - name: Install PostgREST
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/postgrest.tar.xz" \
+            "https://github.com/PostgREST/postgrest/releases/download/${POSTGREST_VERSION}/postgrest-${POSTGREST_VERSION}-linux-static-x64.tar.xz"
+          echo "${POSTGREST_SHA256}  $RUNNER_TEMP/postgrest.tar.xz" | sha256sum -c -
+          tar -xJf "$RUNNER_TEMP/postgrest.tar.xz" -C "$RUNNER_TEMP"
+      - name: HTTP API tests (PostgREST + JWTs)
+        run: POSTGREST_BIN="$RUNNER_TEMP/postgrest" supabase/tests/run_http.sh

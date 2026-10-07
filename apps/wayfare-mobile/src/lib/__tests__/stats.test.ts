@@ -1,0 +1,114 @@
+import assert from 'node:assert/strict';
+import { test } from 'node:test';
+import { computeBadges, sortBadges } from '../badges';
+import { cleanTrack, elevationStats, regionFor, trackDistanceKm, type TrackPoint } from '../geo';
+import { computeTravelStats, longestStreak } from '../travelStats';
+import { buildWrapped } from '../wrapped';
+
+function climb(n: number, start = Date.parse('2026-12-21T02:00:00Z')): TrackPoint[] {
+  return Array.from({ length: n }, (_, i) => ({
+    recorded_at: new Date(start + i * 600_000).toISOString(),
+    latitude: 31.02 + i * 0.009,
+    longitude: 78.17,
+    altitude_m: 2800 + i * 120,
+    accuracy_m: 10,
+  }));
+}
+
+test('spike filter and distance mirror the server calculation', () => {
+  const pts = climb(11);
+  // A 1,000 km glitch one second after the first fix must vanish.
+  pts.push({ recorded_at: new Date(Date.parse(pts[0].recorded_at) + 1000).toISOString(), latitude: 40, longitude: 78.17, altitude_m: 3000, accuracy_m: 10 });
+  // An inaccurate fix is ignored too.
+  pts.push({ recorded_at: pts[5].recorded_at, latitude: 10, longitude: 10, altitude_m: 9999, accuracy_m: 500 });
+  assert.equal(cleanTrack(pts).length, 11);
+  const km = trackDistanceKm(pts);
+  assert.ok(km > 9.9 && km < 10.1, `distance ${km}`);
+  const elev = elevationStats(pts);
+  assert.equal(elev.maxM, 4000);
+  assert.equal(elev.gainM, 1200);
+});
+
+test('elevation hysteresis ignores GPS altitude noise', () => {
+  const noisy: TrackPoint[] = Array.from({ length: 30 }, (_, i) => ({
+    recorded_at: new Date(Date.parse('2026-01-01T00:00:00Z') + i * 60_000).toISOString(),
+    latitude: 30 + i * 0.0005,
+    longitude: 78,
+    altitude_m: 2000 + (i % 2 === 0 ? 3 : -3),
+  }));
+  assert.equal(elevationStats(noisy).gainM, 0);
+});
+
+test('regionFor pads and enforces a minimum zoom', () => {
+  const r = regionFor([{ latitude: 10, longitude: 20 }]);
+  assert.equal(r?.latitudeDelta, 0.02);
+  assert.equal(regionFor([]), null);
+});
+
+test('streaks count consecutive local days', () => {
+  const d = (s: string) => new Date(s).toISOString();
+  assert.equal(longestStreak([d('2026-03-01T10:00'), d('2026-03-02T09:00'), d('2026-03-02T20:00'), d('2026-03-03T08:00'), d('2026-03-05T08:00')]), 3);
+  assert.equal(longestStreak([]), 0);
+});
+
+const input = {
+  trips: [
+    { id: 't1', title: 'KK', destination: 'Kedarkantha', place_key: 'kedarkantha', starts_on: '2026-12-20', ends_on: '2026-12-25', status: 'completed' },
+    { id: 't2', title: 'EBC', destination: 'Everest Base Camp', place_key: 'everest-base-camp', starts_on: '2026-04-01', ends_on: '2026-04-14', status: 'active' },
+    { id: 't3', title: 'Old', destination: 'Goa', place_key: 'goa', starts_on: '2025-01-01', ends_on: '2025-01-03', status: 'completed' },
+  ],
+  entries: [
+    { trip_id: 't1', recorded_at: new Date('2026-12-21T05:10:00').toISOString(), mood: '🥶 Cold', place_name: 'Juda ka Talab', weather: 'Snow, -4°C' },
+    { trip_id: 't1', recorded_at: new Date('2026-12-22T23:30:00').toISOString(), mood: '🔥 Epic', place_name: 'Summit', weather: 'Clear' },
+    { trip_id: 't2', recorded_at: new Date('2026-04-03T12:00:00').toISOString(), mood: '🔥 Epic', place_name: 'Namche', weather: 'Rain showers' },
+    { trip_id: 't3', recorded_at: new Date('2025-01-02T12:00:00').toISOString(), mood: '😊 Great', place_name: 'Palolem', weather: null },
+  ],
+  expenses: [
+    { trip_id: 't1', amount: 1500, currency: 'INR', spent_on: '2026-12-20' },
+    { trip_id: 't2', amount: 9000, currency: 'NPR', spent_on: '2026-04-02' },
+  ],
+  trackPointsByTrip: { t1: climb(11) },
+  photos: 3,
+  voiceNotes: 1,
+};
+
+test('travel stats + badges', () => {
+  const stats = computeTravelStats(input);
+  assert.equal(stats.trips, 3);
+  assert.equal(stats.completedTrips, 2);
+  assert.equal(stats.countries, 2);
+  assert.equal(stats.destinations, 3);
+  assert.equal(stats.longestTripDays, 14);
+  assert.equal(stats.earlyBirdEntries, 1);
+  assert.equal(stats.nightOwlEntries, 1);
+  assert.equal(stats.snowEntries, 1);
+  assert.equal(stats.rainEntries, 1);
+  assert.equal(stats.maxAltitudeM, 4000);
+  const badges = computeBadges(stats);
+  const earned = new Set(badges.filter(b => b.earned).map(b => b.id));
+  for (const id of ['first-steps', 'thin-air', 'marathon', 'early-bird', 'night-owl', 'snow-chaser', 'monsoon-soul']) {
+    assert.ok(earned.has(id), id);
+  }
+  assert.ok(!earned.has('globetrotter'));
+  assert.equal(badges.find(b => b.id === 'globetrotter')?.progress, 2 / 3);
+  const sorted = sortBadges(badges);
+  assert.ok(sorted[0].earned && !sorted[sorted.length - 1].earned);
+});
+
+test('wrapped only counts the chosen year', () => {
+  const w = buildWrapped(2026, input, [
+    { at: '2026-04-03T12:00:00Z', audio: false },
+    { at: '2026-12-21T06:00:00Z', audio: true },
+    { at: '2025-01-02T12:00:00Z', audio: false },
+  ]);
+  assert.equal(w.stats.trips, 2);
+  assert.equal(w.stats.entries, 3);
+  assert.equal(w.stats.photos, 1);
+  assert.equal(w.stats.voiceNotes, 1);
+  assert.equal(w.topMood, '🔥 Epic');
+  assert.deepEqual(w.destinations.sort(), ['Everest Base Camp', 'Kedarkantha']);
+  assert.deepEqual(w.spendByCurrency, { INR: 1500, NPR: 9000 });
+  assert.equal(w.persona.title, 'The Summit Seeker');
+  assert.equal(w.busiestMonth, 'December');
+  assert.equal(buildWrapped(2024, input).persona.title, 'The Dreamer');
+});

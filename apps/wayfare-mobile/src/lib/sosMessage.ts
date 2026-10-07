@@ -1,0 +1,40 @@
+/** Builds the SMS text sent to emergency contacts (pure). */
+
+export type SosInput = {
+  name: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  accuracyM?: number | null;
+  altitudeM?: number | null;
+  at: Date;
+  tripTitle?: string | null;
+  liveUrl?: string | null;
+  note?: string | null;
+};
+
+export function mapsLink(latitude: number, longitude: number) {
+  return `https://maps.google.com/?q=${latitude.toFixed(5)},${longitude.toFixed(5)}`;
+}
+
+export function buildSosMessage(i: SosInput) {
+  const who = i.name?.trim() || 'your contact';
+  const when = i.at.toLocaleString('en-IN', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' });
+  const lines = [`SOS from ${who} via Wayfare. I may need help.`];
+  if (i.latitude != null && i.longitude != null) {
+    const acc = i.accuracyM != null ? ` (±${Math.round(i.accuracyM)} m)` : '';
+    const alt = i.altitudeM != null ? `, altitude ~${Math.round(i.altitudeM)} m` : '';
+    lines.push(`Location at ${when}: ${i.latitude.toFixed(5)}, ${i.longitude.toFixed(5)}${acc}${alt}`);
+    lines.push(`Map: ${mapsLink(i.latitude, i.longitude)}`);
+  } else {
+    lines.push(`Location unavailable at ${when} — please call me.`);
+  }
+  if (i.liveUrl) lines.push(`Live location: ${i.liveUrl}`);
+  if (i.tripTitle) lines.push(`Trip: ${i.tripTitle}`);
+  if (i.note?.trim()) lines.push(`Note: ${i.note.trim()}`);
+  return lines.join('\n');
+}
+
+export function buildCheckInMessage(name: string | null, place: string | null, at: Date) {
+  const when = at.toLocaleString('en-IN', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' });
+  return `${name?.trim() || 'I'} checked in safe via Wayfare at ${when}${place ? ` near ${place}` : ''}. ✅`;
+}

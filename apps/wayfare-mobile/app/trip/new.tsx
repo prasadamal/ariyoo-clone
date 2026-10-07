@@ -1,79 +1,85 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { ScrollView } from 'react-native';
-import { Button, SegmentedButtons, Text, TextInput } from 'react-native-paper';
-import { v4 as uuid } from 'uuid';
-import { getTrekById, PACKING_TEMPLATES } from '../../src/content/treks';
+import { useMemo, useState } from 'react';
+import { uuid } from '../../src/lib/id';
+import { getDestination } from '../../src/content/destinations';
+import { packingTemplate } from '../../src/content/tripTypes';
+import { useAuth } from '../../src/context/AuthContext';
+import { useToast } from '../../src/context/ToastContext';
+import { TripForm, emptyTripForm, type TripFormValues } from '../../src/features/trip/TripForm';
+import { parseDay } from '../../src/lib/format';
 import { seedPackingTemplate, upsertTrip } from '../../src/lib/localDb';
-
-const TRIP_TYPES = [
-  { value: 'trek', label: 'Trek' },
-  { value: 'road', label: 'Road' },
-  { value: 'city', label: 'City' },
-];
+import { placeKeyFor } from '../../src/lib/places';
+import { pushTripNow } from '../../src/lib/sync';
+import { Screen } from '../../src/ui/Screen';
 
 export default function NewTripScreen() {
-  const params = useLocalSearchParams<{ trekId?: string; title?: string; destination?: string; tripType?: string }>();
-  const [title, setTitle] = useState('');
-  const [destination, setDestination] = useState('');
-  const [tripType, setTripType] = useState('trek');
-  const [startsOn, setStartsOn] = useState('');
-  const [endsOn, setEndsOn] = useState('');
-  const [companions, setCompanions] = useState('');
-  const [notes, setNotes] = useState('');
-  const [loading, setLoading] = useState(false);
+  const params = useLocalSearchParams<{ placeKey?: string; title?: string; tripType?: string; startsOn?: string; endsOn?: string }>();
+  const { user } = useAuth();
+  const toast = useToast();
+  const [busy, setBusy] = useState(false);
 
-  useEffect(() => {
-    if (params.title) setTitle(String(params.title));
-    if (params.destination) setDestination(String(params.destination));
-    if (params.tripType) setTripType(String(params.tripType));
-    const trek = params.trekId ? getTrekById(String(params.trekId)) : undefined;
-    if (trek) {
-      setNotes(
-        `Best season: ${trek.bestSeason}\nPermits: ${trek.permits}\nTransport: ${trek.transport}`
-      );
-    }
-  }, [params.trekId, params.title, params.destination, params.tripType]);
-
-  const create = async () => {
-    if (!title.trim()) return;
-    setLoading(true);
-    const id = uuid();
-    const now = new Date().toISOString();
-    await upsertTrip({
-      id,
-      title: title.trim(),
-      trip_type: tripType,
-      destination: destination.trim() || null,
-      starts_on: startsOn || null,
-      ends_on: endsOn || null,
-      visibility: 'private',
-      companions: companions.trim() || null,
-      status: 'active',
-      notes: notes.trim() || null,
-      share_id: null,
-      sync_status: 'pending',
-      updated_at: now,
+  const initial = useMemo(() => {
+    const d = getDestination(params.placeKey ? String(params.placeKey) : null);
+    return emptyTripForm({
+      title: params.title ? String(params.title) : d?.name ?? '',
+      destination: d?.name ?? '',
+      destinationMatch: d,
+      tripType: params.tripType ? String(params.tripType) : d?.kinds.includes('trek') ? 'trek' : d?.kinds.includes('beach') ? 'beach' : 'trek',
+      currency: d?.currency ?? 'INR',
+      startsOn: params.startsOn ? String(params.startsOn) : null,
+      endsOn: params.endsOn ? String(params.endsOn) : null,
+      notes: d
+        ? [`Best season: ${d.bestSeason}`, d.permits ? `Permits: ${d.permits}` : '', `Getting there: ${d.transport}`].filter(Boolean).join('\n')
+        : '',
     });
-    const template = PACKING_TEMPLATES[tripType] ?? PACKING_TEMPLATES.trek;
-    await seedPackingTemplate(id, template);
-    setLoading(false);
-    router.replace(`/trip/${id}`);
+  }, [params.placeKey, params.title, params.tripType, params.startsOn, params.endsOn]);
+
+  const create = async (v: TripFormValues) => {
+    setBusy(true);
+    try {
+      const id = uuid();
+      const d = v.destinationMatch;
+      await upsertTrip({
+        id,
+        title: v.title.trim(),
+        trip_type: v.tripType,
+        destination: v.destination.trim() || null,
+        starts_on: v.startsOn,
+        ends_on: v.endsOn,
+        visibility: 'private',
+        companions: v.companions.trim() || null,
+        status: 'active',
+        notes: v.notes.trim() || null,
+        share_id: null,
+        place_key: d?.key ?? placeKeyFor(v.destination),
+        open_to_meet: v.openToMeet && user ? 1 : 0,
+        currency: v.currency,
+        budget_total: v.budget ? Number(v.budget) : null,
+        dest_lat: d?.lat ?? null,
+        dest_lng: d?.lng ?? null,
+        sync_status: 'pending',
+        updated_at: new Date().toISOString(),
+      });
+      const start = parseDay(v.startsOn);
+      await seedPackingTemplate(
+        id,
+        packingTemplate(v.tripType, { maxAltitudeM: d?.maxAltitudeM, startMonth: start ? start.getMonth() + 1 : null })
+      );
+      if (v.openToMeet && user) {
+        // Upload now so matching (and match notifications) work immediately.
+        await pushTripNow(user.id, id).catch(() => toast('Saved offline — matching starts once you are online.'));
+      }
+      router.replace(`/trip/${id}`);
+    } catch (e) {
+      toast(e instanceof Error ? e.message : 'Could not create journey');
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
-    <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 48 }}>
-      <Text variant="titleLarge" style={{ marginBottom: 4 }}>New trip</Text>
-      <Text style={{ color: '#57534e', marginBottom: 16 }}>Works offline—sync when you sign in.</Text>
-      <TextInput label="Trip title" value={title} onChangeText={setTitle} style={{ marginBottom: 12 }} mode="outlined" />
-      <TextInput label="Destination" value={destination} onChangeText={setDestination} style={{ marginBottom: 12 }} mode="outlined" />
-      <Text style={{ marginBottom: 8 }}>Trip type</Text>
-      <SegmentedButtons value={tripType} onValueChange={setTripType} buttons={TRIP_TYPES} style={{ marginBottom: 16 }} />
-      <TextInput label="Start date (YYYY-MM-DD)" value={startsOn} onChangeText={setStartsOn} style={{ marginBottom: 12 }} mode="outlined" />
-      <TextInput label="End date (YYYY-MM-DD)" value={endsOn} onChangeText={setEndsOn} style={{ marginBottom: 12 }} mode="outlined" />
-      <TextInput label="Companions" value={companions} onChangeText={setCompanions} style={{ marginBottom: 12 }} mode="outlined" />
-      <TextInput label="Notes & permits" value={notes} onChangeText={setNotes} multiline style={{ marginBottom: 16 }} mode="outlined" />
-      <Button mode="contained" onPress={create} loading={loading} disabled={!title.trim()}>Create trip</Button>
-    </ScrollView>
+    <Screen>
+      <TripForm initial={initial} submitLabel="Create journey" busy={busy} onSubmit={create} />
+    </Screen>
   );
 }

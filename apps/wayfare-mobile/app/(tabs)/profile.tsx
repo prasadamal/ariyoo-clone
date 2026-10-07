@@ -1,101 +1,145 @@
-import { useCallback, useEffect, useState } from 'react';
-import { Linking, ScrollView } from 'react-native';
-import { ActivityIndicator, Button, Card, SegmentedButtons, Switch, Text } from 'react-native-paper';
-import { isSupabaseConfigured } from '../../src/config';
-import { useAppLock } from '../../src/context/AppLockContext';
-import { useWayfareTheme, type ThemeMode } from '../../src/context/ThemeContext';
-import { useAuth } from '../../src/context/AuthContext';
-import { countPendingSync } from '../../src/lib/localDb';
-import { syncAll } from '../../src/lib/sync';
+import { router } from 'expo-router';
+import { useMemo } from 'react';
+import { Pressable, Share, View } from 'react-native';
+import { Button, Text } from 'react-native-paper';
+import { PostCard } from '../../src/components/PostCard';
+import { ProfileHeader } from '../../src/components/ProfileHeader';
+import { useAuth, useCanConnect } from '../../src/context/AuthContext';
+import { computeBadges, sortBadges } from '../../src/lib/badges';
+import { displayName, formatKm } from '../../src/lib/format';
+import { useTravelStats } from '../../src/lib/useTravelStats';
+import { useFeed } from '../../src/social/useFeed';
+import { useAppTheme } from '../../src/theme';
+import { Hero } from '../../src/ui/Hero';
+import { Icon } from '../../src/ui/Icon';
+import { Screen } from '../../src/ui/Screen';
+import { SectionHeader } from '../../src/ui/SectionHeader';
+import { StatRow, StatTile } from '../../src/ui/StatTile';
 
-const PRIVACY_URL = 'https://prasadamal.github.io/ariyoo-clone/privacy/wayfare.html';
+function Row({ icon, label, onPress, tint }: { icon: string; label: string; onPress: () => void; tint?: string }) {
+  const { colors } = useAppTheme();
+  return (
+    <Pressable onPress={onPress} style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 14, opacity: pressed ? 0.7 : 1, borderBottomWidth: 1, borderBottomColor: colors.border })} accessibilityRole="button">
+      <Icon name={icon} size={22} color={tint ?? colors.onSurfaceVariant} />
+      <Text style={{ flex: 1, fontWeight: '600' }}>{label}</Text>
+      <Icon name="chevron-right" size={20} color={colors.subtle} />
+    </Pressable>
+  );
+}
 
 export default function ProfileTab() {
-  const { user, profile, signOut, offlineMode } = useAuth();
-  const { enabled: bioLock, setEnabled: setBioLock } = useAppLock();
-  const { mode: themeMode, setMode: setThemeMode, paperTheme } = useWayfareTheme();
-  const [pending, setPending] = useState(0);
-  const [syncing, setSyncing] = useState(false);
-  const [lastSync, setLastSync] = useState<string | null>(null);
-  const [syncError, setSyncError] = useState<string | null>(null);
+  const { colors } = useAppTheme();
+  const { user, profile, refreshProfile } = useAuth();
+  const canConnect = useCanConnect();
+  const stats = useTravelStats();
+  const badges = useMemo(() => (stats ? sortBadges(computeBadges(stats)) : []), [stats]);
+  const earned = badges.filter(b => b.earned);
+  const myPosts = useFeed('user', { userId: user?.id ?? null, enabled: canConnect && !!user?.id });
+  const year = new Date().getFullYear();
 
-  const refreshPending = useCallback(async () => {
-    setPending(await countPendingSync());
-  }, []);
-
-  useEffect(() => {
-    refreshPending();
-  }, [refreshPending]);
-
-  const runSync = async () => {
-    if (!user?.id) return;
-    setSyncing(true);
-    setSyncError(null);
-    try {
-      const result = await syncAll(user.id);
-      if (result.errors.length) setSyncError(result.errors.slice(0, 3).join(' · '));
-      setLastSync(new Date().toLocaleString());
-      await refreshPending();
-    } catch (e) {
-      setSyncError(e instanceof Error ? e.message : 'Sync failed');
-    } finally {
-      setSyncing(false);
-    }
+  const shareProfile = () => {
+    if (!profile?.username) return;
+    Share.share({ message: `Follow my journeys on Wayfare: @${profile.username}\nwayfare://user/@${profile.username}` });
   };
 
   return (
-    <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 32, backgroundColor: paperTheme.colors.background }}>
-      <Text variant="headlineSmall">Profile</Text>
-      <Card style={{ marginTop: 16, padding: 12 }}>
-        <Text variant="titleMedium">{profile?.display_name ?? 'Traveler'}</Text>
-        <Text style={{ marginTop: 4, color: '#57534e' }}>Tier: {profile?.tier ?? 'traveler'}</Text>
-        {user?.email ? <Text style={{ marginTop: 8 }}>{user.email}</Text> : null}
-        {offlineMode ? <Text style={{ marginTop: 8, color: '#78716c' }}>Offline journal mode</Text> : null}
-      </Card>
-      <Card style={{ marginTop: 12, padding: 12 }}>
-        <Text variant="titleSmall">Appearance</Text>
-        <SegmentedButtons
-          value={themeMode}
-          onValueChange={v => setThemeMode(v as ThemeMode)}
-          buttons={[
-            { value: 'system', label: 'Auto' },
-            { value: 'light', label: 'Light' },
-            { value: 'dark', label: 'Dark' },
-          ]}
-          style={{ marginTop: 8 }}
+    <Screen refreshing={false} onRefresh={() => { refreshProfile(); myPosts.refresh(); }}>
+      {canConnect && profile ? (
+        <ProfileHeader
+          id={profile.id}
+          name={displayName(profile)}
+          username={profile.username}
+          avatarPath={profile.avatar_path}
+          bio={profile.bio}
+          homeRegion={profile.home_region}
+          homeCountry={profile.home_country}
+          styles={profile.travel_styles}
+          languages={profile.languages}
+          tier={profile.tier}
+          verifiedKm={profile.verified_km}
+          maxAltitudeM={profile.max_altitude_m}
+          trips={Math.max(profile.trips_count, stats?.trips ?? 0)}
+          followers={profile.followers_count}
+          following={profile.following_count}
+          posts={profile.posts_count}
+          showTierProgress
+          actions={
+            <>
+              <Button mode="contained-tonal" icon="pencil-outline" onPress={() => router.push('/profile/edit')} style={{ flex: 1 }}>
+                Edit profile
+              </Button>
+              <Button mode="outlined" icon="share-variant" onPress={shareProfile}>
+                Share
+              </Button>
+            </>
+          }
         />
-      </Card>
-      <Card style={{ marginTop: 12, padding: 12 }}>
-        <Text variant="titleSmall">Privacy vault</Text>
-        <Text style={{ marginTop: 6, color: '#57534e' }}>Require biometrics when opening the app.</Text>
-        <Switch value={bioLock} onValueChange={v => setBioLock(v)} style={{ marginTop: 8 }} />
-      </Card>
-      <Card style={{ marginTop: 12, padding: 12 }}>
-        <Text variant="titleSmall">Cloud sync</Text>
-        <Text style={{ marginTop: 6, color: '#57534e' }}>
-          {isSupabaseConfigured
-            ? 'Auto-sync when you return to the app. Manual sync below.'
-            : 'Set Supabase env vars for cloud backup.'}
-        </Text>
-        {!offlineMode && (
-          <>
-            <Text style={{ marginTop: 8 }}>Pending: {pending}</Text>
-            {lastSync ? <Text style={{ color: '#57534e', fontSize: 13 }}>Last: {lastSync}</Text> : null}
-            {syncError ? <Text style={{ color: '#b91c1c', marginTop: 6 }}>{syncError}</Text> : null}
-            <Button mode="contained" style={{ marginTop: 12 }} onPress={runSync} disabled={syncing || !user}>
-              {syncing ? 'Syncing…' : 'Sync now'}
-            </Button>
-            {syncing ? <ActivityIndicator style={{ marginTop: 8 }} /> : null}
-          </>
-        )}
-      </Card>
-      <Button mode="text" onPress={() => Linking.openURL(PRIVACY_URL)} style={{ marginTop: 16 }}>
-        Privacy policy
-      </Button>
-      {!offlineMode ? (
-        <Button mode="outlined" style={{ marginTop: 8 }} onPress={signOut}>Sign out</Button>
+      ) : (
+        <Hero>
+          <Text variant="headlineSmall" style={{ color: '#fff', fontWeight: '900' }}>
+            Your travel life
+          </Text>
+          <Text style={{ color: '#ffffffd9', marginTop: 4, lineHeight: 20 }}>
+            Create a free account to back up your journal, earn a verified traveller tier and meet people heading your way.
+          </Text>
+          <Button mode="contained" buttonColor="#fff" textColor={colors.heroEnd} style={{ marginTop: 12, alignSelf: 'flex-start' }} onPress={() => router.push('/register')}>
+            Create account
+          </Button>
+        </Hero>
+      )}
+
+      {stats ? (
+        <>
+          <SectionHeader title="On this device" />
+          <StatRow>
+            <StatTile icon="map-outline" value={String(stats.trips)} label="Journeys" />
+            <StatTile icon="feather" value={String(stats.entries)} label="Moments" tint={colors.tertiary} />
+            <StatTile icon="map-marker-path" value={formatKm(stats.km)} label="Recorded" tint={colors.secondary} />
+          </StatRow>
+        </>
       ) : null}
-      <Text style={{ marginTop: 24, color: '#a8a29e', fontSize: 12 }}>Wayfare 1.2.0 · com.wayfare.app</Text>
-    </ScrollView>
+
+      <Pressable onPress={() => router.push('/wrapped')} accessibilityRole="button" style={{ marginTop: 16 }}>
+        <Hero variant="violet">
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+            <Icon name="party-popper" size={30} color="#fff" />
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: '#fff', fontWeight: '900', fontSize: 18 }}>Your {year} in travel</Text>
+              <Text style={{ color: '#ffffffd9' }}>Kilometres, peaks, moods and your traveller persona</Text>
+            </View>
+            <Icon name="chevron-right" size={24} color="#fff" />
+          </View>
+        </Hero>
+      </Pressable>
+
+      <SectionHeader title="Badges" subtitle={`${earned.length} of ${badges.length} earned`} action="See all" onAction={() => router.push('/badges')} />
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
+        {badges.slice(0, 8).map(b => (
+          <View key={b.id} style={{ width: '22%', alignItems: 'center', opacity: b.earned ? 1 : 0.4 }} accessibilityLabel={`${b.title}${b.earned ? ', earned' : ''}`}>
+            <View style={{ width: 52, height: 52, borderRadius: 18, backgroundColor: b.earned ? b.color : colors.surfaceVariant, alignItems: 'center', justifyContent: 'center' }}>
+              <Icon name={b.icon} size={26} color={b.earned ? '#fff' : colors.muted} />
+            </View>
+            <Text style={{ fontSize: 11, textAlign: 'center', marginTop: 4 }} numberOfLines={2}>
+              {b.title}
+            </Text>
+          </View>
+        ))}
+      </View>
+
+      <SectionHeader title="Tools" />
+      <Row icon="shield-alert-outline" label="Safety center & SOS" onPress={() => router.push('/safety')} tint={colors.danger} />
+      <Row icon="swap-horizontal" label="Currency converter" onPress={() => router.push('/tools/currency')} />
+      {canConnect ? <Row icon="account-search-outline" label="Find travellers" onPress={() => router.push('/search')} /> : null}
+      <Row icon="cog-outline" label="Settings & privacy" onPress={() => router.push('/settings')} />
+
+      {canConnect && myPosts.posts.length ? (
+        <>
+          <SectionHeader title="Your posts" />
+          {myPosts.posts.slice(0, 5).map(p => (
+            <PostCard key={p.id} post={p} onChanged={myPosts.update} onDeleted={myPosts.remove} />
+          ))}
+        </>
+      ) : null}
+    </Screen>
   );
 }

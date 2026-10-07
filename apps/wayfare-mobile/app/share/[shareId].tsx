@@ -1,58 +1,69 @@
 import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ScrollView, View } from 'react-native';
-import { ActivityIndicator, Card, Text } from 'react-native-paper';
-import { useWayfareTheme } from '../../src/context/ThemeContext';
+import { View } from 'react-native';
+import { ActivityIndicator, Text } from 'react-native-paper';
+import { formatDateRange, formatKm } from '../../src/lib/format';
+import { fromLngLatPairs } from '../../src/lib/geo';
 import { fetchSharedTrip, type SharedTripPayload } from '../../src/lib/shareTrip';
+import { useAppTheme } from '../../src/theme';
+import { EmptyState } from '../../src/ui/EmptyState';
+import { Hero } from '../../src/ui/Hero';
+import { Pill } from '../../src/ui/Pill';
+import { RouteSparkline } from '../../src/ui/RouteSparkline';
+import { Screen } from '../../src/ui/Screen';
+import { TierBadge } from '../../src/ui/TierBadge';
 
 export default function SharedTripScreen() {
   const { shareId } = useLocalSearchParams<{ shareId: string }>();
-  const id = String(shareId);
-  const { paperTheme } = useWayfareTheme();
+  const { colors } = useAppTheme();
   const [data, setData] = useState<SharedTripPayload | null | undefined>(undefined);
 
   useEffect(() => {
-    fetchSharedTrip(id).then(setData);
-  }, [id]);
+    fetchSharedTrip(String(shareId)).then(setData);
+  }, [shareId]);
 
-  if (data === undefined) {
-    return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: paperTheme.colors.background }}>
-        <ActivityIndicator />
-      </View>
-    );
-  }
+  if (data === undefined) return <ActivityIndicator style={{ marginTop: 40 }} />;
+  if (!data?.trip) return <EmptyState icon="link-variant-off" title="Journey not found" body="This link may have been turned off by its owner." />;
 
-  if (!data?.trip) {
-    return (
-      <View style={{ flex: 1, padding: 24, backgroundColor: paperTheme.colors.background }}>
-        <Text variant="titleLarge">Trip not found</Text>
-        <Text style={{ marginTop: 8, color: paperTheme.colors.onSurfaceVariant }}>
-          This link may have expired or the trip is no longer shared.
-        </Text>
-      </View>
-    );
-  }
-
-  const { trip, entries } = data;
+  const { trip, entries, author, stats } = data;
+  const route = fromLngLatPairs(data.route);
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: paperTheme.colors.background }} contentContainerStyle={{ padding: 16, paddingBottom: 48 }}>
-      <Text variant="headlineSmall">{trip.title}</Text>
-      <Text style={{ color: paperTheme.colors.onSurfaceVariant, marginBottom: 16 }}>
-        {trip.destination} · {trip.trip_type} · Read-only share
-      </Text>
+    <Screen>
+      <Hero>
+        <Text style={{ color: '#ffffffcc', fontSize: 12, fontWeight: '700' }}>A WAYFARE JOURNEY</Text>
+        <Text variant="headlineSmall" style={{ color: '#fff', fontWeight: '900', marginTop: 4 }}>
+          {trip.title}
+        </Text>
+        <Text style={{ color: '#ffffffe6' }}>{[trip.destination, formatDateRange(trip.starts_on, trip.ends_on)].filter(Boolean).join(' · ')}</Text>
+        {author ? (
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 10 }}>
+            <Text style={{ color: '#fff', fontWeight: '700' }}>by {author.display_name}</Text>
+            <TierBadge tier={author.tier} compact />
+          </View>
+        ) : null}
+      </Hero>
+      {route.length > 1 ? (
+        <View style={{ marginTop: 12 }}>
+          <RouteSparkline points={route} height={150} />
+        </View>
+      ) : null}
+      {stats ? (
+        <View style={{ flexDirection: 'row', gap: 6, marginTop: 10, flexWrap: 'wrap' }}>
+          <Pill icon="feather" label={`${stats.entry_count} moments`} />
+          {stats.route_km > 0 ? <Pill icon="check-decagram" label={`${formatKm(stats.route_km)} GPS-verified`} color={colors.secondary} /> : null}
+        </View>
+      ) : null}
       {(entries ?? []).map((e, idx) => (
-        <Card key={idx} style={{ marginBottom: 12, backgroundColor: paperTheme.colors.surface }}>
-          <Card.Content>
-            <Text variant="labelSmall">{new Date(e.recorded_at).toLocaleString()}</Text>
-            {e.place_name ? <Text style={{ color: '#0f766e' }}>{e.place_name}</Text> : null}
-            <Text style={{ marginTop: 6 }}>{e.body}</Text>
-            {e.mood ? <Text style={{ marginTop: 4 }}>{e.mood}</Text> : null}
-            {e.weather ? <Text style={{ fontSize: 12, marginTop: 4 }}>{e.weather}</Text> : null}
-          </Card.Content>
-        </Card>
+        <View key={idx} style={{ backgroundColor: colors.surface, borderRadius: 16, borderWidth: 1, borderColor: colors.border, padding: 14, marginTop: 12 }}>
+          <Text style={{ color: colors.muted, fontSize: 12 }}>{new Date(e.recorded_at).toLocaleString('en-IN')}</Text>
+          {e.place_name ? <Text style={{ color: colors.secondary, fontWeight: '700' }}>{e.place_name}</Text> : null}
+          {e.body ? <Text style={{ marginTop: 6, lineHeight: 21 }}>{e.body}</Text> : null}
+          {e.mood || e.weather ? (
+            <Text style={{ marginTop: 6, color: colors.muted, fontSize: 12 }}>{[e.mood, e.weather].filter(Boolean).join(' · ')}</Text>
+          ) : null}
+        </View>
       ))}
-    </ScrollView>
+    </Screen>
   );
 }

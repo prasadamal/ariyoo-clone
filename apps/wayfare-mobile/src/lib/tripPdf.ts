@@ -1,16 +1,20 @@
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
-import { listEntries, listExpenses, type LocalTrip } from './localDb';
-import { computeTripStats } from './tripStats';
+import { formatDateRange, formatKm } from './format';
+import { listEntries, listExpenses, listItinerary, type LocalTrip } from './localDb';
+import { computeBalances, parseSplitWith, settleUp } from './split';
+import { formatMoney } from './currencyMath';
+import { computeTripStats, formatSpend } from './tripStats';
 
 function esc(s: string) {
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
 export async function exportTripJournalPdf(trip: LocalTrip) {
-  const [entries, expenses, stats] = await Promise.all([
+  const [entries, expenses, plan, stats] = await Promise.all([
     listEntries(trip.id),
     listExpenses(trip.id),
+    listItinerary(trip.id),
     computeTripStats(trip.id),
   ]);
 
@@ -18,45 +22,77 @@ export async function exportTripJournalPdf(trip: LocalTrip) {
     .map(
       e => `
     <section class="entry">
-      <time>${esc(new Date(e.recorded_at).toLocaleString())}</time>
+      <time>${esc(new Date(e.recorded_at).toLocaleString('en-IN'))}</time>
       ${e.place_name ? `<div class="place">${esc(e.place_name)}</div>` : ''}
-      <p>${esc(e.body ?? '')}</p>
+      <p>${esc(e.body ?? '').replace(/\n/g, '<br/>')}</p>
       ${e.mood ? `<div class="meta">Mood: ${esc(e.mood)}</div>` : ''}
       ${e.weather ? `<div class="meta">${esc(e.weather)}</div>` : ''}
+      ${e.altitude_m != null ? `<div class="meta">Altitude ~${Math.round(e.altitude_m)} m</div>` : ''}
     </section>`
     )
     .join('');
 
+  const planHtml = plan.length
+    ? `<h2>Plan</h2><ul>${plan
+        .map(p => `<li>Day ${p.day_index + 1}${p.start_time ? ` · ${esc(p.start_time)}` : ''} — ${esc(p.title)}${p.done ? ' ✓' : ''}</li>`)
+        .join('')}</ul>`
+    : '';
+
   const expenseHtml = expenses.length
-    ? `<ul>${expenses.map(e => `<li>${esc(e.category)}: ₹${e.amount}</li>`).join('')}</ul>`
+    ? `<ul>${expenses
+        .map(e => `<li>${esc(e.category)}${e.note ? ` (${esc(e.note)})` : ''}: ${esc(formatMoney(e.amount, e.currency))}${e.paid_by ? ` — paid by ${esc(e.paid_by)}` : ''}</li>`)
+        .join('')}</ul>`
     : '<p>No expenses logged.</p>';
+
+  // Settle-up per currency (splits never mix currencies).
+  const byCurrency = new Map<string, typeof expenses>();
+  for (const e of expenses) byCurrency.set(e.currency, [...(byCurrency.get(e.currency) ?? []), e]);
+  const settleHtml = [...byCurrency.entries()]
+    .map(([currency, list]) => {
+      const transfers = settleUp(
+        computeBalances(list.map(e => ({ amount: e.amount, paidBy: e.paid_by, splitWith: parseSplitWith(e.split_with) })))
+      );
+      return transfers.map(t => `<li>${esc(t.from)} → ${esc(t.to)}: ${esc(formatMoney(t.amount, currency))}</li>`).join('');
+    })
+    .join('');
 
   const html = `
   <html><head><meta charset="utf-8" />
   <style>
     body { font-family: Georgia, serif; color: #1c1917; padding: 32px; max-width: 720px; margin: auto; }
-    h1 { color: #c2410c; font-size: 28px; }
-    .sub { color: #57534e; margin-bottom: 24px; }
-    .stats { background: #fafaf9; padding: 12px 16px; border-radius: 8px; margin-bottom: 24px; }
-    .entry { border-left: 3px solid #0f766e; padding-left: 12px; margin-bottom: 20px; }
+    h1 { color: #c2410c; font-size: 28px; margin-bottom: 4px; }
+    .sub { color: #57534e; margin-bottom: 20px; }
+    .stats { background: #fafaf9; padding: 12px 16px; border-radius: 8px; margin-bottom: 24px; border: 1px solid #e7e5e4; }
+    .entry { border-left: 3px solid #0f766e; padding-left: 12px; margin-bottom: 20px; page-break-inside: avoid; }
     time { font-size: 12px; color: #78716c; }
     .place { color: #0f766e; font-weight: 600; margin: 4px 0; }
     .meta { font-size: 13px; color: #57534e; margin-top: 4px; }
-    h2 { font-size: 18px; margin-top: 32px; }
+    h2 { font-size: 18px; margin-top: 32px; color: #0f766e; }
   </style></head><body>
     <h1>${esc(trip.title)}</h1>
-    <div class="sub">${esc(trip.destination ?? '')} · ${esc(trip.trip_type)} · ${esc(trip.starts_on ?? '')} – ${esc(trip.ends_on ?? '')}</div>
-    <div class="stats">${stats.entryCount} entries · ${stats.distanceKm.toFixed(1)} km · ₹${Math.round(stats.spendInr)}</div>
+    <div class="sub">${esc([trip.destination, trip.trip_type, formatDateRange(trip.starts_on, trip.ends_on)].filter(Boolean).join(' · '))}</div>
+    <div class="stats">${[
+      `${stats.entryCount} entries`,
+      stats.photoCount ? `${stats.photoCount} photos` : '',
+      stats.distanceKm >= 0.1 ? `${formatKm(stats.distanceKm)} recorded` : '',
+      stats.gainM ? `${stats.gainM.toLocaleString('en-IN')} m climbed` : '',
+      stats.maxAltitudeM ? `high point ${Math.round(stats.maxAltitudeM).toLocaleString('en-IN')} m` : '',
+      formatSpend(stats.spendByCurrency) ? `${esc(formatSpend(stats.spendByCurrency))} spent` : '',
+    ]
+      .filter(Boolean)
+      .join(' · ')}</div>
     <h2>Journal</h2>
     ${entryHtml || '<p>No entries yet.</p>'}
+    ${planHtml}
     <h2>Budget</h2>
     ${expenseHtml}
+    ${settleHtml ? `<h2>Settle up</h2><ul>${settleHtml}</ul>` : ''}
     <p style="margin-top:48px;font-size:11px;color:#a8a29e;">Generated by Wayfare — your journey, journaled.</p>
   </body></html>`;
 
   const { uri } = await Print.printToFileAsync({ html });
   if (await Sharing.isAvailableAsync()) {
-    await Sharing.shareAsync(uri, { mimeType: 'application/pdf', dialogTitle: `${trip.title} journal` });
+    await Sharing.shareAsync(uri, { mimeType: 'application/pdf', dialogTitle: `${trip.title} journal`, UTI: 'com.adobe.pdf' });
   }
   return uri;
 }
