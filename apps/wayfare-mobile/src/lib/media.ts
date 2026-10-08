@@ -22,7 +22,7 @@ export function isAudio(mimeType: string | null | undefined) {
 
 /** Compresses a picked photo and stores it durably for the journal. */
 export async function persistJournalPhoto(uri: string, mediaId: string, size?: { width?: number; height?: number }) {
-  const prepared = await prepareImage(uri, 2048, 0.82, size);
+  const prepared = await prepareImage(uri, 1600, 0.72, size);
   const stored = await persistFile(prepared.uri, 'journal', `${mediaId}.jpg`);
   return { uri: stored, mimeType: prepared.mimeType, width: prepared.width, height: prepared.height };
 }

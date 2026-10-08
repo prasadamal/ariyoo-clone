@@ -61,7 +61,7 @@ export async function createPost(input: NewPost) {
   const me = await currentUserId();
   const media: PostMedia[] = [];
   for (const photo of (input.photos ?? []).slice(0, 10)) {
-    const img = await prepareImage(photo.uri, 1600, 0.82, photo);
+    const img = await prepareImage(photo.uri, 1600, 0.72, photo);
     const path = `${me}/${uuid()}.jpg`;
     await uploadFile({ bucket: POST_MEDIA_BUCKET, path, localUri: img.uri, contentType: 'image/jpeg' });
     media.push({ path, width: img.width, height: img.height });

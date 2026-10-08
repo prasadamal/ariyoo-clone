@@ -11,8 +11,8 @@ export type PreparedImage = { uri: string; width: number; height: number; mimeTy
  */
 export async function prepareImage(
   uri: string,
-  maxEdge = 2048,
-  quality = 0.8,
+  maxEdge = 1600,
+  quality = 0.72,
   size?: { width?: number; height?: number }
 ): Promise<PreparedImage> {
   const context = ImageManipulator.manipulate(uri);
