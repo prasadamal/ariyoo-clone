@@ -114,7 +114,7 @@ export async function sendText(conversationId: string, id: string, body: string)
 }
 
 export async function sendImage(conversationId: string, id: string, localUri: string, size?: { width?: number; height?: number }) {
-  const img = await prepareImage(localUri, 1600, 0.8, size);
+  const img = await prepareImage(localUri, 1280, 0.7, size);
   const path = `${conversationId}/${id}.jpg`;
   await uploadFile({ bucket: CHAT_MEDIA_BUCKET, path, localUri: img.uri, contentType: 'image/jpeg' });
   return insertMessage({ id, conversation_id: conversationId, kind: 'image', media_path: path });
