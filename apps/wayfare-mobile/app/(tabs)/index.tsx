@@ -95,7 +95,7 @@ export default function JourneysTab() {
             ? `${pending} change${pending === 1 ? '' : 's'} waiting to sync`
             : lastSyncAt
               ? `Backed up ${timeAgo(lastSyncAt)}`
-              : 'Backed up to Wayfare cloud';
+              : 'Backup has not been verified yet';
 
   const header = (
     <View style={{ paddingBottom: 6 }}>
@@ -225,3 +225,4 @@ export default function JourneysTab() {
     </View>
   );
 }
+

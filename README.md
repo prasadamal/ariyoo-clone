@@ -23,3 +23,8 @@ Wayfare is an offline-first travel journal (SQLite) plus a traveller network on 
 travel board, chat, nearby travellers and safety tools. See `apps/wayfare-mobile/README.md` and `supabase/README.md`.
 
 **Publishing both apps:** start at [`docs/STORE_START_HERE.md`](docs/STORE_START_HERE.md) (full checklist: [`docs/STORE_PUBLISHING_CHECKLIST.md`](docs/STORE_PUBLISHING_CHECKLIST.md)).
+
+
+## State transition contracts
+
+See [the state-machine inventory](docs/state-machines/README.md) for workflow states, ownership, guards, recovery, and verification. Regenerate searchable source evidence and the machine-readable catalog with `node scripts/state-index.mjs`; validate them with `node scripts/state-index.mjs --check`.

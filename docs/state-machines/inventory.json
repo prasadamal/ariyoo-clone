@@ -1,0 +1,485 @@
+{
+  "description": "Curated workflow families. Conceptual states are not new wire enums; source-index.json provides broader candidate evidence.",
+  "workflows": [
+    {
+      "id": "W01",
+      "flow": "Startup / onboarding",
+      "sources": "`apps/wayfare-mobile/app/index.tsx`, `src/lib/onboarding.ts`, `app/onboarding.tsx`",
+      "transitions": "hydrating → first-run / complete → journal / login",
+      "decision": "Onboarding completion is persisted; cloud absence must preserve offline journal mode. Keep.",
+      "inventory": "WAYFARE.md"
+    },
+    {
+      "id": "W02",
+      "flow": "Auth / guest / confirmation / reset",
+      "sources": "`src/context/AuthContext.tsx`, `app/login.tsx`, `app/register.tsx`, `app/forgot-password.tsx`, `src/lib/session.ts`",
+      "transitions": "restoring → signed-out / guest / signed-in / offline-only; signup → confirmation-needed / session",
+      "decision": "Keep Supabase authority. Follow-up: hydration errors, reset recovery deep link, stale account profile responses.",
+      "inventory": "WAYFARE.md"
+    },
+    {
+      "id": "W03",
+      "flow": "Local journal ownership",
+      "sources": "`src/context/AuthContext.tsx`, `src/lib/sync.ts`",
+      "transitions": "unowned → adopted; owned-by-self → allowed; owned-by-other → conflict → explicit wipe/signout",
+      "decision": "Never silently adopt another user's journal. Sync run has its own owner/session check. Follow-up: coordinate ownership resolution, wipe and all in-flight writes across account changes.",
+      "inventory": "WAYFARE.md"
+    },
+    {
+      "id": "W04",
+      "flow": "Profile / community consent",
+      "sources": "`src/components/GuidelinesGate.tsx`, `src/social/profiles.ts`, `app/guidelines.tsx`",
+      "transitions": "unknown → fetched / offline-cached; guidelines missing → accepted",
+      "decision": "RLS/RPC remains authoritative. Follow-up: explicitly represent profile loading before showing community forms.",
+      "inventory": "WAYFARE.md"
+    },
+    {
+      "id": "W05",
+      "flow": "Biometric lock",
+      "sources": "`src/context/AppLockContext.tsx`, `src/lib/settings.ts`",
+      "transitions": "checking → disabled / locked → authenticating → unlocked / cancelled; background → locked",
+      "decision": "Hardware/enrolment/prompt are asynchronous. Follow-up: fail-closed policy for unavailable hardware and overlapping prompts requires device tests.",
+      "inventory": "WAYFARE.md"
+    },
+    {
+      "id": "W06",
+      "flow": "Sync orchestration and status",
+      "sources": "`src/context/SyncContext.tsx`, `src/lib/syncState.ts`, `src/lib/sync.ts`",
+      "transitions": "paused / idle → syncing → success / partial / error → retry",
+      "decision": "**Changed:** one explicit status model; same-account callers share work, other-account callers do not receive its result, stale account/attempt completions ignored, partial errors do not update successful-backup time. Existing context booleans retained as projections.",
+      "inventory": "WAYFARE.md"
+    },
+    {
+      "id": "W07",
+      "flow": "Row replication / merge",
+      "sources": "`src/lib/localDb.ts`, `src/lib/sync.ts`, `src/lib/syncRules.ts`",
+      "transitions": "pending → pushed → synced; remote newer → merged; pending local edit → protected",
+      "decision": "Preserve updated_at guarded acknowledgement and pending-edit precedence. No DB schema/merge semantics changed.",
+      "inventory": "WAYFARE.md"
+    },
+    {
+      "id": "W08",
+      "flow": "Deletion / tombstone",
+      "sources": "`src/lib/localDb.ts`, `src/lib/sync.ts`",
+      "transitions": "local delete → tombstone pending → remote delete → tombstone cleared",
+      "decision": "Deletes precede pushes; failed deletion remains retryable. Keep.",
+      "inventory": "WAYFARE.md"
+    },
+    {
+      "id": "W09",
+      "flow": "Track sync cursor / pages",
+      "sources": "`src/lib/sync.ts`",
+      "transitions": "starting cursor → page fetched → locally inserted → cursor advanced → next page / complete",
+      "decision": "Cursor uses created_at + id; preserve owner reset and page boundaries. Keep.",
+      "inventory": "WAYFARE.md"
+    },
+    {
+      "id": "W10",
+      "flow": "Media replication",
+      "sources": "`src/lib/media.ts`, `src/lib/sync.ts`, `src/lib/upload.ts`",
+      "transitions": "local file → upload → storage path → metadata write → synced; failure → retry path",
+      "decision": "Uploaded bytes and metadata commit are separate states. Keep existing metadata retry; follow-up: coordinate concurrent local edits and cleanup.",
+      "inventory": "WAYFARE.md"
+    },
+    {
+      "id": "W11",
+      "flow": "Trip creation / editing",
+      "sources": "`app/trip/new.tsx`, `app/trip/edit/[id].tsx`, `src/features/trip/TripForm.tsx`",
+      "transitions": "draft → valid/invalid → saving → saved / error",
+      "decision": "Destination-derived defaults must not overwrite explicit edits. Keep.",
+      "inventory": "WAYFARE.md"
+    },
+    {
+      "id": "W12",
+      "flow": "Trip status / calendar phase",
+      "sources": "`src/lib/localDb.ts`, `app/trip/[id].tsx`, `src/lib/format.ts`, `app/(tabs)/index.tsx`",
+      "transitions": "active ↔ completed; date-derived upcoming/current/past; cancelled excluded from matching",
+      "decision": "Stored status and calendar phase are separate dimensions; preserve both.",
+      "inventory": "WAYFARE.md"
+    },
+    {
+      "id": "W13",
+      "flow": "Trip privacy / link sharing",
+      "sources": "`src/lib/shareTrip.ts`, `app/share/[shareId].tsx`, `docs/wayfare-share/index.html`, share-link migrations",
+      "transitions": "private ↔ link/public; link created → shared → disabled/unavailable",
+      "decision": "Keep private default and server link authorization. No publication is implied by exporting a file.",
+      "inventory": "WAYFARE.md"
+    },
+    {
+      "id": "W14",
+      "flow": "Journal entry capture",
+      "sources": "`app/entry/[id].tsx`, `src/features/trip/JournalTab.tsx`",
+      "transitions": "new/edit → saving → saved/error; delete → pending tombstone",
+      "decision": "Preserve offline saves. Attachments and entry save are separate effects requiring recovery on partial failure. Keep.",
+      "inventory": "WAYFARE.md"
+    },
+    {
+      "id": "W15",
+      "flow": "Photo picking / viewing / removal",
+      "sources": "`src/features/trip/photoPicker.ts`, `src/components/EntryMediaStrip.tsx`, `src/ui/PhotoGrid.tsx`",
+      "transitions": "permission → pick/cancel → persist → attach; viewer closed/open; remove → pending sync",
+      "decision": "Keep local durable file before metadata. Device/storage failure tests remain required.",
+      "inventory": "WAYFARE.md"
+    },
+    {
+      "id": "W16",
+      "flow": "Voice recording / playback",
+      "sources": "`src/lib/voiceNote.ts`, `src/components/EntryVoiceNotes.tsx`",
+      "transitions": "idle → requesting permission → preparing → recording → stopping → saved / error / cancelled; playback paused/playing/ended",
+      "decision": "Audio recorder lifecycle is native; leave APIs unchanged. Follow-up: cancellation/audio-mode cleanup and single recorder ownership.",
+      "inventory": "WAYFARE.md"
+    },
+    {
+      "id": "W17",
+      "flow": "Route recording",
+      "sources": "`src/lib/locationTask.ts`, `src/lib/locationState.ts`, `src/features/trip/RouteTab.tsx`",
+      "transitions": "stopped → permission → starting → recording → stopping; battery ↔ precise; OS-stopped → stale marker cleared",
+      "decision": "Persisted intent and actual OS task state differ. Follow-up: serialized start/stop/mode changes, start failure rollback and reboot/device tests.",
+      "inventory": "WAYFARE.md"
+    },
+    {
+      "id": "W18",
+      "flow": "Shared location service",
+      "sources": "`src/lib/locationTask.ts`",
+      "transitions": "off / trip-only / live-only / trip-and-live",
+      "decision": "One OS service serves two purposes; stopping one must preserve the other. Keep current APIs; device-test transitions before refactor.",
+      "inventory": "WAYFARE.md"
+    },
+    {
+      "id": "W19",
+      "flow": "Live link lifecycle",
+      "sources": "`src/lib/liveShare.ts`, `src/lib/locationState.ts`, `app/live/[id].tsx`, `docs/wayfare-live/index.html`",
+      "transitions": "creating → active → expired/ended; location → throttled push → updated / retry",
+      "decision": "Follow-up: revoke acknowledgement and account binding; local clearing must not imply remote revocation succeeded. Keep expiration safeguards.",
+      "inventory": "WAYFARE.md"
+    },
+    {
+      "id": "W20",
+      "flow": "Route / PDF / journal export",
+      "sources": "`src/lib/geoExport.ts`, `src/lib/tripPdf.ts`, `src/features/trip/RouteTab.tsx`",
+      "transitions": "building → file written → native share / fallback → complete/cancel/error",
+      "decision": "Export is not automatic publishing. Keep.",
+      "inventory": "WAYFARE.md"
+    },
+    {
+      "id": "W21",
+      "flow": "Budget / currency / splits",
+      "sources": "`src/features/trip/BudgetTab.tsx`, `src/lib/currency.ts`, `src/lib/split.ts`, `app/tools/currency.tsx`",
+      "transitions": "editing → local saved; rates cached → fetching → fresh / stale/error; debt derived → settlement suggestion",
+      "decision": "Keep deterministic money arithmetic and explicit missing rates. Independent inputs do not need machines.",
+      "inventory": "WAYFARE.md"
+    },
+    {
+      "id": "W22",
+      "flow": "Packing / itinerary",
+      "sources": "`src/features/trip/PackingTab.tsx`, `src/features/trip/PlanTab.tsx`, `src/lib/localDb.ts`",
+      "transitions": "unchecked ↔ packed; draft → saved/reordered/deleted → pending sync",
+      "decision": "Preserve item IDs and offline mutation behavior. Keep.",
+      "inventory": "WAYFARE.md"
+    },
+    {
+      "id": "W23",
+      "flow": "Crew invitation / membership",
+      "sources": "`src/features/trip/CrewTab.tsx`, `app/join/[code].tsx`, connect migration",
+      "transitions": "invite unknown → validated → joined / rejected; member → left/removed",
+      "decision": "Server capacity, roles and membership checks remain authoritative. Keep.",
+      "inventory": "WAYFARE.md"
+    },
+    {
+      "id": "W24",
+      "flow": "Social feed pagination",
+      "sources": "`src/social/useFeed.ts`, `src/social/feed.ts`, `app/(tabs)/discover.tsx`",
+      "transitions": "initial → refreshing → ready/empty/error → loading-more → exhausted; definition change → reset",
+      "decision": "Follow-up: generation guard must cover errors/finally and disabled feeds, not just success. Keep optimistic edits and pagination behavior pending focused tests.",
+      "inventory": "WAYFARE.md"
+    },
+    {
+      "id": "W25",
+      "flow": "Social posting / likes / comments",
+      "sources": "`app/post/new.tsx`, `app/post/[id].tsx`, `src/components/PostCard.tsx`, social migration",
+      "transitions": "composing → uploading → publishing → visible/error; liked ↔ unliked; comment draft → posted/deleted",
+      "decision": "Server counters/authorization canonical; posting visibility explicit. Keep.",
+      "inventory": "WAYFARE.md"
+    },
+    {
+      "id": "W26",
+      "flow": "Follows / profile / blocking",
+      "sources": "`src/components/FollowButton.tsx`, `src/social/profiles.ts`, `src/social/moderation.ts`, `app/blocked.tsx`",
+      "transitions": "not-following ↔ following; unblocked ↔ blocked",
+      "decision": "Optimistic UI must rollback failures; profile discoverability and message permission are separate rules. Keep.",
+      "inventory": "WAYFARE.md"
+    },
+    {
+      "id": "W27",
+      "flow": "Inbox / notification aggregation",
+      "sources": "`src/context/InboxContext.tsx`, `src/social/notifications.ts`, `src/social/chat.ts`",
+      "transitions": "disconnected → subscribed/poll-refresh → snapshot; unread → read; conversation active/inactive",
+      "decision": "Follow-up: account-generation protection and reactive active-conversation state for badge counts. Keep native badge behavior.",
+      "inventory": "WAYFARE.md"
+    },
+    {
+      "id": "W28",
+      "flow": "Conversation membership / rooms",
+      "sources": "`src/social/chat.ts`, `src/features/connect/RoomsSection.tsx`, connect migration",
+      "transitions": "absent → joined → member/admin/owner → left/removed; muted ↔ unmuted",
+      "decision": "RLS/RPC controls read/write/role transitions; never infer membership from navigation. Keep.",
+      "inventory": "WAYFARE.md"
+    },
+    {
+      "id": "W29",
+      "flow": "Chat history / realtime",
+      "sources": "`app/chat/[id].tsx`, `src/social/chat.ts`",
+      "transitions": "opening → ready/error; live subscribed/reconnecting; older-page loading → merged/exhausted",
+      "decision": "Preserve history order and message IDs. Follow-up: route/account scoped async effects and paging races.",
+      "inventory": "WAYFARE.md"
+    },
+    {
+      "id": "W30",
+      "flow": "Message send / retry / attachments",
+      "sources": "`app/chat/[id].tsx`, `src/social/types.ts`",
+      "transitions": "draft → optimistic pending → acknowledged / failed → manual retry",
+      "decision": "pending/failed flags should eventually become a delivery union. Backend idempotency needed before automatic retry; preserve existing manual recovery.",
+      "inventory": "WAYFARE.md"
+    },
+    {
+      "id": "W31",
+      "flow": "Travel board post / capacity",
+      "sources": "`src/social/board.ts`, `app/board/[id].tsx`, `app/board/new.tsx`, connect migration",
+      "transitions": "draft → open → full / closed",
+      "decision": "Server acceptance updates capacity transactionally; keep.",
+      "inventory": "WAYFARE.md"
+    },
+    {
+      "id": "W32",
+      "flow": "Board join request",
+      "sources": "`src/social/board.ts`, connect migration",
+      "transitions": "absent → pending → accepted / declined; pending → cancelled",
+      "decision": "Preserve RPC actor, capacity and terminal-request guards; accepted request may create/join conversation. Keep.",
+      "inventory": "WAYFARE.md"
+    },
+    {
+      "id": "W33",
+      "flow": "Nearby presence",
+      "sources": "`src/social/connect.ts`, `src/features/connect/NearbySection.tsx`",
+      "transitions": "invisible → permission granted → visible-until-expiry → hidden/expired",
+      "decision": "Opt-in, coarsening and expiry stay server enforced. Keep; exact location never substitutes for coarse presence.",
+      "inventory": "WAYFARE.md"
+    },
+    {
+      "id": "W34",
+      "flow": "Trip matching",
+      "sources": "`src/features/connect/MatchesSection.tsx`, `src/social/connect.ts`",
+      "transitions": "trip selected → pushed → querying → matches/empty/error → contact",
+      "decision": "Preserve local trip sync before RPC and discoverability/date/status guards. Keep.",
+      "inventory": "WAYFARE.md"
+    },
+    {
+      "id": "W35",
+      "flow": "Place search / tips / votes",
+      "sources": "`src/ui/PlaceField.tsx`, `src/features/place/TipsSection.tsx`, `app/search.tsx`, `src/social/places.ts`",
+      "transitions": "query → suggestions/results; tip draft → posted; voted ↔ unvoted",
+      "decision": "Latest query owns displayed data; server owns eligibility/counters. Keep; audit stale query handling.",
+      "inventory": "WAYFARE.md"
+    },
+    {
+      "id": "W36",
+      "flow": "Safety contacts / SOS",
+      "sources": "`src/lib/safety.ts`, `app/safety.tsx`",
+      "transitions": "contacts edited → saved; location acquired → SMS composer → sent/cancelled/unknown",
+      "decision": "Composer launch is not proof SOS was sent; no background automatic messaging. Keep.",
+      "inventory": "WAYFARE.md"
+    },
+    {
+      "id": "W37",
+      "flow": "Check-in scheduling",
+      "sources": "`src/lib/safety.ts`",
+      "transitions": "off → reminders scheduled → due → overdue → checked-in/cancelled",
+      "decision": "This is a local reminder, not an emergency monitoring service. Follow-up: handle partial scheduling failures.",
+      "inventory": "WAYFARE.md"
+    },
+    {
+      "id": "W38",
+      "flow": "Notification permission / registration",
+      "sources": "`src/lib/notifications.ts`, `supabase/functions/push/index.ts`",
+      "transitions": "unset → granted/denied → enabled/disabled; registered token → forgotten",
+      "decision": "Native permission, preference and server token are distinct states. Keep; device/account-switch testing remains.",
+      "inventory": "WAYFARE.md"
+    },
+    {
+      "id": "W39",
+      "flow": "Account deletion / local wipe",
+      "sources": "`app/settings.tsx`, `src/context/AuthContext.tsx`, `src/social/profiles.ts`, `src/lib/localDb.ts`",
+      "transitions": "confirm → deleting cloud → wiping device → signed-out; any failure → partial recovery",
+      "decision": "Never represent partial deletion as complete; follow-up: coordinate running sync/recording and all cleanup effects.",
+      "inventory": "WAYFARE.md"
+    },
+    {
+      "id": "W40",
+      "flow": "Theme / toast / tabs / dialogs",
+      "sources": "`src/context/ThemeContext.tsx`, `src/context/ToastContext.tsx`, app and ui components in source index",
+      "transitions": "system/light/dark; notice visible → timer dismissed; modal open/closed; selected tab",
+      "decision": "Keep independent simple state; no reducer/framework needed.",
+      "inventory": "WAYFARE.md"
+    },
+    {
+      "id": "W41",
+      "flow": "Derived travel stats / badges / wrapped",
+      "sources": "`src/lib/useTravelStats.ts`, `src/lib/travelStats.ts`, `src/lib/badges.ts`, `src/lib/wrapped.ts`, stats migration",
+      "transitions": "loading → local/server-derived stats; traveller → hardcore → legendary; badge earned/unearned",
+      "decision": "Server-verified distance/altitude remains distinct from client estimates. Keep.",
+      "inventory": "WAYFARE.md"
+    },
+    {
+      "id": "W42",
+      "flow": "Generic resources / weather / share viewers",
+      "sources": "All source-index candidates, `src/lib/weather.ts`",
+      "transitions": "idle → loading/refreshing → data/empty/error; poll → stale/current/expired",
+      "decision": "One request lifecycle per resource, scoped to account and resource. Keep; explicit state only when coupling requires it.",
+      "inventory": "WAYFARE.md"
+    },
+    {
+      "id": "W43",
+      "flow": "Release gates",
+      "sources": "`apps/wayfare-mobile/eas.json`, `.github/workflows/wayfare-tests.yml`, store docs",
+      "transitions": "source checks → bundles → signed builds → device acceptance → release",
+      "decision": "Preserve build/store gates. No migration/deployment/publication performed.",
+      "inventory": "WAYFARE.md"
+    },
+    {
+      "id": "A01",
+      "flow": "Mobile session hydration",
+      "sources": "`apps/mobile/src/context/AuthContext.tsx`, `src/storage.ts`, `app/index.tsx`, `app/(tabs)/_layout.tsx`",
+      "transitions": "loading → cached user / signed-out; signin/signup → persisted → routed; signout → cleared",
+      "decision": "Follow-up: one atomic session record, malformed-cache recovery and generation-scoped restoration. Cached identity is not server authentication.",
+      "inventory": "ARIYOO.md"
+    },
+    {
+      "id": "A02",
+      "flow": "Login / register",
+      "sources": "`app/login.tsx`, `app/register.tsx`, `services/api/src/routes/auth.ts`",
+      "transitions": "editing → submitting → success/error",
+      "decision": "Keep existing payload/role options; duplicate submit guards and partial persistence recovery remain follow-ups.",
+      "inventory": "ARIYOO.md"
+    },
+    {
+      "id": "A03",
+      "flow": "Web auth / guards / reset",
+      "sources": "`apps/web/src/app/login`, `register`, `forgotpassword`, `core/guards/auth.guard.ts`, `apps/web/src/core/http/auth.service.ts`",
+      "transitions": "storage absent/present → route denied/allowed; form idle/submitting/success/error",
+      "decision": "Guard checks local storage, server JWT is authoritative. Web reset API lifecycle is incomplete; do not claim it works from the form alone.",
+      "inventory": "ARIYOO.md"
+    },
+    {
+      "id": "A04",
+      "flow": "Question composition / tags",
+      "sources": "`apps/mobile/app/(tabs)/home.tsx`, `apps/web/src/app/chatwindow/chatwindow.component.ts`, tags services/routes",
+      "transitions": "editing → hashtag suggestions → selected tags → submitting → session/error",
+      "decision": "Preserve question and selected tags on failure. Follow-up: same-tick submit lock and stale tag queries.",
+      "inventory": "ARIYOO.md"
+    },
+    {
+      "id": "A05",
+      "flow": "Expert matching / session creation",
+      "sources": "`services/api/src/routes/message.ts`, `src/utils/matching.ts`, `prisma/schema.prisma`",
+      "transitions": "question accepted → scored candidates → solver selected → session created → initial message created",
+      "decision": "Creation and first message are separate writes; follow-up atomic transaction. Current fallback can select seeker as solver; introduce unavailable/waiting policy only as an explicit product change.",
+      "inventory": "ARIYOO.md"
+    },
+    {
+      "id": "A06",
+      "flow": "Session list / seeker-solver mode",
+      "sources": "`apps/mobile/app/(tabs)/sessions.tsx`, `apps/web/src/app/services/session.service.ts`, `apps/web/src/app/chat/chat.component.ts`",
+      "transitions": "seeker ↔ solver; loading → sessions/empty/error; selectedSession 0 → selected ID",
+      "decision": "Keep role mode separate from auth; follow-up per-account/mode request scope and visible list retry.",
+      "inventory": "ARIYOO.md"
+    },
+    {
+      "id": "A07",
+      "flow": "Persisted session active flag",
+      "sources": "`services/api/prisma/schema.prisma`, `src/routes/message.ts`",
+      "transitions": "active true/false in schema",
+      "decision": "There is no complete close/reopen lifecycle or active-write gate in current API. Inventory the latent machine; do not invent closure behavior without endpoint/product design.",
+      "inventory": "ARIYOO.md"
+    },
+    {
+      "id": "A08",
+      "flow": "Mobile history / live reconciliation",
+      "sources": "`apps/mobile/src/chatState.ts`, `apps/mobile/app/chat/[sessionId].tsx`",
+      "transitions": "loading → ready/error → retry; socket disconnected → connected/reconnected → history reconciliation",
+      "decision": "**Changed:** typed reducer, request IDs, per-account/session keyed screen, merge by server ID, retain live arrivals when history finishes, reconnect rejoin/reload, visible loading/error/retry.",
+      "inventory": "ARIYOO.md"
+    },
+    {
+      "id": "A09",
+      "flow": "Text delivery",
+      "sources": "Same mobile chat sources; `services/api/src/routes/message.ts`",
+      "transitions": "draft → sending → acknowledgement/error",
+      "decision": "**Changed:** synchronous operation lock, visible error, draft retained on failure, text typed during a send survives acknowledgement, HTTP/socket deduplication. Backend idempotency remains needed for ambiguous network failure/manual retry.",
+      "inventory": "ARIYOO.md"
+    },
+    {
+      "id": "A10",
+      "flow": "Image attachment",
+      "sources": "Mobile chat; `services/api/src/routes/message.ts`",
+      "transitions": "idle → permission → picking → cancel/uploading → acknowledged/error",
+      "decision": "**Changed:** one operation state for text/photo, lock released after cancellation/failure, permission feedback and visible errors. Native picker/API format preserved. Follow-up server authorization before file commitment, file limits, safe types and orphan cleanup.",
+      "inventory": "ARIYOO.md"
+    },
+    {
+      "id": "A11",
+      "flow": "Web polling / sending / selection",
+      "sources": "`apps/web/src/app/chatwindow/chatwindow.component.ts`",
+      "transitions": "selected → initial fetch → 5s polling; draft/file → sending/uploading → reload/error; deselect/destroy → timer stopped",
+      "decision": "Follow-up unsubscribe/scope pending HTTP responses, preserve drafts on failed send and add retry/loading feedback. Leave web transport behavior unchanged in this patch.",
+      "inventory": "ARIYOO.md"
+    },
+    {
+      "id": "A12",
+      "flow": "Socket membership / authorization",
+      "sources": "`services/api/src/index.ts`, `src/io.ts`, `src/middleware/auth.ts`",
+      "transitions": "socket connected → join requested → room joined → message broadcast → disconnect",
+      "decision": "**High priority unresolved:** socket join currently accepts arbitrary session IDs without authenticating membership. HTTP guards do not secure the socket. Add token handshake + membership check with server/client integration tests before production. Reconnect improvements do not fix this.",
+      "inventory": "ARIYOO.md"
+    },
+    {
+      "id": "A13",
+      "flow": "Profile / tags / password change",
+      "sources": "`apps/mobile/app/(tabs)/profile.tsx`, `apps/web/src/app/profile`, `services/api/src/routes/user.ts`, `src/routes/tags.ts`",
+      "transitions": "loaded → editing → saving → saved/error; password old → verified → changed",
+      "decision": "Keep actor identity from JWT. Follow-up verify UI/API password contract and token invalidation; do not assume a password form guarantees complete lifecycle support.",
+      "inventory": "ARIYOO.md"
+    },
+    {
+      "id": "A14",
+      "flow": "Newsletter",
+      "sources": "`apps/web/src/app/newsletter`, `services/api/src/routes/newsletter.ts`",
+      "transitions": "editing → submitting → subscribed/duplicate/error",
+      "decision": "Keep database email uniqueness and show an actionable duplicate/error outcome in a later focused patch.",
+      "inventory": "ARIYOO.md"
+    },
+    {
+      "id": "A15",
+      "flow": "Publish / posts",
+      "sources": "`apps/web/src/app/chatwindow/chatwindow.component.ts:publishConversation`, `apps/web/src/app/posts/posts.service.ts`",
+      "transitions": "modal closed/open → publish notice; seeded posts published/unpublished",
+      "decision": "This is placeholder UI/in-memory sample data, not persisted publication. Do not turn private chat into a public post implicitly. Follow-up explicit consent, preview, persist, moderation and revocation workflow.",
+      "inventory": "ARIYOO.md"
+    },
+    {
+      "id": "A16",
+      "flow": "Independent UI / resources",
+      "sources": "Login, profile, search/notification components and all candidates in `source-index.json`",
+      "transitions": "form validity; query/selection; dialog open/closed; loading/data/empty/error",
+      "decision": "Keep simple fields local. Represent request lifecycle explicitly when several flags must agree; scope effects and stale callbacks to current account/resource.",
+      "inventory": "ARIYOO.md"
+    },
+    {
+      "id": "A17",
+      "flow": "Release / API readiness",
+      "sources": "`apps/mobile/store`, `services/api/DEPLOY_PRODUCTION.md`, EAS workflows",
+      "transitions": "configured → checks → bundle → signed build → staging → release",
+      "decision": "No backend migration, deployment or store submission. SDK upgrades and signing remain separate from this state refactor.",
+      "inventory": "ARIYOO.md"
+    }
+  ]
+}

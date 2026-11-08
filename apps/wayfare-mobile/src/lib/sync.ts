@@ -3,6 +3,7 @@ import { isSupabaseConfigured } from '../config';
 import { ENTRY_MEDIA_BUCKET, uploadEntryMedia } from './media';
 import { supabase } from './supabase';
 import { shouldApplyRemote } from './syncRules';
+import { createSyncFlight } from './syncState';
 import {
   clearTombstone,
   getDb,
@@ -478,17 +479,8 @@ async function pullEntryMedia(userId: string, result: SyncResult) {
 
 // --- orchestration --------------------------------------------------------------------
 
-let inFlight: Promise<SyncResult> | null = null;
-
 /** Push local changes (deletes first), pull cloud changes, then upload media. Single-flight. */
-export function syncAll(userId: string): Promise<SyncResult> {
-  if (!inFlight) {
-    inFlight = runSync(userId).finally(() => {
-      inFlight = null;
-    });
-  }
-  return inFlight;
-}
+export const syncAll = createSyncFlight(runSync);
 
 async function runSync(userId: string): Promise<SyncResult> {
   const result: SyncResult = {
@@ -572,3 +564,4 @@ export async function pushTripNow(userId: string, tripId: string) {
   if (error) throw new Error(error.message);
   await markSynced('trips', trip.id, trip.updated_at);
 }
+
