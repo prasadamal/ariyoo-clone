@@ -191,7 +191,7 @@ export default function SettingsScreen() {
       ) : (
         <>
           <Text style={{ color: colors.onSurfaceVariant }}>
-            {syncing ? 'Syncing…' : pending ? `${pending} change${pending === 1 ? '' : 's'} waiting to sync` : 'Everything is backed up'}
+            {syncing ? 'Syncing…' : lastErrors.length ? 'Backup needs attention — try syncing again' : pending ? `${pending} change${pending === 1 ? '' : 's'} waiting to sync` : lastSyncAt ? 'Everything is backed up' : 'Backup has not been verified yet'}
             {lastSyncAt ? ` · last sync ${timeAgo(lastSyncAt)} ago` : ''}
           </Text>
           {lastErrors.length ? <Notice tone="error" text={lastErrors.slice(0, 2).join(' · ')} /> : null}
@@ -252,3 +252,4 @@ export default function SettingsScreen() {
     </Screen>
   );
 }
+

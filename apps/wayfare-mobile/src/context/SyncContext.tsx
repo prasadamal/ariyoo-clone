@@ -1,11 +1,13 @@
-import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useReducer, useRef, useState } from 'react';
 import { AppState } from 'react-native';
 import { isSupabaseConfigured } from '../config';
 import { countPendingSync } from '../lib/localDb';
 import { syncAll, type SyncResult } from '../lib/sync';
+import { initialSyncState, syncReducer, type SyncState } from '../lib/syncState';
 import { useAuth } from './AuthContext';
 
 type Ctx = {
+  phase: SyncState['phase'];
   syncing: boolean;
   lastSyncAt: string | null;
   lastErrors: string[];
@@ -21,9 +23,11 @@ const MIN_AUTO_INTERVAL_MS = 60_000;
 /** Auto-syncs on sign-in and when the app returns to the foreground; exposes status to screens. */
 export function SyncProvider({ children }: { children: React.ReactNode }) {
   const { user, ownerConflict, refreshProfile } = useAuth();
-  const [syncing, setSyncing] = useState(false);
-  const [lastSyncAt, setLastSyncAt] = useState<string | null>(null);
-  const [lastErrors, setLastErrors] = useState<string[]>([]);
+  const scope = isSupabaseConfigured && user?.id && !ownerConflict ? user.id : null;
+  const [state, dispatch] = useReducer(syncReducer, initialSyncState(scope));
+  const current = state.scope === scope ? state : initialSyncState(scope);
+  const inFlight = useRef<{ scope: string; request: number; promise: Promise<SyncResult | null> } | null>(null);
+  const sequence = useRef(0);
   const [pending, setPending] = useState(0);
   const lastAuto = useRef(0);
 
@@ -32,22 +36,34 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const syncNow = useCallback(async () => {
-    if (!isSupabaseConfigured || !user?.id || ownerConflict) return null;
-    setSyncing(true);
-    try {
-      const result = await syncAll(user.id);
-      setLastErrors(result.errors);
-      setLastSyncAt(new Date().toISOString());
-      if (result.pushed.track_points || result.pushed.trips) refreshProfile();
-      return result;
-    } catch (e) {
-      setLastErrors([e instanceof Error ? e.message : 'Sync failed']);
-      return null;
-    } finally {
-      setSyncing(false);
-      refreshPending();
-    }
-  }, [user?.id, ownerConflict, refreshProfile, refreshPending]);
+    if (!scope) return null;
+    if (inFlight.current?.scope === scope) return inFlight.current.promise;
+    const request = ++sequence.current;
+    dispatch({ type: 'start', scope, request });
+    const promise = (async () => {
+      try {
+        const result = await syncAll(scope);
+        dispatch({ type: 'finished', scope, request, result, at: new Date().toISOString() });
+        if (inFlight.current?.request === request && (result.pushed.track_points || result.pushed.trips)) {
+          void refreshProfile();
+        }
+        return result;
+      } catch (e) {
+        dispatch({ type: 'failed', scope, request, error: e instanceof Error ? e.message : 'Sync failed' });
+        return null;
+      } finally {
+        if (inFlight.current?.request === request) inFlight.current = null;
+        void refreshPending();
+      }
+    })();
+    inFlight.current = { scope, request, promise };
+    return promise;
+  }, [scope, refreshProfile, refreshPending]);
+
+  useEffect(() => {
+    inFlight.current = null;
+    dispatch({ type: 'reset', scope });
+  }, [scope]);
 
   useEffect(() => {
     refreshPending();
@@ -65,7 +81,7 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
   }, [user?.id, ownerConflict, syncNow, refreshPending]);
 
   return (
-    <SyncContext.Provider value={{ syncing, lastSyncAt, lastErrors, pending, syncNow, refreshPending }}>
+    <SyncContext.Provider value={{ phase: current.phase, syncing: current.phase === 'syncing', lastSyncAt: current.lastSyncAt, lastErrors: current.errors, pending, syncNow, refreshPending }}>
       {children}
     </SyncContext.Provider>
   );
@@ -76,3 +92,4 @@ export function useSync() {
   if (!ctx) throw new Error('useSync outside SyncProvider');
   return ctx;
 }
+

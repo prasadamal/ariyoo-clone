@@ -1,90 +1,130 @@
 import * as ImagePicker from 'expo-image-picker';
 import { useLocalSearchParams } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 import { FlatList, Image, KeyboardAvoidingView, Platform, View } from 'react-native';
 import { Button, Text, TextInput } from 'react-native-paper';
-import io, { Socket } from 'socket.io-client';
+import io from 'socket.io-client';
 import { api } from '../../src/api/client';
 import { useAuth } from '../../src/context/AuthContext';
 import { getApiBaseUrl } from '../../src/config';
-
-type ChatMessage = {
-  id?: number;
-  messageText?: string | null;
-  imageUrl?: string | null;
-  createdAt: string;
-  senderId: number;
-};
+import { chatReducer, initialChatState, type ChatMessage } from '../../src/chatState';
 
 export default function ChatScreen() {
   const { sessionId } = useLocalSearchParams<{ sessionId: string }>();
   const sid = Number(sessionId);
   const { user } = useAuth();
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  // A key gives each account/session its own state and discards late results on navigation.
+  return <ChatConversation key={`${user?.userId}:${sid}`} sid={sid} />;
+}
+
+function ChatConversation({ sid }: { sid: number }) {
+  const { user } = useAuth();
+  const [state, dispatch] = useReducer(chatReducer, initialChatState);
   const [text, setText] = useState('');
-  const [sending, setSending] = useState(false);
-  const socketRef = useRef<Socket | null>(null);
+  const request = useRef(0);
+  const busy = useRef(false);
+  const mounted = useRef(false);
+  const { messages } = state;
+  const sending = state.operation !== 'idle';
 
-  const loadMessages = async () => {
-    const res = await api.get<ChatMessage[]>(`/api/Message/getMessagesBySessionId/${sid}`);
-    setMessages(res.data);
-  };
-
-  useEffect(() => {
-    loadMessages();
-    const socket = io(getApiBaseUrl(), { transports: ['websocket'] });
-    socketRef.current = socket;
-    socket.emit('join', String(sid));
-    socket.on('message', (m: ChatMessage & { sessionId: number }) => {
-      if (Number(m.sessionId) === sid) setMessages(prev => [...prev, m]);
-    });
-    return () => {
-      socket.disconnect();
-    };
+  const loadMessages = useCallback(async () => {
+    const id = ++request.current;
+    dispatch({ type: 'load', request: id });
+    try {
+      const res = await api.get<ChatMessage[]>(`/api/Message/getMessagesBySessionId/${sid}`);
+      if (mounted.current) dispatch({ type: 'loaded', request: id, messages: res.data });
+    } catch {
+      if (mounted.current) dispatch({ type: 'loadFailed', request: id, error: 'Could not load messages. Try again.' });
+    }
   }, [sid]);
 
+  useEffect(() => {
+    mounted.current = true;
+    if (!Number.isSafeInteger(sid) || sid <= 0 || !user) {
+      dispatch({ type: 'loadFailed', request: 0, error: 'This conversation is unavailable.' });
+      return () => { mounted.current = false; };
+    }
+    void loadMessages();
+    const socket = io(getApiBaseUrl(), { transports: ['websocket'] });
+    // Rejoin and reconcile missed messages after a socket reconnect.
+    socket.on('connect', () => {
+      socket.emit('join', String(sid));
+      void loadMessages();
+    });
+    socket.on('message', (m: ChatMessage & { sessionId: number }) => {
+      if (Number(m.sessionId) === sid) dispatch({ type: 'received', message: m });
+    });
+    return () => {
+      mounted.current = false;
+      socket.disconnect();
+    };
+  }, [sid, user, loadMessages]);
+
   const send = async () => {
-    if (!user || !text.trim()) return;
-    setSending(true);
+    if (!user || !text.trim() || busy.current || state.load !== 'ready') return;
+    busy.current = true;
+    dispatch({ type: 'operation', operation: 'sending' });
+    const submitted = text;
     try {
-      await api.post('/api/Message/postMessage', {
-        senderId: user.userId,
-        messageText: text.trim(),
-        sessionId: sid,
+      const res = await api.post<ChatMessage>('/api/Message/postMessage', {
+        senderId: user.userId, messageText: submitted.trim(), sessionId: sid,
       });
-      setText('');
-      await loadMessages();
+      if (!mounted.current) return;
+      dispatch({ type: 'received', message: res.data });
+      // Preserve anything typed while this message was being sent.
+      setText(current => current === submitted ? '' : current);
+      dispatch({ type: 'operation', operation: 'idle' });
+    } catch {
+      if (mounted.current) dispatch({ type: 'failed', error: 'Message not sent. Your draft is saved here; try again.' });
     } finally {
-      setSending(false);
+      busy.current = false;
     }
   };
 
   const pickImage = async () => {
-    if (!user) return;
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permission.granted) return;
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      quality: 0.8,
-    });
-    if (result.canceled || !result.assets[0]) return;
-    const asset = result.assets[0];
-    const form = new FormData();
-    form.append('senderId', String(user.userId));
-    form.append('sessionId', String(sid));
-    form.append('image', {
-      uri: asset.uri,
-      name: 'upload.jpg',
-      type: asset.mimeType || 'image/jpeg',
-    } as unknown as Blob);
-    await api.post('/api/Message/uploadImage', form, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
-    await loadMessages();
+    if (!user || busy.current || state.load !== 'ready') return;
+    busy.current = true;
+    dispatch({ type: 'operation', operation: 'picking' });
+    try {
+      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permission.granted) {
+        dispatch({ type: 'failed', error: 'Photo access is required to attach an image.' });
+        return;
+      }
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.8,
+      });
+      if (result.canceled || !result.assets[0] || !mounted.current) return;
+      dispatch({ type: 'operation', operation: 'uploading' });
+      const asset = result.assets[0];
+      const form = new FormData();
+      form.append('senderId', String(user.userId));
+      form.append('sessionId', String(sid));
+      form.append('image', {
+        uri: asset.uri, name: 'upload.jpg', type: asset.mimeType || 'image/jpeg',
+      } as unknown as Blob);
+      const res = await api.post<ChatMessage>('/api/Message/uploadImage', form, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      if (mounted.current) dispatch({ type: 'received', message: res.data });
+    } catch {
+      if (mounted.current) dispatch({ type: 'failed', error: 'Photo not sent. Please try again.' });
+    } finally {
+      busy.current = false;
+      // Keep failure text while releasing the operation below.
+      if (mounted.current) dispatch({ type: 'operation', operation: 'idle' });
+    }
   };
 
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      {state.load === 'loading' ? <Text style={{ padding: 12 }}>Loading conversation…</Text> : null}
+      {state.error ? (
+        <View style={{ padding: 12 }}>
+          <Text accessibilityRole="alert">{state.error}</Text>
+          {state.load === 'error' ? <Button onPress={loadMessages}>Retry loading</Button> : null}
+        </View>
+      ) : null}
       <FlatList
         style={{ flex: 1, padding: 12 }}
         data={messages}
@@ -118,7 +158,7 @@ export default function ChatScreen() {
         }}
       />
       <View style={{ flexDirection: 'row', gap: 8, padding: 12, borderTopWidth: 1, borderTopColor: '#334155' }}>
-        <Button mode="outlined" onPress={pickImage} style={{ alignSelf: 'center' }}>Photo</Button>
+        <Button mode="outlined" onPress={pickImage} disabled={sending || state.load !== 'ready'} style={{ alignSelf: 'center' }}>Photo</Button>
         <TextInput
           mode="outlined"
           style={{ flex: 1 }}
@@ -127,10 +167,11 @@ export default function ChatScreen() {
           placeholder="Type a message"
           dense
         />
-        <Button mode="contained" onPress={send} loading={sending} disabled={!text.trim()} style={{ alignSelf: 'center' }}>
+        <Button mode="contained" onPress={send} loading={state.operation === 'sending'} disabled={!text.trim() || sending || state.load !== 'ready'} style={{ alignSelf: 'center' }}>
           Send
         </Button>
       </View>
     </KeyboardAvoidingView>
   );
 }
+
