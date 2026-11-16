@@ -3,7 +3,7 @@ import * as Linking from 'expo-linking';
 import { router } from 'expo-router';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { isSupabaseConfigured } from '../config';
-import { stopDeviceActivity } from '../lib/deviceActivity';
+import { stopDeviceActivity, stopLocalDeviceActivity } from '../lib/deviceActivity';
 import { withJournalLock } from '../lib/journalGate';
 import { resolveJournalOwnership } from '../lib/ownership';
 import { countTrips, wipeLocalData } from '../lib/localDb';
@@ -188,9 +188,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         retryJournal();
         return;
       }
-      await signOut();
+      await stopLocalDeviceActivity();
+      if (supabase) {
+        const { error } = await supabase.auth.signOut();
+        if (error) throw error;
+      }
+      setOwnership({ userId: null, phase: 'ready' });
+      setProfile(null);
+      router.replace('/login');
     },
-    [userId, signOut, retryJournal]
+    [userId, retryJournal]
   );
 
   const value = useMemo(

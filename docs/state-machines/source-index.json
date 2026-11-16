@@ -1497,6 +1497,10 @@
         {
           "line": 163,
           "text": "setOwnership({ userId: null, phase: 'ready' });"
+        },
+        {
+          "line": 196,
+          "text": "setOwnership({ userId: null, phase: 'ready' });"
         }
       ]
     },

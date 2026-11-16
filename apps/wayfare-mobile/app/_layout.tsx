@@ -34,7 +34,7 @@ function OwnerConflictDialog() {
         <Dialog.Content>
           <Text style={{ lineHeight: 21 }}>
             This device holds trips that belong to a different Wayfare account, so they will not be synced to this one.
-            You can start fresh here (their copy stays safe in the other account’s cloud backup once synced) or sign out.
+            You can start fresh here after protecting any unsynced work, or sign out. Signing out stops this device’s recording; sign back into the original account to end any live link it owns.
           </Text>
           {error ? <Text accessibilityRole="alert">{error}</Text> : null}
         </Dialog.Content>

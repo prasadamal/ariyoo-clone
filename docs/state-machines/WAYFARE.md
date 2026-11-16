@@ -86,3 +86,5 @@ The new pure recorder tests cover cancellation while preparing, overlapping star
 
 
 The revocation HTTP regression exposed that the previous `get_live_share` RPC returned the last precise coordinates even for inactive links. Additive migration `20261116000000_live_share_expiry_privacy.sql` preserves the RPC shape and ended-link state while nulling latitude, longitude and accuracy for expired/revoked links. Apply it to staging and rerun RLS/HTTP checks before production. No live database has been modified here.
+
+Owner-conflict sign-out has a distinct recovery path: cancel the microphone and stop the local OS location task without pretending to revoke an older account's live link. The retained link is explicitly disclosed and remains available for revocation after signing back into its owner account. This avoids trapping the traveller in the wrong account when RLS correctly denies revocation. Normal sign-out/wipe still requires confirmed revocation.

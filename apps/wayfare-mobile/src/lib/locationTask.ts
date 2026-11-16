@@ -140,3 +140,11 @@ export const stopTripTracking = () => withLocationLock(stopTripTrackingLocked);
 export const getActiveTrackingTripId = () => withLocationLock(getActiveTrackingTripIdLocked);
 export const startLiveSharing = (hours: number, label: string | null) => withLocationLock(() => startLiveSharingLocked(hours, label));
 export const stopLiveSharing = () => withLocationLock(stopLiveSharingLocked);
+
+/** Stop local collection while retaining an older account's link for authenticated revocation. */
+export const stopLocalLocationUpdates = () => withLocationLock(async () => {
+  await setActiveTripId(null);
+  if (await Location.hasStartedLocationUpdatesAsync(WAYFARE_LOCATION_TASK)) {
+    await Location.stopLocationUpdatesAsync(WAYFARE_LOCATION_TASK);
+  }
+});
