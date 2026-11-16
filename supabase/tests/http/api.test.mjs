@@ -218,6 +218,8 @@ test('remaining app query shapes (counts, upserts, column-scoped updates)', asyn
   const ended = ok(await asAnon().rpc('get_live_share', { p_id: live.id }));
   assert.equal(ended.active, false);
   assert.equal(ended.latitude, null, 'revoked link hides precise coordinates');
+  assert.equal(ended.longitude, null);
+  assert.equal(ended.accuracy_m, null);
 
   // Block list stays visible to the blocker only.
   ok(await a.from('blocks').insert({ blocker_id: alice, blocked_id: bob }));

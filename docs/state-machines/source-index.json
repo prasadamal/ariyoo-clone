@@ -1035,27 +1035,27 @@
           "text": "import { useEffect, useState } from 'react';"
         },
         {
-          "line": 44,
+          "line": 45,
           "text": "const [push, setPush] = useState<PushPreference>('unset');"
         },
         {
-          "line": 45,
+          "line": 46,
           "text": "const [deleteOpen, setDeleteOpen] = useState(false);"
         },
         {
-          "line": 46,
+          "line": 47,
           "text": "const [confirmText, setConfirmText] = useState('');"
         },
         {
-          "line": 47,
+          "line": 48,
           "text": "const [deleting, setDeleting] = useState(false);"
         },
         {
-          "line": 79,
+          "line": 80,
           "text": "Alert.alert('Sign out?', pending ? `${pending} change${pending === 1 ? ' has' : 's have'} not synced yet and will stay on this phone.` : 'Your journals are backed up to your account.', ["
         },
         {
-          "line": 194,
+          "line": 201,
           "text": "{syncing ? 'Syncing…' : lastErrors.length ? 'Backup needs attention — try syncing again' : pending ? `${pending} change${pending === 1 ? '' : 's'} waiting to sync` : lastSyncAt ? 'Everything is backed up' : 'Backup has not been verified yet"
         }
       ]
@@ -1415,87 +1415,87 @@
           "text": "import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';"
         },
         {
-          "line": 43,
+          "line": 44,
           "text": "const [session, setSession] = useState<Session | null>(null);"
         },
         {
-          "line": 44,
+          "line": 45,
           "text": "const [profile, setProfile] = useState<MyProfile | null>(null);"
         },
         {
-          "line": 45,
+          "line": 46,
           "text": "const [loading, setLoading] = useState(true);"
         },
         {
-          "line": 46,
+          "line": 47,
           "text": "const [guest, setGuest] = useState(false);"
         },
         {
-          "line": 47,
+          "line": 48,
           "text": "const [guestLoading, setGuestLoading] = useState(true);"
         },
         {
-          "line": 48,
+          "line": 49,
           "text": "const [ownership, setOwnership] = useState<{ userId: string | null; phase: 'checking' | 'ready' | 'conflict' | 'error'; error?: string }>({ userId: null, phase: 'checking' });"
         },
         {
-          "line": 49,
+          "line": 50,
           "text": "const [ownershipAttempt, setOwnershipAttempt] = useState(0);"
         },
         {
-          "line": 56,
+          "line": 57,
           "text": "const journalReady = !userId || (ownership.userId === userId && ownership.phase === 'ready');"
         },
         {
-          "line": 57,
+          "line": 58,
           "text": "const ownerConflict = !!userId && ownership.userId === userId && ownership.phase === 'conflict';"
         },
         {
-          "line": 58,
+          "line": 59,
           "text": "const journalError = ownership.userId === userId && ownership.phase === 'error' ? ownership.error ?? 'Could not open this journal.' : null;"
         },
         {
-          "line": 75,
+          "line": 76,
           "text": "let active = true;"
         },
         {
-          "line": 78,
+          "line": 79,
           "text": "if (!supabase) { setLoading(false); return () => { active = false; }; }"
         },
         {
-          "line": 86,
+          "line": 87,
           "text": "const { data: sub } = supabase.auth.onAuthStateChange((_event, next) => {"
         },
         {
-          "line": 95,
+          "line": 96,
           "text": "return () => { active = false; sub.subscription.unsubscribe(); };"
         },
         {
-          "line": 100,
+          "line": 101,
           "text": "let active = true;"
         },
         {
-          "line": 101,
+          "line": 102,
           "text": "if (!userId) { setOwnership({ userId: null, phase: 'ready' }); return; }"
         },
         {
-          "line": 104,
+          "line": 105,
           "text": "setOwnership({ userId, phase: 'checking' });"
         },
         {
-          "line": 116,
+          "line": 117,
           "text": "setOwnership({ userId, phase: outcome });"
         },
         {
-          "line": 118,
+          "line": 119,
           "text": "if (current()) setOwnership({ userId, phase: 'error', error: 'Could not open this device’s journal. Retry before syncing.' });"
         },
         {
-          "line": 120,
+          "line": 121,
           "text": "return () => { active = false; };"
         },
         {
-          "line": 161,
+          "line": 163,
           "text": "setOwnership({ userId: null, phase: 'ready' });"
         }
       ]
@@ -1820,7 +1820,7 @@
       "evidence": [
         {
           "line": 5,
-          "text": "import { useCallback, useEffect, useMemo, useState } from 'react';"
+          "text": "import { useCallback, useEffect, useMemo, useRef, useState } from 'react';"
         },
         {
           "line": 38,
@@ -1851,27 +1851,31 @@
           "text": "const [saving, setSaving] = useState(false);"
         },
         {
-          "line": 45,
-          "text": "const [recording, setRecording] = useState<string | null>(null);"
+          "line": 46,
+          "text": "const [voiceBusy, setVoiceBusy] = useState(false);"
         },
         {
           "line": 47,
+          "text": "const [recording, setRecording] = useState<string | null>(null);"
+        },
+        {
+          "line": 49,
           "text": "const [menuFor, setMenuFor] = useState<string | null>(null);"
         },
         {
-          "line": 48,
+          "line": 50,
           "text": "const [mediaKey, setMediaKey] = useState(0);"
         },
         {
-          "line": 76,
+          "line": 78,
           "text": "sync_status: 'pending',"
         },
         {
-          "line": 105,
+          "line": 107,
           "text": "sync_status: 'pending',"
         },
         {
-          "line": 280,
+          "line": 291,
           "text": "{e.sync_status === 'pending' ? ' · not synced yet' : ''}"
         }
       ]
@@ -2212,11 +2216,11 @@
       "path": "apps/wayfare-mobile/src/lib/locationTask.ts",
       "evidence": [
         {
-          "line": 18,
+          "line": 21,
           "text": "TaskManager.defineTask(WAYFARE_LOCATION_TASK, async ({ data, error }) => {"
         },
         {
-          "line": 104,
+          "line": 117,
           "text": "const state = await createLiveShare({"
         }
       ]
@@ -2227,6 +2231,47 @@
         {
           "line": 160,
           "text": "setTimeout(() => router.push(url as never), handled ? 0 : 400);"
+        }
+      ]
+    },
+    {
+      "path": "apps/wayfare-mobile/src/lib/recordingLifecycle.ts",
+      "evidence": [
+        {
+          "line": 14,
+          "text": "let active: Attempt | null = null;"
+        },
+        {
+          "line": 28,
+          "text": "if (active === attempt) active = null;"
+        },
+        {
+          "line": 40,
+          "text": "active = attempt;"
+        },
+        {
+          "line": 44,
+          "text": "check(attempt);"
+        },
+        {
+          "line": 47,
+          "text": "check(attempt);"
+        },
+        {
+          "line": 50,
+          "text": "check(attempt);"
+        },
+        {
+          "line": 72,
+          "text": "check(attempt);"
+        },
+        {
+          "line": 75,
+          "text": "check(attempt);"
+        },
+        {
+          "line": 76,
+          "text": "await persist(() => active === attempt && !attempt.cancelled);"
         }
       ]
     },
@@ -2401,8 +2446,8 @@
       "path": "apps/wayfare-mobile/src/lib/voiceNote.ts",
       "evidence": [
         {
-          "line": 32,
-          "text": "sync_status: 'pending',"
+          "line": 44,
+          "text": "storage_path: null, mime_type: 'audio/m4a', sync_status: 'pending', updated_at: new Date().toISOString(),"
         }
       ]
     },

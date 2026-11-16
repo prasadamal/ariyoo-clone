@@ -464,6 +464,15 @@ select tests.check(not ((public.get_shared_trip('share-alice-123')::jsonb -> 'tr
 select tests.check(json_array_length(public.get_shared_trip('share-alice-123') -> 'entries') = 1, 'shared entries');
 select tests.check(public.get_shared_trip('nope-nope-nope') is null, 'unknown share id');
 
+-- Revocation keeps the ended-state response, but never the last precise coordinates.
+select tests.act_as('alice@example.com');
+update public.live_shares set expires_at = now() - interval '1 second' where id = tests.id('live');
+select tests.act_as_anon();
+select tests.check(not (public.get_live_share(tests.id('live')) ->> 'active')::boolean, 'revoked link is inactive');
+select tests.check((public.get_live_share(tests.id('live')) ->> 'latitude') is null, 'revoked link hides latitude');
+select tests.check((public.get_live_share(tests.id('live')) ->> 'longitude') is null, 'revoked link hides longitude');
+select tests.check((public.get_live_share(tests.id('live')) ->> 'accuracy_m') is null, 'revoked link hides accuracy');
+
 -- ---------------------------------------------------------------------------
 -- Account deletion cascades and keeps counters honest
 -- ---------------------------------------------------------------------------

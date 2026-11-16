@@ -9,6 +9,7 @@ import { useSync } from '../src/context/SyncContext';
 import { useWayfareTheme, type ThemeMode } from '../src/context/ThemeContext';
 import { useToast } from '../src/context/ToastContext';
 import { timeAgo } from '../src/lib/format';
+import { stopDeviceActivity } from '../src/lib/deviceActivity';
 import { wipeLocalData } from '../src/lib/localDb';
 import { disablePush, enablePush, forgetPushToken, getPushPreference, type PushPreference } from '../src/lib/notifications';
 import { setLocalOwner } from '../src/lib/sync';
@@ -81,16 +82,16 @@ export default function SettingsScreen() {
       {
         text: 'Sign out, keep journals here',
         onPress: async () => {
-          await forgetPushToken();
-          await signOut();
+          try { await forgetPushToken(); await signOut(); }
+          catch (e) { toast(e instanceof Error ? e.message : 'Could not sign out. Retry.'); }
         },
       },
       {
         text: 'Sign out & remove from phone',
         style: 'destructive',
         onPress: async () => {
-          await forgetPushToken();
-          await signOut({ wipeLocal: true });
+          try { await forgetPushToken(); await signOut({ wipeLocal: true }); }
+          catch (e) { toast(e instanceof Error ? e.message : 'Could not sign out and clear this device. Retry.'); }
         },
       },
     ]);
@@ -99,6 +100,7 @@ export default function SettingsScreen() {
     setDeleting(true);
     try {
       await forgetPushToken();
+      await stopDeviceActivity();
       await deleteMyAccount();
       await wipeLocalData();
       await setLocalOwner(null);
@@ -119,8 +121,13 @@ export default function SettingsScreen() {
         text: 'Remove',
         style: 'destructive',
         onPress: async () => {
-          await wipeLocalData();
-          toast('Removed from this phone');
+          try {
+            await stopDeviceActivity();
+            await wipeLocalData();
+            toast('Removed from this phone');
+          } catch (e) {
+            toast(e instanceof Error ? e.message : 'Could not remove this device’s journals. Retry.');
+          }
         },
       },
     ]);

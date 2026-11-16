@@ -3,6 +3,7 @@ import * as Linking from 'expo-linking';
 import { router } from 'expo-router';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { isSupabaseConfigured } from '../config';
+import { stopDeviceActivity } from '../lib/deviceActivity';
 import { withJournalLock } from '../lib/journalGate';
 import { resolveJournalOwnership } from '../lib/ownership';
 import { countTrips, wipeLocalData } from '../lib/localDb';
@@ -150,6 +151,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signOut = useCallback(async (opts?: { wipeLocal?: boolean }) => {
+    await stopDeviceActivity();
     if (opts?.wipeLocal) {
       await wipeLocalData();
       await setLocalOwner(null);
@@ -179,6 +181,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const resolveOwnerConflict = useCallback(
     async (choice: 'wipe' | 'signout') => {
       if (choice === 'wipe' && userId) {
+        await stopDeviceActivity();
+        if (currentUser.current !== userId) throw new Error('Account changed. Retry with the current account.');
         await wipeLocalData();
         await setLocalOwner(userId);
         retryJournal();

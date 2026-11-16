@@ -1,8 +1,9 @@
+import { createJournalGate, withJournalLock } from './journalGate';
 import * as Location from 'expo-location';
 import * as TaskManager from 'expo-task-manager';
 import { uuid } from './id';
 import { createLiveShare, endLiveShare, pushLiveLocation } from './liveShare';
-import { insertTrackPoint } from './localDb';
+import { getTrip, insertTrackPoint } from './localDb';
 import {
   getActiveTripId,
   getLiveShareState,
@@ -12,6 +13,8 @@ import {
   type TrackingMode,
 } from './locationState';
 
+const withLocationLock = createJournalGate();
+
 export const WAYFARE_LOCATION_TASK = 'wayfare-trip-tracking';
 
 // Must be defined at module load so background relaunches find it (imported by the root layout).
@@ -19,20 +22,22 @@ TaskManager.defineTask(WAYFARE_LOCATION_TASK, async ({ data, error }) => {
   if (error) return;
   const locations = (data as { locations?: Location.LocationObject[] } | undefined)?.locations ?? [];
   if (!locations.length) return;
-  const tripId = await getActiveTripId();
-  if (tripId) {
-    for (const loc of locations) {
-      await insertTrackPoint({
-        id: uuid(),
-        trip_id: tripId,
-        recorded_at: new Date(loc.timestamp).toISOString(),
-        latitude: loc.coords.latitude,
-        longitude: loc.coords.longitude,
-        altitude_m: loc.coords.altitude,
-        accuracy_m: loc.coords.accuracy,
-      });
+  await withJournalLock(async () => {
+    const tripId = await getActiveTripId();
+    if (tripId && await getTrip(tripId)) {
+      for (const loc of locations) {
+        await insertTrackPoint({
+          id: uuid(),
+          trip_id: tripId,
+          recorded_at: new Date(loc.timestamp).toISOString(),
+          latitude: loc.coords.latitude,
+          longitude: loc.coords.longitude,
+          altitude_m: loc.coords.altitude,
+          accuracy_m: loc.coords.accuracy,
+        });
+      }
     }
-  }
+  });
   const last = locations[locations.length - 1];
   await pushLiveLocation({
     latitude: last.coords.latitude,
@@ -49,7 +54,7 @@ async function requestPermissions() {
 }
 
 /** Starts or stops OS location updates to match what is active (route recording / live share). */
-export async function refreshLocationUpdates() {
+async function refreshLocationUpdatesLocked() {
   const [tripId, live, mode] = await Promise.all([getActiveTripId(), getLiveShareState(), getTrackingMode()]);
   const running = await Location.hasStartedLocationUpdatesAsync(WAYFARE_LOCATION_TASK).catch(() => false);
   if (running) await Location.stopLocationUpdatesAsync(WAYFARE_LOCATION_TASK);
@@ -74,20 +79,28 @@ export async function refreshLocationUpdates() {
   });
 }
 
-export async function startTripTracking(tripId: string, mode?: TrackingMode) {
+async function startTripTrackingLocked(tripId: string, mode?: TrackingMode) {
   await requestPermissions();
+  const previousTrip = await getActiveTripId();
+  const previousMode = await getTrackingMode();
   if (mode) await setTrackingMode(mode);
   await setActiveTripId(tripId);
-  await refreshLocationUpdates();
+  try { await refreshLocationUpdatesLocked(); }
+  catch (error) {
+    await setActiveTripId(previousTrip);
+    await setTrackingMode(previousMode);
+    await refreshLocationUpdatesLocked().catch(() => undefined);
+    throw error;
+  }
 }
 
-export async function stopTripTracking() {
+async function stopTripTrackingLocked() {
   await setActiveTripId(null);
-  await refreshLocationUpdates();
+  await refreshLocationUpdatesLocked();
 }
 
 /** Returns the trip being recorded, clearing stale state if the OS stopped updates (e.g. reboot). */
-export async function getActiveTrackingTripId() {
+async function getActiveTrackingTripIdLocked() {
   const tripId = await getActiveTripId();
   if (!tripId) return null;
   const running = await Location.hasStartedLocationUpdatesAsync(WAYFARE_LOCATION_TASK).catch(() => false);
@@ -98,7 +111,7 @@ export async function getActiveTrackingTripId() {
   return tripId;
 }
 
-export async function startLiveSharing(hours: number, label: string | null) {
+async function startLiveSharingLocked(hours: number, label: string | null) {
   await requestPermissions();
   const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
   const state = await createLiveShare({
@@ -108,14 +121,22 @@ export async function startLiveSharing(hours: number, label: string | null) {
     longitude: pos.coords.longitude,
     accuracy: pos.coords.accuracy,
   });
-  await refreshLocationUpdates();
+  await refreshLocationUpdatesLocked();
   return state;
 }
 
-export async function stopLiveSharing() {
+async function stopLiveSharingLocked() {
   await endLiveShare();
-  await refreshLocationUpdates();
+  await refreshLocationUpdatesLocked();
 }
 
 export { getLiveShareState, getTrackingMode, setTrackingMode };
 export type { TrackingMode };
+
+// Route and live sharing share one OS task; keep its start/stop transitions ordered.
+export const refreshLocationUpdates = () => withLocationLock(refreshLocationUpdatesLocked);
+export const startTripTracking = (tripId: string, mode?: TrackingMode) => withLocationLock(() => startTripTrackingLocked(tripId, mode));
+export const stopTripTracking = () => withLocationLock(stopTripTrackingLocked);
+export const getActiveTrackingTripId = () => withLocationLock(getActiveTrackingTripIdLocked);
+export const startLiveSharing = (hours: number, label: string | null) => withLocationLock(() => startLiveSharingLocked(hours, label));
+export const stopLiveSharing = () => withLocationLock(stopLiveSharingLocked);
