@@ -2,7 +2,7 @@ import 'dotenv/config';
 
 const production = process.env.NODE_ENV === 'production';
 const jwtSecret = process.env.JWT_SECRET || 'dev_secret_change_me';
-if (production && (jwtSecret.length < 32 || /dev_secret|change.me|placeholder/i.test(jwtSecret))) {
+if (production && (jwtSecret.length < 32 || /dev_secret|change.me|placeholder|generate_a_unique|replace_with/i.test(jwtSecret))) {
   throw new Error('Production requires a random JWT_SECRET of at least 32 characters');
 }
 if (production && !process.env.DATABASE_URL) throw new Error('DATABASE_URL is required');
