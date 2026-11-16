@@ -2,8 +2,9 @@
 import '../src/lib/locationTask';
 import { Stack, DarkTheme, DefaultTheme, ThemeProvider as NavigationThemeProvider } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, useMemo } from 'react';
-import { Button, Dialog, Provider as PaperProvider, Portal, Text } from 'react-native-paper';
+import { View } from 'react-native';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { ActivityIndicator, Button, Dialog, Provider as PaperProvider, Portal, Text } from 'react-native-paper';
 import { AppLockProvider } from '../src/context/AppLockContext';
 import { AuthProvider, useAuth } from '../src/context/AuthContext';
 import { InboxProvider } from '../src/context/InboxContext';
@@ -14,6 +15,18 @@ import { refreshPushRegistration, useNotificationRouting } from '../src/lib/noti
 
 function OwnerConflictDialog() {
   const { ownerConflict, resolveOwnerConflict } = useAuth();
+  const lock = useRef(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const resolve = async (choice: 'wipe' | 'signout') => {
+    if (lock.current) return;
+    lock.current = true;
+    setBusy(true);
+    setError(null);
+    try { await resolveOwnerConflict(choice); }
+    catch { setError('Could not complete this action. Your journals have not been assigned to this account. Retry.'); }
+    finally { lock.current = false; setBusy(false); }
+  };
   return (
     <Portal>
       <Dialog visible={ownerConflict} dismissable={false}>
@@ -23,10 +36,11 @@ function OwnerConflictDialog() {
             This device holds trips that belong to a different Wayfare account, so they will not be synced to this one.
             You can start fresh here (their copy stays safe in the other account’s cloud backup once synced) or sign out.
           </Text>
+          {error ? <Text accessibilityRole="alert">{error}</Text> : null}
         </Dialog.Content>
         <Dialog.Actions>
-          <Button onPress={() => resolveOwnerConflict('signout')}>Sign out</Button>
-          <Button mode="contained" onPress={() => resolveOwnerConflict('wipe')}>
+          <Button disabled={busy} onPress={() => { void resolve('signout'); }}>Sign out</Button>
+          <Button mode="contained" disabled={busy} loading={busy} onPress={() => { void resolve('wipe'); }}>
             Start fresh here
           </Button>
         </Dialog.Actions>
@@ -44,11 +58,16 @@ function PushRegistrar() {
 }
 
 function RootStack() {
+  const { user, loading, journalReady, ownerConflict, journalError, retryJournal, signOut } = useAuth();
+  const [exitError, setExitError] = useState<string | null>(null);
   const { paperTheme } = useWayfareTheme();
   const c = paperTheme.colors;
   useNotificationRouting();
+  const blocked = loading || !journalReady;
   return (
-    <Stack
+    <View style={{ flex: 1 }}>
+    <View style={{ flex: 1 }} pointerEvents={blocked ? 'none' : 'auto'} accessibilityElementsHidden={blocked} importantForAccessibility={blocked ? 'no-hide-descendants' : 'auto'}>
+    <Stack key={`${user?.id ?? 'guest'}:${journalReady}`}
       screenOptions={{
         headerStyle: { backgroundColor: c.background },
         headerTintColor: c.onSurface,
@@ -89,6 +108,16 @@ function RootStack() {
       <Stack.Screen name="settings" options={{ title: 'Settings' }} />
       <Stack.Screen name="blocked" options={{ title: 'Blocked travellers' }} />
     </Stack>
+    </View>
+    {blocked ? <View accessibilityViewIsModal style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, justifyContent: 'center', padding: 24, gap: 16, backgroundColor: c.background }}>
+      {journalError ? <>
+        <Text accessibilityRole="alert">{journalError}</Text>
+        <Button onPress={retryJournal}>Retry</Button>
+        <Button onPress={() => { void signOut().catch(() => setExitError('Could not sign out. Retry when connected.')); }}>Sign out</Button>
+        {exitError ? <Text accessibilityRole="alert">{exitError}</Text> : null}
+      </> : ownerConflict ? <Text>Choose how to handle this device’s journal.</Text> : <ActivityIndicator />}
+    </View> : null}
+    </View>
   );
 }
 

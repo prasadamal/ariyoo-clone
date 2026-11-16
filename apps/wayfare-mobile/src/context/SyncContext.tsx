@@ -22,8 +22,8 @@ const MIN_AUTO_INTERVAL_MS = 60_000;
 
 /** Auto-syncs on sign-in and when the app returns to the foreground; exposes status to screens. */
 export function SyncProvider({ children }: { children: React.ReactNode }) {
-  const { user, ownerConflict, refreshProfile } = useAuth();
-  const scope = isSupabaseConfigured && user?.id && !ownerConflict ? user.id : null;
+  const { user, ownerConflict, journalReady, refreshProfile } = useAuth();
+  const scope = isSupabaseConfigured && user?.id && journalReady && !ownerConflict ? user.id : null;
   const [state, dispatch] = useReducer(syncReducer, initialSyncState(scope));
   const current = state.scope === scope ? state : initialSyncState(scope);
   const inFlight = useRef<{ scope: string; request: number; promise: Promise<SyncResult | null> } | null>(null);
@@ -67,7 +67,7 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     refreshPending();
-    if (!user?.id || ownerConflict) return;
+    if (!user?.id || !journalReady || ownerConflict) return;
     lastAuto.current = Date.now();
     syncNow();
     const sub = AppState.addEventListener('change', state => {
@@ -78,7 +78,7 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
       syncNow();
     });
     return () => sub.remove();
-  }, [user?.id, ownerConflict, syncNow, refreshPending]);
+  }, [user?.id, journalReady, ownerConflict, syncNow, refreshPending]);
 
   return (
     <SyncContext.Provider value={{ phase: current.phase, syncing: current.phase === 'syncing', lastSyncAt: current.lastSyncAt, lastErrors: current.errors, pending, syncNow, refreshPending }}>

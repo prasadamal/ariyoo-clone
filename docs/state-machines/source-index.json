@@ -202,6 +202,27 @@
       ]
     },
     {
+      "path": "apps/wayfare-mobile/app/_layout.tsx",
+      "evidence": [
+        {
+          "line": 6,
+          "text": "import { useEffect, useMemo, useRef, useState } from 'react';"
+        },
+        {
+          "line": 19,
+          "text": "const [busy, setBusy] = useState(false);"
+        },
+        {
+          "line": 20,
+          "text": "const [error, setError] = useState<string | null>(null);"
+        },
+        {
+          "line": 62,
+          "text": "const [exitError, setExitError] = useState<string | null>(null);"
+        }
+      ]
+    },
+    {
       "path": "apps/wayfare-mobile/app/(tabs)/connect.tsx",
       "evidence": [
         {
@@ -1394,28 +1415,88 @@
           "text": "import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';"
         },
         {
-          "line": 38,
+          "line": 43,
           "text": "const [session, setSession] = useState<Session | null>(null);"
         },
         {
-          "line": 39,
+          "line": 44,
           "text": "const [profile, setProfile] = useState<MyProfile | null>(null);"
         },
         {
-          "line": 40,
+          "line": 45,
           "text": "const [loading, setLoading] = useState(true);"
         },
         {
-          "line": 41,
+          "line": 46,
           "text": "const [guest, setGuest] = useState(false);"
         },
         {
-          "line": 42,
-          "text": "const [ownerConflict, setOwnerConflict] = useState(false);"
+          "line": 47,
+          "text": "const [guestLoading, setGuestLoading] = useState(true);"
         },
         {
-          "line": 72,
-          "text": "const { data: sub } = supabase.auth.onAuthStateChange((_event, next) => setSession(next));"
+          "line": 48,
+          "text": "const [ownership, setOwnership] = useState<{ userId: string | null; phase: 'checking' | 'ready' | 'conflict' | 'error'; error?: string }>({ userId: null, phase: 'checking' });"
+        },
+        {
+          "line": 49,
+          "text": "const [ownershipAttempt, setOwnershipAttempt] = useState(0);"
+        },
+        {
+          "line": 56,
+          "text": "const journalReady = !userId || (ownership.userId === userId && ownership.phase === 'ready');"
+        },
+        {
+          "line": 57,
+          "text": "const ownerConflict = !!userId && ownership.userId === userId && ownership.phase === 'conflict';"
+        },
+        {
+          "line": 58,
+          "text": "const journalError = ownership.userId === userId && ownership.phase === 'error' ? ownership.error ?? 'Could not open this journal.' : null;"
+        },
+        {
+          "line": 75,
+          "text": "let active = true;"
+        },
+        {
+          "line": 78,
+          "text": "if (!supabase) { setLoading(false); return () => { active = false; }; }"
+        },
+        {
+          "line": 86,
+          "text": "const { data: sub } = supabase.auth.onAuthStateChange((_event, next) => {"
+        },
+        {
+          "line": 95,
+          "text": "return () => { active = false; sub.subscription.unsubscribe(); };"
+        },
+        {
+          "line": 100,
+          "text": "let active = true;"
+        },
+        {
+          "line": 101,
+          "text": "if (!userId) { setOwnership({ userId: null, phase: 'ready' }); return; }"
+        },
+        {
+          "line": 104,
+          "text": "setOwnership({ userId, phase: 'checking' });"
+        },
+        {
+          "line": 116,
+          "text": "setOwnership({ userId, phase: outcome });"
+        },
+        {
+          "line": 118,
+          "text": "if (current()) setOwnership({ userId, phase: 'error', error: 'Could not open this device’s journal. Retry before syncing.' });"
+        },
+        {
+          "line": 120,
+          "text": "return () => { active = false; };"
+        },
+        {
+          "line": 161,
+          "text": "setOwnership({ userId: null, phase: 'ready' });"
         }
       ]
     },
@@ -1919,32 +2000,45 @@
       "path": "apps/wayfare-mobile/src/lib/liveShare.ts",
       "evidence": [
         {
-          "line": 36,
+          "line": 39,
           "text": "expires_at: expiresAt,"
         },
         {
-          "line": 41,
+          "line": 44,
           "text": "const state: LiveShareState = {"
         },
         {
-          "line": 53,
+          "line": 56,
           "text": "const state = await getLiveShareState();"
         },
         {
-          "line": 65,
-          "text": "const state = await getLiveShareState();"
+          "line": 74,
+          "text": ".update({ expires_at: new Date().toISOString() }).eq('id', id).select('id').maybeSingle();"
         },
         {
-          "line": 68,
-          "text": "await supabase.from('live_shares').update({ expires_at: new Date().toISOString() }).eq('id', state.id);"
-        },
-        {
-          "line": 79,
+          "line": 87,
           "text": "expires_at: string;"
         },
         {
-          "line": 80,
+          "line": 88,
           "text": "active: boolean;"
+        }
+      ]
+    },
+    {
+      "path": "apps/wayfare-mobile/src/lib/liveShareLifecycle.ts",
+      "evidence": [
+        {
+          "line": 5,
+          "text": "write: (state: T | null) => Promise<void>;"
+        },
+        {
+          "line": 7,
+          "text": "const state = await deps.read();"
+        },
+        {
+          "line": 16,
+          "text": "write: (state: T) => Promise<void>;"
         }
       ]
     },

@@ -1,7 +1,10 @@
+import { createJournalGate } from './journalGate';
+import { revokeLiveShare, acknowledgeLivePush } from './liveShareLifecycle';
 import { getLiveShareBaseUrl } from '../config';
 import { getLiveShareState, setLiveShareState, type LiveShareState } from './locationState';
 import { supabase } from './supabase';
 
+const withLiveShareLock = createJournalGate();
 const PUSH_EVERY_MS = 60_000;
 
 export function buildLiveShareUrls(id: string) {
@@ -12,7 +15,7 @@ export function buildLiveShareUrls(id: string) {
 }
 
 /** Creates the cloud row behind a live-location link. */
-export async function createLiveShare(params: {
+async function createLiveShareLocked(params: {
   hours: number;
   label: string | null;
   latitude: number;
@@ -49,24 +52,29 @@ export async function createLiveShare(params: {
 }
 
 /** Called from the location task; throttled so a trek does not drain data or battery. */
-export async function pushLiveLocation(loc: { latitude: number; longitude: number; accuracy: number | null }) {
+async function pushLiveLocationLocked(loc: { latitude: number; longitude: number; accuracy: number | null }) {
   const state = await getLiveShareState();
   if (!state || !supabase) return;
   if (state.lastPushAt && Date.now() - new Date(state.lastPushAt).getTime() < PUSH_EVERY_MS) return;
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from('live_shares')
     .update({ latitude: loc.latitude, longitude: loc.longitude, accuracy_m: loc.accuracy })
-    .eq('id', state.id);
-  if (!error) await setLiveShareState({ ...state, lastPushAt: new Date().toISOString() });
+    .eq('id', state.id).select('id').maybeSingle();
+  if (!error && data) await acknowledgeLivePush({ read: getLiveShareState, write: setLiveShareState }, state.id, new Date().toISOString());
 }
 
 /** Ends sharing now: the link shows "sharing ended" instead of a position. */
-export async function endLiveShare() {
-  const state = await getLiveShareState();
-  await setLiveShareState(null);
-  if (state && supabase) {
-    await supabase.from('live_shares').update({ expires_at: new Date().toISOString() }).eq('id', state.id);
-  }
+async function endLiveShareLocked() {
+  await revokeLiveShare({
+    read: getLiveShareState,
+    write: setLiveShareState,
+    expire: async id => {
+      if (!supabase) throw new Error('Reconnect to Wayfare to end this live link.');
+      const { data, error } = await supabase.from('live_shares')
+        .update({ expires_at: new Date().toISOString() }).eq('id', id).select('id').maybeSingle();
+      if (error || !data) throw new Error('Could not confirm that sharing ended. Reconnect with the account that created this link and retry.');
+    },
+  });
 }
 
 export type LiveShareView = {
@@ -85,4 +93,15 @@ export async function fetchLiveShare(id: string): Promise<LiveShareView | null> 
   const { data, error } = await supabase.rpc('get_live_share', { p_id: id });
   if (error || !data) return null;
   return data as LiveShareView;
+}
+
+// Serialize create/push/end so a completed push cannot restore a revoked link.
+export function createLiveShare(params: Parameters<typeof createLiveShareLocked>[0]) {
+  return withLiveShareLock(() => createLiveShareLocked(params));
+}
+export function pushLiveLocation(loc: Parameters<typeof pushLiveLocationLocked>[0]) {
+  return withLiveShareLock(() => pushLiveLocationLocked(loc));
+}
+export function endLiveShare() {
+  return withLiveShareLock(endLiveShareLocked);
 }

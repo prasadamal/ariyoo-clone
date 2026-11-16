@@ -65,3 +65,12 @@ See [source-index.json](source-index.json) for file/line evidence and the compan
 ## Deployment hardening (November 2026)
 
 Replication, immediate trip pushes and local wipes now share a serial journal gate: wipe waits for an active sync, and a queued sync waits for wipe. Failures release the gate. Immediate pushes verify the authenticated account. Stale profile results no longer populate another account; feed generations guard error/finally and disabled/unmounted feeds. This does not serialize every journal editor or native recording task; device/account-switch and database integration remain mandatory before release.
+
+
+## Ownership and live-link follow-up (November 2026)
+
+Account restoration no longer overwrites a newer auth event or stalls permanently on a failed lookup. Guest restoration finishes before routing. Account epochs and effect cancellation reject stale profile/ownership reads, including a switch away and back to the same account. Ownership resolution runs under the journal queue; it never treats a failed read/count as an empty journal. While unresolved, failed, or conflicting, the navigation display is shielded and noninteractive, and automatic sync/community access is paused. The navigator stays mounted for auth routing and its account/readiness key resets old screen state. Errors offer retry/sign-out; conflict actions have a synchronous duplicate-operation guard and visible failure.
+
+Live-link create/push/end operations have their own serial queue, separate from the journal queue. End waits for an owner-authorized database row acknowledgement before removing local state. Failure preserves retry state. Push acknowledgement checks the current link ID so ended/replaced links are not restored by stale completion. Unit checks cover stale account adoption, storage failure, explicit ownership conflict, failed revocation, replacement races, and push-after-stop. The HTTP suite verifies exact owner revocation acknowledgement, outsider denial, and hidden coordinates on a revoked public viewer.
+
+No SQLite schema or persisted keys changed. This does not stop native recorders or cancel a native location callback already running on another JS context. Device checks for recording, sign-out/wipe and account transitions remain required; do not interpret the display/sync gate as authorization or a complete native-service shutdown protocol.
