@@ -1,4 +1,6 @@
-const base = process.env.API_URL || process.env.API_BASE || 'http://localhost:5296';
+const base = process.env.API_URL || process.env.API_BASE || 'http://localhost:3333';
+const password = process.env.DEMO_PASSWORD;
+if (!password) throw new Error('Set DEMO_PASSWORD for an isolated reviewer/test database');
 
 async function main() {
   const health = await fetch(`${base}/health`);
@@ -7,7 +9,7 @@ async function main() {
   const loginRes = await fetch(`${base}/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email: 'solver@example.com', password: 'password' }),
+    body: JSON.stringify({ email: 'solver@example.com', password }),
   });
   const login = await loginRes.json();
   if (!loginRes.ok) throw new Error(`login ${loginRes.status} ${JSON.stringify(login)}`);
@@ -35,7 +37,19 @@ async function main() {
   });
   if (!sent.ok) throw new Error(`message ${sent.status}`);
 
-  console.log('smoke-flow ok', { sessionId: asked.sessionId });
+  const history = await fetch(`${base}/api/Message/getMessagesBySessionId/${asked.sessionId}`, { headers });
+  if (!history.ok || (await history.json()).length !== 2) throw new Error('Persisted history did not contain both messages');
+  const outsiderRes = await fetch(`${base}/auth/register`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: `smoke-${Date.now()}@example.com`, password, flname: 'Isolated smoke user', isSeeker: true, isSolver: false }),
+  });
+  if (!outsiderRes.ok) throw new Error('Could not create isolated outsider');
+  const outsider = await outsiderRes.json();
+  const denied = await fetch(`${base}/api/Message/getMessagesBySessionId/${asked.sessionId}`, {
+    headers: { Authorization: `Bearer ${outsider.token}` },
+  });
+  if (denied.status !== 403) throw new Error('Outsider could read persisted chat');
+  console.log('smoke-flow ok' , { sessionId: asked.sessionId });
 }
 
 main().catch(err => {

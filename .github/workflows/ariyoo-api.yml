@@ -11,6 +11,21 @@ permissions:
 jobs:
   verify:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_PASSWORD: isolated-ci-password
+          POSTGRES_DB: ariyoo
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL: postgresql://postgres:isolated-ci-password@localhost:5432/ariyoo
+      JWT_SECRET: isolated-ci-jwt-secret-never-use-in-production
+      DEMO_PASSWORD: isolated-ci-reviewer-password
+      PORT: 3333
     defaults:
       run:
         working-directory: services/api
@@ -25,5 +40,16 @@ jobs:
       - run: npx prisma generate
       - run: npm run build
       - run: npm test
+      - name: Apply initial migration to isolated database
+        run: npx prisma migrate deploy
+      - name: Seed isolated review users
+        run: npm run prisma:seed
+      - name: Verify persisted question, reply and outsider denial
+        run: |
+          node dist/index.js > /tmp/ariyoo-ci-api.log 2>&1 &
+          api_pid=$!
+          trap 'kill "$api_pid" 2>/dev/null || true' EXIT
+          node --input-type=module -e 'for(let i=0;i<30;i++){try{if((await fetch("http://localhost:3333/ready")).ok)process.exit(0)}catch{}await new Promise(r=>setTimeout(r,500))}process.exit(1)'
+          API_URL=http://localhost:3333 node scripts/smoke-flow.mjs
       - name: Build production image
         run: docker build -t ariyoo-api:check .
