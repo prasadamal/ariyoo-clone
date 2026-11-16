@@ -4,13 +4,16 @@ import bcrypt from 'bcryptjs';
 const prisma = new PrismaClient();
 
 async function main() {
+  if (process.env.NODE_ENV === 'production') throw new Error('Demo seed is disabled in production');
+  const demoPassword = process.env.DEMO_PASSWORD;
+  if (!demoPassword || demoPassword.length < 12) throw new Error('Set DEMO_PASSWORD to at least 12 characters');
   const tags = ['travel', 'food', 'beaches', 'mountains', 'shopping', 'local', 'kerala', 'goa', 'mumbai', 'agra'];
   for (const name of tags) await prisma.tag.upsert({ where: { name }, update: {}, create: { name } });
 
   const places = ['Kerala', 'Goa', 'Mumbai', 'Delhi', 'Agra'];
   for (const name of places) await prisma.place.upsert({ where: { name }, update: {}, create: { name } });
 
-  const passwordHash = await bcrypt.hash('password', 10);
+  const passwordHash = await bcrypt.hash(demoPassword, 10);
   const solver = await prisma.user.upsert({
     where: { email: 'solver@example.com' },
     update: {},

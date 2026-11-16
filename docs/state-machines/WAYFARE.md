@@ -61,3 +61,7 @@ This does not cancel replication already running when an account changes, coordi
 From repository root: `node scripts/state-index.mjs --check`. In `apps/wayfare-mobile`: `npm run verify`. Existing CI also runs platform bundles and the SQL/RLS/HTTP suites. The new tests cover overlapping calls, account separation, stale results, retry after failure and truthful partial-backup timestamps. Before shipping, test foreground/manual overlap, offline retry, owner conflict, account switching, media failure, GPS mode switches and wipe during sync on isolated devices.
 
 See [source-index.json](source-index.json) for file/line evidence and the companion Ariyoo inventory. Candidate scanning is deliberately broad and cannot prove that every possible runtime state machine has been found. Existing machine names and SQL enums are not blanket transition permissions.
+
+## Deployment hardening (November 2026)
+
+Replication, immediate trip pushes and local wipes now share a serial journal gate: wipe waits for an active sync, and a queued sync waits for wipe. Failures release the gate. Immediate pushes verify the authenticated account. Stale profile results no longer populate another account; feed generations guard error/finally and disabled/unmounted feeds. This does not serialize every journal editor or native recording task; device/account-switch and database integration remain mandatory before release.

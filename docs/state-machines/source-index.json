@@ -1414,7 +1414,7 @@
           "text": "const [ownerConflict, setOwnerConflict] = useState(false);"
         },
         {
-          "line": 69,
+          "line": 72,
           "text": "const { data: sub } = supabase.auth.onAuthStateChange((_event, next) => setSession(next));"
         }
       ]
@@ -1952,147 +1952,147 @@
       "path": "apps/wayfare-mobile/src/lib/localDb.ts",
       "evidence": [
         {
-          "line": 14,
+          "line": 15,
           "text": "visibility: string;"
         },
         {
-          "line": 16,
+          "line": 17,
           "text": "status: string;"
         },
         {
-          "line": 25,
+          "line": 26,
           "text": "sync_status: string;"
         },
         {
-          "line": 40,
+          "line": 41,
           "text": "sync_status: string;"
         },
         {
-          "line": 56,
+          "line": 57,
           "text": "sync_status: string;"
         },
         {
-          "line": 66,
+          "line": 67,
           "text": "sync_status: string;"
         },
         {
-          "line": 80,
+          "line": 81,
           "text": "sync_status: string;"
         },
         {
-          "line": 92,
+          "line": 93,
           "text": "sync_status: string;"
         },
         {
-          "line": 102,
+          "line": 103,
           "text": "sync_status: string;"
         },
         {
-          "line": 258,
+          "line": 259,
           "text": "await database.runAsync(\"UPDATE packing_items SET id = ?, sync_status = 'pending' WHERE id = ?\", [uuid(), p.id]);"
         },
         {
-          "line": 288,
+          "line": 289,
           "text": "starts_on=excluded.starts_on, ends_on=excluded.ends_on, visibility=excluded.visibility,"
         },
         {
-          "line": 289,
+          "line": 290,
           "text": "companions=excluded.companions, status=excluded.status, notes=excluded.notes,"
         },
         {
-          "line": 292,
+          "line": 293,
           "text": "dest_lng=excluded.dest_lng, sync_status=excluded.sync_status, updated_at=excluded.updated_at`,"
         },
         {
-          "line": 321,
+          "line": 322,
           "text": "const next: LocalTrip = { ...trip, ...patch, id, sync_status: 'pending', updated_at: now() };"
         },
         {
-          "line": 387,
+          "line": 388,
           "text": "longitude=excluded.longitude, altitude_m=excluded.altitude_m, sync_status=excluded.sync_status,"
         },
         {
-          "line": 441,
+          "line": 442,
           "text": "sync_status=excluded.sync_status, updated_at=excluded.updated_at`,"
         },
         {
-          "line": 482,
+          "line": 483,
           "text": "sync_status=excluded.sync_status, updated_at=excluded.updated_at`,"
         },
         {
-          "line": 499,
+          "line": 500,
           "text": "sync_status: 'pending',"
         },
         {
-          "line": 519,
+          "line": 520,
           "text": "sync_status: 'pending',"
         },
         {
-          "line": 546,
+          "line": 547,
           "text": "sort_order=excluded.sort_order, sync_status=excluded.sync_status, updated_at=excluded.updated_at`,"
         },
         {
-          "line": 651,
+          "line": 652,
           "text": "sync_status=excluded.sync_status, updated_at=excluded.updated_at`,"
         },
         {
-          "line": 679,
+          "line": 680,
           "text": "return database.getAllAsync<T>(`SELECT * FROM ${table} WHERE sync_status = 'pending'`);"
         },
         {
-          "line": 685,
+          "line": 686,
           "text": "`SELECT * FROM track_points WHERE sync_status = 'pending' ORDER BY recorded_at ASC LIMIT ?`,"
         },
         {
-          "line": 694,
+          "line": 695,
           "text": "await database.runAsync(`UPDATE ${table} SET sync_status = 'synced' WHERE id = ? AND updated_at = ?`, ["
         },
         {
-          "line": 699,
+          "line": 700,
           "text": "await database.runAsync(`UPDATE ${table} SET sync_status = 'synced' WHERE id = ?`, [id]);"
         },
         {
-          "line": 707,
+          "line": 708,
           "text": "await database.runAsync(`UPDATE track_points SET sync_status = 'synced' WHERE id IN (${placeholders})`, ids);"
         },
         {
-          "line": 730,
+          "line": 731,
           "text": "return database.getFirstAsync<{ sync_status: string; updated_at: string }>("
         },
         {
-          "line": 739,
+          "line": 740,
           "text": "const rows = await database.getAllAsync<{ id: string }>(`SELECT id FROM ${table} WHERE sync_status = 'synced'`);"
         },
         {
-          "line": 753,
+          "line": 754,
           "text": "const rows = await database.getAllAsync<{ id: string }>(\"SELECT id FROM trips WHERE sync_status = 'synced'\");"
         },
         {
-          "line": 775,
+          "line": 776,
           "text": "(SELECT COUNT(*) FROM trips WHERE sync_status = 'pending') +"
         },
         {
-          "line": 776,
+          "line": 777,
           "text": "(SELECT COUNT(*) FROM entries WHERE sync_status = 'pending') +"
         },
         {
-          "line": 777,
+          "line": 778,
           "text": "(SELECT COUNT(*) FROM expenses WHERE sync_status = 'pending') +"
         },
         {
-          "line": 778,
+          "line": 779,
           "text": "(SELECT COUNT(*) FROM packing_items WHERE sync_status = 'pending') +"
         },
         {
-          "line": 779,
+          "line": 780,
           "text": "(SELECT COUNT(*) FROM itinerary_items WHERE sync_status = 'pending') +"
         },
         {
-          "line": 780,
+          "line": 781,
           "text": "(SELECT COUNT(*) FROM track_points WHERE sync_status = 'pending') +"
         },
         {
-          "line": 781,
+          "line": 782,
           "text": "(SELECT COUNT(*) FROM entry_media WHERE sync_status = 'pending') +"
         }
       ]
@@ -2162,55 +2162,55 @@
       "path": "apps/wayfare-mobile/src/lib/sync.ts",
       "evidence": [
         {
-          "line": 72,
+          "line": 73,
           "text": "visibility: t.visibility,"
         },
         {
-          "line": 74,
+          "line": 75,
           "text": "status: t.status,"
         },
         {
-          "line": 93,
+          "line": 94,
           "text": "visibility: r.visibility,"
         },
         {
-          "line": 95,
+          "line": 96,
           "text": "status: r.status,"
         },
         {
-          "line": 104,
+          "line": 105,
           "text": "sync_status: 'synced',"
         },
         {
-          "line": 134,
+          "line": 135,
           "text": "sync_status: 'synced',"
         },
         {
-          "line": 171,
+          "line": 172,
           "text": "sync_status: 'synced',"
         },
         {
-          "line": 191,
+          "line": 192,
           "text": "sync_status: 'synced',"
         },
         {
-          "line": 219,
+          "line": 220,
           "text": "sync_status: 'synced',"
         },
         {
-          "line": 234,
+          "line": 235,
           "text": "const pending = await listPending<T>(table);"
         },
         {
-          "line": 415,
+          "line": 416,
           "text": "const pending = await listPending<LocalEntryMedia>('entry_media');"
         },
         {
-          "line": 443,
+          "line": 444,
           "text": "await upsertEntryMedia({ ...media, storage_path: storagePath, sync_status: 'synced' });"
         },
         {
-          "line": 472,
+          "line": 473,
           "text": "sync_status: 'synced',"
         }
       ]
@@ -2479,7 +2479,7 @@
       "path": "apps/web/src/app/core/interceptors/request.service.ts",
       "evidence": [
         {
-          "line": 34,
+          "line": 38,
           "text": "if (error.status === 401) {"
         }
       ]
@@ -2576,15 +2576,46 @@
       ]
     },
     {
+      "path": "services/api/src/app.ts",
+      "evidence": [
+        {
+          "line": 53,
+          "text": "const status = error.code === 'LIMIT_FILE_SIZE' || error.type === 'entity.too.large' ? 413 : error.code === 'P2002' ? 409 : error instanceof SyntaxError || error.name === 'MulterError' ? 400 : 500;"
+        },
+        {
+          "line": 54,
+          "text": "res.status(status).json({ message: status === 413 ? 'Request exceeds the allowed size' : status === 409 ? 'Already exists' : status === 400 ? 'Invalid request' : 'Request failed' });"
+        }
+      ]
+    },
+    {
+      "path": "services/api/src/index.ts",
+      "evidence": [
+        {
+          "line": 9,
+          "text": "const timeout = setTimeout(() => process.exit(1), 10000);"
+        }
+      ]
+    },
+    {
       "path": "services/api/src/routes/message.ts",
       "evidence": [
         {
-          "line": 34,
+          "line": 44,
           "text": "res.json(sessions.map(s => ({ sessionId: s.id, title: s.title, active: s.active })));"
         },
         {
-          "line": 41,
+          "line": 51,
           "text": "res.json(sessions.map(s => ({ sessionId: s.id, title: s.title, active: s.active })));"
+        }
+      ]
+    },
+    {
+      "path": "services/api/src/socket.ts",
+      "evidence": [
+        {
+          "line": 14,
+          "text": "const timer = setTimeout(() => socket.disconnect(true),"
         }
       ]
     },

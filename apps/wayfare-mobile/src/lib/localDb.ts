@@ -1,3 +1,4 @@
+import { withJournalLock } from './journalGate';
 import * as SQLite from 'expo-sqlite';
 import { uuid } from './id';
 
@@ -786,7 +787,10 @@ export async function countPendingSync() {
 }
 
 /** Wipes the on-device journal (used when another account takes over this device). */
-export async function wipeLocalData() {
+export function wipeLocalData() {
+  return withJournalLock(wipeLocalDataLocked);
+}
+async function wipeLocalDataLocked() {
   const database = await getDb();
   await database.execAsync(`
     DELETE FROM entry_media;

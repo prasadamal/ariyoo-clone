@@ -43,6 +43,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const offlineMode = !isSupabaseConfigured;
   const userId = session?.user?.id ?? null;
   const lastUser = useRef<string | null>(null);
+  const currentUser = useRef(userId);
+  currentUser.current = userId;
 
   const refreshProfile = useCallback(async () => {
     if (!supabase || !userId) {
@@ -50,7 +52,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return;
     }
     try {
-      setProfile(await fetchMyProfile(userId));
+      const next = await fetchMyProfile(userId);
+      if (currentUser.current === userId) setProfile(next);
     } catch {
       // keep the last known profile when offline
     }
@@ -89,7 +92,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [userId]);
 
   useEffect(() => {
-    refreshProfile();
+    setProfile(null);
+    void refreshProfile();
   }, [refreshProfile]);
 
   const signIn = useCallback(async (email: string, password: string) => {
@@ -121,7 +125,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await wipeLocalData();
       await setLocalOwner(null);
     }
-    if (supabase) await supabase.auth.signOut();
+    if (supabase) {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+    }
     lastUser.current = null;
     setProfile(null);
     setOwnerConflict(false);
