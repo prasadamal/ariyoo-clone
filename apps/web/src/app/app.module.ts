@@ -1,3 +1,4 @@
+import { PrivateImageDirective } from './chatwindow/private-image.directive';
 import { NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 import { HTTP_INTERCEPTORS, HttpClientModule } from '@angular/common/http';
@@ -39,6 +40,7 @@ import { NotFoundComponent } from './not-found/not-found.component';
     NotFoundComponent,
   ],
   imports: [
+    PrivateImageDirective,
     BrowserModule,
     AppRoutingModule,
     BrowserAnimationsModule,

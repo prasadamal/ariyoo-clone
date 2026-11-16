@@ -22,7 +22,7 @@
       }"
       class="max-w-[70%] rounded-lg shadow-sm p-4 relative">
         <p *ngIf="message.messageText" class="text-sm break-words">{{ message.messageText }}</p>
-        <img *ngIf="message.imageUrl" [src]="message.imageUrl" alt="Image" class="max-w-xs max-h-xs rounded-lg object-cover">
+        <img *ngIf="message.imageUrl" [privateImage]="message.imageUrl" alt="Image" class="max-w-xs max-h-xs rounded-lg object-cover">
         <span class="block text-xs mt-1"
               [ngClass]="{
                 'text-blue-100': isCurrentUser(message.senderId),
