@@ -1,3 +1,4 @@
+import { withJournalLock } from './journalGate';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { isSupabaseConfigured } from '../config';
 import { ENTRY_MEDIA_BUCKET, uploadEntryMedia } from './media';
@@ -480,7 +481,7 @@ async function pullEntryMedia(userId: string, result: SyncResult) {
 // --- orchestration --------------------------------------------------------------------
 
 /** Push local changes (deletes first), pull cloud changes, then upload media. Single-flight. */
-export const syncAll = createSyncFlight(runSync);
+export const syncAll = createSyncFlight(userId => withJournalLock(() => runSync(userId)));
 
 async function runSync(userId: string): Promise<SyncResult> {
   const result: SyncResult = {
@@ -552,8 +553,13 @@ async function runSync(userId: string): Promise<SyncResult> {
 }
 
 /** Push a single trip right away (e.g. before matching travellers or linking a post). */
-export async function pushTripNow(userId: string, tripId: string) {
+export function pushTripNow(userId: string, tripId: string) {
+  return withJournalLock(() => pushTripLocked(userId, tripId));
+}
+async function pushTripLocked(userId: string, tripId: string) {
   if (!supabase) throw new Error('Cloud sync is not configured');
+  const { data } = await supabase.auth.getSession();
+  if (data.session?.user.id !== userId) throw new Error('Sign in again to sync');
   const db = await getDb();
   const trip = await db.getFirstAsync<LocalTrip>('SELECT * FROM trips WHERE id = ?', [tripId]);
   if (!trip) throw new Error('Trip not found');

@@ -1,9 +1,9 @@
 import { Express } from 'express';
-import { authRouter } from './auth';
-import { tagsRouter } from './tags';
-import { messageRouter } from './message';
-import { userRouter } from './user';
-import { newsletterRouter } from './newsletter';
+import { authRouter } from './auth.js';
+import { tagsRouter } from './tags.js';
+import { messageRouter } from './message.js';
+import { userRouter } from './user.js';
+import { newsletterRouter } from './newsletter.js';
 
 export function registerRoutes(app: Express) {
   app.use('/auth', authRouter);

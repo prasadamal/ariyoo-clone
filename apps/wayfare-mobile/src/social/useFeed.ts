@@ -37,8 +37,10 @@ export function useFeed(mode: FeedMode, opts: { placeKey?: string | null; userId
         setDone(page.length < PAGE);
         setError(null);
       } catch (e) {
+        if (gen !== generation.current) return;
         setError(e instanceof Error ? e.message : 'Could not load the feed');
       } finally {
+        if (gen !== generation.current) return;
         inflight.current = false;
         setLoading(false);
         setRefreshing(false);
@@ -48,12 +50,18 @@ export function useFeed(mode: FeedMode, opts: { placeKey?: string | null; userId
   );
 
   useEffect(() => {
+    ++generation.current;
+    inflight.current = false;
+    setLoading(false);
+    setRefreshing(false);
+    setError(null);
     setPosts([]);
     setDone(false);
     if (enabled) {
       inflight.current = false;
-      fetchPage(true);
+      void fetchPage(true);
     }
+    return () => { ++generation.current; };
     // Reset whenever the feed definition changes.
   }, [mode, opts.placeKey, opts.userId, enabled]);
 

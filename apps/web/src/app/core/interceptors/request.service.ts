@@ -1,3 +1,4 @@
+import { environment } from 'src/environments/environment';
 import { Injectable } from '@angular/core';
 import { 
   HttpInterceptor, 
@@ -18,8 +19,11 @@ export class RequestInterceptor implements HttpInterceptor {
     let modifiedReq = req;
     const userData = localStorage.getItem('loggedin_user');
 
-    if (userData) {
-      const token = JSON.parse(userData).token;
+    const apiOrigin = new URL(environment.api, window.location.origin).origin;
+    const requestOrigin = new URL(req.url, window.location.origin).origin;
+    if (userData && requestOrigin === apiOrigin) {
+      let token: string | undefined;
+      try { token = JSON.parse(userData).token; } catch { localStorage.removeItem('loggedin_user'); }
       if (token) {
         modifiedReq = req.clone({
           setHeaders: {

@@ -8,6 +8,7 @@ The mobile app expects **`EXPO_PUBLIC_API_URL`** to point at this service over *
 | --- | --- | --- |
 | `DATABASE_URL` | Yes | PostgreSQL connection string |
 | `JWT_SECRET` | Yes | Long random string (not `dev_secret_change_me`) |
+| `CORS_ORIGINS` | Yes | Comma-separated web origins; wildcard rejected in production |
 | `PORT` | No | Default `3333` |
 | `UPLOAD_DIR` | No | Default `./uploads` (use persistent volume in prod) |
 
@@ -21,28 +22,21 @@ docker build -t ariyoo-api .
 docker run -p 3333:3333 \
   -e DATABASE_URL="postgresql://..." \
   -e JWT_SECRET="..." \
+  -e CORS_ORIGINS="https://your-web-app.example.com" \
   ariyoo-api
 ```
 
-Before first run, apply schema to the database:
+Apply reviewed Prisma migrations from a development/tooling checkout with database access before starting the runtime container (`npx prisma migrate deploy`). For an existing database, reconcile and explicitly baseline its current schema before marking the initial migration applied. An initial migration is included for empty databases; do not use destructive schema synchronization on an existing production database.
+
+## Isolated demo data
+
+Demo seeding refuses `NODE_ENV=production`. Use only a separate development/reviewer database:
 
 ```bash
-cd services/api
-DATABASE_URL="..." npx prisma db push
-DATABASE_URL="..." npm run prisma:seed
+DATABASE_URL="postgresql://reviewer-db/..." DEMO_PASSWORD="a-unique-long-password" npm run prisma:seed
 ```
 
-## Seed demo users (store review)
-
-```bash
-cd services/api
-DATABASE_URL="..." JWT_SECRET="..." npm run prisma:seed
-```
-
-Accounts (change passwords before public production):
-
-- `solver@example.com` / `password` (solver + seeker)
-- `seeker@example.com` / `password` (seeker only)
+The `solver@example.com` and `seeker@example.com` accounts receive that password. Never seed public-password accounts in production.
 
 ## Verify
 
@@ -60,3 +54,7 @@ eas secret:create --name EXPO_PUBLIC_API_URL --value https://your-api.example.co
 ```
 
 Or set in `eas.json` production `env` once URL is final.
+
+Production readiness: `/health` checks process liveness; `/ready` checks database connectivity. Configure host readiness against `/ready`. Chat image downloads require a bearer token and session membership. The Angular view loads image blobs through its authenticated HTTP client. Keep uploads on a persistent volume. Run backend build and tests before packaging.
+
+Set `TRUST_PROXY` to the exact number of trusted reverse proxies (default 0). Do not trust arbitrary forwarded headers. Auth endpoints allow 30 attempts per 15 minutes per client IP. Multi-instance hosting needs a shared rate-limit store before scaling.

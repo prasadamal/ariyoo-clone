@@ -202,6 +202,27 @@
       ]
     },
     {
+      "path": "apps/wayfare-mobile/app/_layout.tsx",
+      "evidence": [
+        {
+          "line": 6,
+          "text": "import { useEffect, useMemo, useRef, useState } from 'react';"
+        },
+        {
+          "line": 19,
+          "text": "const [busy, setBusy] = useState(false);"
+        },
+        {
+          "line": 20,
+          "text": "const [error, setError] = useState<string | null>(null);"
+        },
+        {
+          "line": 62,
+          "text": "const [exitError, setExitError] = useState<string | null>(null);"
+        }
+      ]
+    },
+    {
       "path": "apps/wayfare-mobile/app/(tabs)/connect.tsx",
       "evidence": [
         {
@@ -1014,27 +1035,27 @@
           "text": "import { useEffect, useState } from 'react';"
         },
         {
-          "line": 44,
+          "line": 45,
           "text": "const [push, setPush] = useState<PushPreference>('unset');"
         },
         {
-          "line": 45,
+          "line": 46,
           "text": "const [deleteOpen, setDeleteOpen] = useState(false);"
         },
         {
-          "line": 46,
+          "line": 47,
           "text": "const [confirmText, setConfirmText] = useState('');"
         },
         {
-          "line": 47,
+          "line": 48,
           "text": "const [deleting, setDeleting] = useState(false);"
         },
         {
-          "line": 79,
+          "line": 80,
           "text": "Alert.alert('Sign out?', pending ? `${pending} change${pending === 1 ? ' has' : 's have'} not synced yet and will stay on this phone.` : 'Your journals are backed up to your account.', ["
         },
         {
-          "line": 194,
+          "line": 201,
           "text": "{syncing ? 'Syncing…' : lastErrors.length ? 'Backup needs attention — try syncing again' : pending ? `${pending} change${pending === 1 ? '' : 's'} waiting to sync` : lastSyncAt ? 'Everything is backed up' : 'Backup has not been verified yet"
         }
       ]
@@ -1394,28 +1415,92 @@
           "text": "import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';"
         },
         {
-          "line": 38,
+          "line": 44,
           "text": "const [session, setSession] = useState<Session | null>(null);"
         },
         {
-          "line": 39,
+          "line": 45,
           "text": "const [profile, setProfile] = useState<MyProfile | null>(null);"
         },
         {
-          "line": 40,
+          "line": 46,
           "text": "const [loading, setLoading] = useState(true);"
         },
         {
-          "line": 41,
+          "line": 47,
           "text": "const [guest, setGuest] = useState(false);"
         },
         {
-          "line": 42,
-          "text": "const [ownerConflict, setOwnerConflict] = useState(false);"
+          "line": 48,
+          "text": "const [guestLoading, setGuestLoading] = useState(true);"
         },
         {
-          "line": 69,
-          "text": "const { data: sub } = supabase.auth.onAuthStateChange((_event, next) => setSession(next));"
+          "line": 49,
+          "text": "const [ownership, setOwnership] = useState<{ userId: string | null; phase: 'checking' | 'ready' | 'conflict' | 'error'; error?: string }>({ userId: null, phase: 'checking' });"
+        },
+        {
+          "line": 50,
+          "text": "const [ownershipAttempt, setOwnershipAttempt] = useState(0);"
+        },
+        {
+          "line": 57,
+          "text": "const journalReady = !userId || (ownership.userId === userId && ownership.phase === 'ready');"
+        },
+        {
+          "line": 58,
+          "text": "const ownerConflict = !!userId && ownership.userId === userId && ownership.phase === 'conflict';"
+        },
+        {
+          "line": 59,
+          "text": "const journalError = ownership.userId === userId && ownership.phase === 'error' ? ownership.error ?? 'Could not open this journal.' : null;"
+        },
+        {
+          "line": 76,
+          "text": "let active = true;"
+        },
+        {
+          "line": 79,
+          "text": "if (!supabase) { setLoading(false); return () => { active = false; }; }"
+        },
+        {
+          "line": 87,
+          "text": "const { data: sub } = supabase.auth.onAuthStateChange((_event, next) => {"
+        },
+        {
+          "line": 96,
+          "text": "return () => { active = false; sub.subscription.unsubscribe(); };"
+        },
+        {
+          "line": 101,
+          "text": "let active = true;"
+        },
+        {
+          "line": 102,
+          "text": "if (!userId) { setOwnership({ userId: null, phase: 'ready' }); return; }"
+        },
+        {
+          "line": 105,
+          "text": "setOwnership({ userId, phase: 'checking' });"
+        },
+        {
+          "line": 117,
+          "text": "setOwnership({ userId, phase: outcome });"
+        },
+        {
+          "line": 119,
+          "text": "if (current()) setOwnership({ userId, phase: 'error', error: 'Could not open this device’s journal. Retry before syncing.' });"
+        },
+        {
+          "line": 121,
+          "text": "return () => { active = false; };"
+        },
+        {
+          "line": 163,
+          "text": "setOwnership({ userId: null, phase: 'ready' });"
+        },
+        {
+          "line": 196,
+          "text": "setOwnership({ userId: null, phase: 'ready' });"
         }
       ]
     },
@@ -1739,7 +1824,7 @@
       "evidence": [
         {
           "line": 5,
-          "text": "import { useCallback, useEffect, useMemo, useState } from 'react';"
+          "text": "import { useCallback, useEffect, useMemo, useRef, useState } from 'react';"
         },
         {
           "line": 38,
@@ -1770,27 +1855,31 @@
           "text": "const [saving, setSaving] = useState(false);"
         },
         {
-          "line": 45,
-          "text": "const [recording, setRecording] = useState<string | null>(null);"
+          "line": 46,
+          "text": "const [voiceBusy, setVoiceBusy] = useState(false);"
         },
         {
           "line": 47,
+          "text": "const [recording, setRecording] = useState<string | null>(null);"
+        },
+        {
+          "line": 49,
           "text": "const [menuFor, setMenuFor] = useState<string | null>(null);"
         },
         {
-          "line": 48,
+          "line": 50,
           "text": "const [mediaKey, setMediaKey] = useState(0);"
         },
         {
-          "line": 76,
+          "line": 78,
           "text": "sync_status: 'pending',"
         },
         {
-          "line": 105,
+          "line": 107,
           "text": "sync_status: 'pending',"
         },
         {
-          "line": 280,
+          "line": 291,
           "text": "{e.sync_status === 'pending' ? ' · not synced yet' : ''}"
         }
       ]
@@ -1919,32 +2008,45 @@
       "path": "apps/wayfare-mobile/src/lib/liveShare.ts",
       "evidence": [
         {
-          "line": 36,
+          "line": 39,
           "text": "expires_at: expiresAt,"
         },
         {
-          "line": 41,
+          "line": 44,
           "text": "const state: LiveShareState = {"
         },
         {
-          "line": 53,
+          "line": 56,
           "text": "const state = await getLiveShareState();"
         },
         {
-          "line": 65,
-          "text": "const state = await getLiveShareState();"
+          "line": 74,
+          "text": ".update({ expires_at: new Date().toISOString() }).eq('id', id).select('id').maybeSingle();"
         },
         {
-          "line": 68,
-          "text": "await supabase.from('live_shares').update({ expires_at: new Date().toISOString() }).eq('id', state.id);"
-        },
-        {
-          "line": 79,
+          "line": 87,
           "text": "expires_at: string;"
         },
         {
-          "line": 80,
+          "line": 88,
           "text": "active: boolean;"
+        }
+      ]
+    },
+    {
+      "path": "apps/wayfare-mobile/src/lib/liveShareLifecycle.ts",
+      "evidence": [
+        {
+          "line": 5,
+          "text": "write: (state: T | null) => Promise<void>;"
+        },
+        {
+          "line": 7,
+          "text": "const state = await deps.read();"
+        },
+        {
+          "line": 16,
+          "text": "write: (state: T) => Promise<void>;"
         }
       ]
     },
@@ -1952,147 +2054,147 @@
       "path": "apps/wayfare-mobile/src/lib/localDb.ts",
       "evidence": [
         {
-          "line": 14,
+          "line": 15,
           "text": "visibility: string;"
         },
         {
-          "line": 16,
+          "line": 17,
           "text": "status: string;"
         },
         {
-          "line": 25,
+          "line": 26,
           "text": "sync_status: string;"
         },
         {
-          "line": 40,
+          "line": 41,
           "text": "sync_status: string;"
         },
         {
-          "line": 56,
+          "line": 57,
           "text": "sync_status: string;"
         },
         {
-          "line": 66,
+          "line": 67,
           "text": "sync_status: string;"
         },
         {
-          "line": 80,
+          "line": 81,
           "text": "sync_status: string;"
         },
         {
-          "line": 92,
+          "line": 93,
           "text": "sync_status: string;"
         },
         {
-          "line": 102,
+          "line": 103,
           "text": "sync_status: string;"
         },
         {
-          "line": 258,
+          "line": 259,
           "text": "await database.runAsync(\"UPDATE packing_items SET id = ?, sync_status = 'pending' WHERE id = ?\", [uuid(), p.id]);"
         },
         {
-          "line": 288,
+          "line": 289,
           "text": "starts_on=excluded.starts_on, ends_on=excluded.ends_on, visibility=excluded.visibility,"
         },
         {
-          "line": 289,
+          "line": 290,
           "text": "companions=excluded.companions, status=excluded.status, notes=excluded.notes,"
         },
         {
-          "line": 292,
+          "line": 293,
           "text": "dest_lng=excluded.dest_lng, sync_status=excluded.sync_status, updated_at=excluded.updated_at`,"
         },
         {
-          "line": 321,
+          "line": 322,
           "text": "const next: LocalTrip = { ...trip, ...patch, id, sync_status: 'pending', updated_at: now() };"
         },
         {
-          "line": 387,
+          "line": 388,
           "text": "longitude=excluded.longitude, altitude_m=excluded.altitude_m, sync_status=excluded.sync_status,"
         },
         {
-          "line": 441,
+          "line": 442,
           "text": "sync_status=excluded.sync_status, updated_at=excluded.updated_at`,"
         },
         {
-          "line": 482,
+          "line": 483,
           "text": "sync_status=excluded.sync_status, updated_at=excluded.updated_at`,"
         },
         {
-          "line": 499,
+          "line": 500,
           "text": "sync_status: 'pending',"
         },
         {
-          "line": 519,
+          "line": 520,
           "text": "sync_status: 'pending',"
         },
         {
-          "line": 546,
+          "line": 547,
           "text": "sort_order=excluded.sort_order, sync_status=excluded.sync_status, updated_at=excluded.updated_at`,"
         },
         {
-          "line": 651,
+          "line": 652,
           "text": "sync_status=excluded.sync_status, updated_at=excluded.updated_at`,"
         },
         {
-          "line": 679,
+          "line": 680,
           "text": "return database.getAllAsync<T>(`SELECT * FROM ${table} WHERE sync_status = 'pending'`);"
         },
         {
-          "line": 685,
+          "line": 686,
           "text": "`SELECT * FROM track_points WHERE sync_status = 'pending' ORDER BY recorded_at ASC LIMIT ?`,"
         },
         {
-          "line": 694,
+          "line": 695,
           "text": "await database.runAsync(`UPDATE ${table} SET sync_status = 'synced' WHERE id = ? AND updated_at = ?`, ["
         },
         {
-          "line": 699,
+          "line": 700,
           "text": "await database.runAsync(`UPDATE ${table} SET sync_status = 'synced' WHERE id = ?`, [id]);"
         },
         {
-          "line": 707,
+          "line": 708,
           "text": "await database.runAsync(`UPDATE track_points SET sync_status = 'synced' WHERE id IN (${placeholders})`, ids);"
         },
         {
-          "line": 730,
+          "line": 731,
           "text": "return database.getFirstAsync<{ sync_status: string; updated_at: string }>("
         },
         {
-          "line": 739,
+          "line": 740,
           "text": "const rows = await database.getAllAsync<{ id: string }>(`SELECT id FROM ${table} WHERE sync_status = 'synced'`);"
         },
         {
-          "line": 753,
+          "line": 754,
           "text": "const rows = await database.getAllAsync<{ id: string }>(\"SELECT id FROM trips WHERE sync_status = 'synced'\");"
         },
         {
-          "line": 775,
+          "line": 776,
           "text": "(SELECT COUNT(*) FROM trips WHERE sync_status = 'pending') +"
         },
         {
-          "line": 776,
+          "line": 777,
           "text": "(SELECT COUNT(*) FROM entries WHERE sync_status = 'pending') +"
         },
         {
-          "line": 777,
+          "line": 778,
           "text": "(SELECT COUNT(*) FROM expenses WHERE sync_status = 'pending') +"
         },
         {
-          "line": 778,
+          "line": 779,
           "text": "(SELECT COUNT(*) FROM packing_items WHERE sync_status = 'pending') +"
         },
         {
-          "line": 779,
+          "line": 780,
           "text": "(SELECT COUNT(*) FROM itinerary_items WHERE sync_status = 'pending') +"
         },
         {
-          "line": 780,
+          "line": 781,
           "text": "(SELECT COUNT(*) FROM track_points WHERE sync_status = 'pending') +"
         },
         {
-          "line": 781,
+          "line": 782,
           "text": "(SELECT COUNT(*) FROM entry_media WHERE sync_status = 'pending') +"
         }
       ]
@@ -2118,11 +2220,11 @@
       "path": "apps/wayfare-mobile/src/lib/locationTask.ts",
       "evidence": [
         {
-          "line": 18,
+          "line": 21,
           "text": "TaskManager.defineTask(WAYFARE_LOCATION_TASK, async ({ data, error }) => {"
         },
         {
-          "line": 104,
+          "line": 117,
           "text": "const state = await createLiveShare({"
         }
       ]
@@ -2133,6 +2235,47 @@
         {
           "line": 160,
           "text": "setTimeout(() => router.push(url as never), handled ? 0 : 400);"
+        }
+      ]
+    },
+    {
+      "path": "apps/wayfare-mobile/src/lib/recordingLifecycle.ts",
+      "evidence": [
+        {
+          "line": 14,
+          "text": "let active: Attempt | null = null;"
+        },
+        {
+          "line": 28,
+          "text": "if (active === attempt) active = null;"
+        },
+        {
+          "line": 40,
+          "text": "active = attempt;"
+        },
+        {
+          "line": 44,
+          "text": "check(attempt);"
+        },
+        {
+          "line": 47,
+          "text": "check(attempt);"
+        },
+        {
+          "line": 50,
+          "text": "check(attempt);"
+        },
+        {
+          "line": 72,
+          "text": "check(attempt);"
+        },
+        {
+          "line": 75,
+          "text": "check(attempt);"
+        },
+        {
+          "line": 76,
+          "text": "await persist(() => active === attempt && !attempt.cancelled);"
         }
       ]
     },
@@ -2162,55 +2305,55 @@
       "path": "apps/wayfare-mobile/src/lib/sync.ts",
       "evidence": [
         {
-          "line": 72,
+          "line": 73,
           "text": "visibility: t.visibility,"
         },
         {
-          "line": 74,
+          "line": 75,
           "text": "status: t.status,"
         },
         {
-          "line": 93,
+          "line": 94,
           "text": "visibility: r.visibility,"
         },
         {
-          "line": 95,
+          "line": 96,
           "text": "status: r.status,"
         },
         {
-          "line": 104,
+          "line": 105,
           "text": "sync_status: 'synced',"
         },
         {
-          "line": 134,
+          "line": 135,
           "text": "sync_status: 'synced',"
         },
         {
-          "line": 171,
+          "line": 172,
           "text": "sync_status: 'synced',"
         },
         {
-          "line": 191,
+          "line": 192,
           "text": "sync_status: 'synced',"
         },
         {
-          "line": 219,
+          "line": 220,
           "text": "sync_status: 'synced',"
         },
         {
-          "line": 234,
+          "line": 235,
           "text": "const pending = await listPending<T>(table);"
         },
         {
-          "line": 415,
+          "line": 416,
           "text": "const pending = await listPending<LocalEntryMedia>('entry_media');"
         },
         {
-          "line": 443,
+          "line": 444,
           "text": "await upsertEntryMedia({ ...media, storage_path: storagePath, sync_status: 'synced' });"
         },
         {
-          "line": 472,
+          "line": 473,
           "text": "sync_status: 'synced',"
         }
       ]
@@ -2307,8 +2450,8 @@
       "path": "apps/wayfare-mobile/src/lib/voiceNote.ts",
       "evidence": [
         {
-          "line": 32,
-          "text": "sync_status: 'pending',"
+          "line": 44,
+          "text": "storage_path: null, mime_type: 'audio/m4a', sync_status: 'pending', updated_at: new Date().toISOString(),"
         }
       ]
     },
@@ -2479,7 +2622,7 @@
       "path": "apps/web/src/app/core/interceptors/request.service.ts",
       "evidence": [
         {
-          "line": 34,
+          "line": 38,
           "text": "if (error.status === 401) {"
         }
       ]
@@ -2576,15 +2719,46 @@
       ]
     },
     {
+      "path": "services/api/src/app.ts",
+      "evidence": [
+        {
+          "line": 53,
+          "text": "const status = error.code === 'LIMIT_FILE_SIZE' || error.type === 'entity.too.large' ? 413 : error.code === 'P2002' ? 409 : error instanceof SyntaxError || error.name === 'MulterError' ? 400 : 500;"
+        },
+        {
+          "line": 54,
+          "text": "res.status(status).json({ message: status === 413 ? 'Request exceeds the allowed size' : status === 409 ? 'Already exists' : status === 400 ? 'Invalid request' : 'Request failed' });"
+        }
+      ]
+    },
+    {
+      "path": "services/api/src/index.ts",
+      "evidence": [
+        {
+          "line": 9,
+          "text": "const timeout = setTimeout(() => process.exit(1), 10000);"
+        }
+      ]
+    },
+    {
       "path": "services/api/src/routes/message.ts",
       "evidence": [
         {
-          "line": 34,
+          "line": 44,
           "text": "res.json(sessions.map(s => ({ sessionId: s.id, title: s.title, active: s.active })));"
         },
         {
-          "line": 41,
+          "line": 51,
           "text": "res.json(sessions.map(s => ({ sessionId: s.id, title: s.title, active: s.active })));"
+        }
+      ]
+    },
+    {
+      "path": "services/api/src/socket.ts",
+      "evidence": [
+        {
+          "line": 14,
+          "text": "const timer = setTimeout(() => socket.disconnect(true),"
         }
       ]
     },

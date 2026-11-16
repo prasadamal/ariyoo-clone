@@ -207,6 +207,19 @@ test('remaining app query shapes (counts, upserts, column-scoped updates)', asyn
   );
   const view = ok(await asAnon().rpc('get_live_share', { p_id: live.id }));
   assert.equal(view.active, true);
+  // The app requires an acknowledged row before clearing its local live-link state.
+  const forbiddenStop = await b.from('live_shares').update({ expires_at: new Date().toISOString() })
+    .eq('id', live.id).select('id').maybeSingle();
+  assert.equal(ok(forbiddenStop), null, 'outsider cannot acknowledge a revocation');
+  assert.equal(ok(await asAnon().rpc('get_live_share', { p_id: live.id })).active, true);
+  const revoked = ok(await a.from('live_shares').update({ expires_at: new Date().toISOString() })
+    .eq('id', live.id).select('id').maybeSingle());
+  assert.equal(revoked.id, live.id, 'owner receives acknowledgement');
+  const ended = ok(await asAnon().rpc('get_live_share', { p_id: live.id }));
+  assert.equal(ended.active, false);
+  assert.equal(ended.latitude, null, 'revoked link hides precise coordinates');
+  assert.equal(ended.longitude, null);
+  assert.equal(ended.accuracy_m, null);
 
   // Block list stays visible to the blocker only.
   ok(await a.from('blocks').insert({ blocker_id: alice, blocked_id: bob }));

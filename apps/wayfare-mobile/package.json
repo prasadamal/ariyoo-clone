@@ -8,7 +8,7 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "typecheck": "tsc --noEmit",
-    "test": "node --import tsx --test 'src/**/*.test.ts'",
+    "test": "node scripts/unit.test.cjs",
     "test:db": "../../supabase/tests/run_local.sh",
     "verify": "npm run typecheck && npm test",
     "assets:generate": "python3 scripts/generate-brand-assets.py",

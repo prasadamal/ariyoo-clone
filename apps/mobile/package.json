@@ -16,7 +16,7 @@
     "build:all": "eas build --platform all --profile production",
     "submit:android": "eas submit --platform android --profile production",
     "submit:ios": "eas submit --platform ios --profile production",
-    "test": "node --test tests/*.test.cjs"
+    "test": "node tests/chatState.test.cjs"
   },
   "dependencies": {
     "@expo/vector-icons": "^14.0.2",

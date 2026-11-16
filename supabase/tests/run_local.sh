@@ -26,7 +26,8 @@ for f in "$ROOT"/migrations/*.sql; do
 done
 
 # Applying twice proves the migrations are re-runnable.
-for f in "$ROOT"/migrations/2026100600*.sql "$ROOT"/migrations/2026100601*.sql "$ROOT"/migrations/2026100602*.sql "$ROOT"/migrations/2026100603*.sql; do
+for f in "$ROOT"/migrations/*.sql; do
+  [[ "${f##*/}" < "20261006000000" ]] && continue
   "${PSQL[@]}" -d "$DB" < "$f" >/dev/null
 done
 echo "• re-run of v2 migrations ok"

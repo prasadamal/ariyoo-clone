@@ -2,7 +2,7 @@ import { useAudioRecorder } from 'expo-audio';
 import * as Haptics from 'expo-haptics';
 import * as Location from 'expo-location';
 import { router } from 'expo-router';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, View } from 'react-native';
 import { Button, Chip, IconButton, Menu, Text, TextInput } from 'react-native-paper';
 import { uuid } from '../../lib/id';
@@ -42,6 +42,8 @@ export function JournalTab({ trip, onChanged }: Props) {
   const [attachContext, setAttachContext] = useState(true);
   const [photos, setPhotos] = useState<PickedPhoto[]>([]);
   const [saving, setSaving] = useState(false);
+  const voiceLock = useRef(false);
+  const [voiceBusy, setVoiceBusy] = useState(false);
   const [recording, setRecording] = useState<string | null>(null);
   const recorder = useAudioRecorder(VOICE_NOTE_PRESET);
   const [menuFor, setMenuFor] = useState<string | null>(null);
@@ -57,7 +59,7 @@ export function JournalTab({ trip, onChanged }: Props) {
 
   useEffect(
     () => () => {
-      cancelVoiceRecording(recorder);
+      void cancelVoiceRecording(recorder).catch(() => undefined);
     },
     [recorder]
   );
@@ -151,12 +153,16 @@ export function JournalTab({ trip, onChanged }: Props) {
   };
 
   const toggleVoice = async () => {
-    // The entry this clip belongs to; removed again if recording fails.
+    if (voiceLock.current) return;
+    voiceLock.current = true;
+    setVoiceBusy(true);
     let entryId = recording;
+    let createdNew = false;
     try {
       if (!entryId) {
         const entry = await createEntry(text.trim() || '🎙 Voice note');
         entryId = entry.id;
+        createdNew = true;
         await startVoiceRecording(recorder);
         setRecording(entry.id);
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => undefined);
@@ -169,11 +175,14 @@ export function JournalTab({ trip, onChanged }: Props) {
         onChanged();
       }
     } catch (e) {
-      await cancelVoiceRecording(recorder);
-      if (entryId) await deleteEntry(entryId).catch(() => undefined);
+      await cancelVoiceRecording(recorder).catch(() => undefined);
+      if (createdNew && entryId) await deleteEntry(entryId).catch(() => undefined);
       setRecording(null);
       await load();
       toast(e instanceof Error ? e.message : 'Could not record');
+    } finally {
+      voiceLock.current = false;
+      setVoiceBusy(false);
     }
   };
 
@@ -252,6 +261,8 @@ export function JournalTab({ trip, onChanged }: Props) {
             icon={recording ? 'stop-circle' : 'microphone-outline'}
             iconColor={recording ? colors.danger : undefined}
             onPress={toggleVoice}
+            disabled={voiceBusy}
+            loading={voiceBusy}
             accessibilityLabel={recording ? 'Stop and save voice note' : 'Record a voice note'}
           />
           {recording ? <Text style={{ color: colors.danger, fontWeight: '700' }}>● Recording…</Text> : null}

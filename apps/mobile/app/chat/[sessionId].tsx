@@ -45,7 +45,7 @@ function ChatConversation({ sid }: { sid: number }) {
       return () => { mounted.current = false; };
     }
     void loadMessages();
-    const socket = io(getApiBaseUrl(), { transports: ['websocket'] });
+    const socket = io(getApiBaseUrl(), { transports: ['websocket'], auth: { token: user.token } });
     // Rejoin and reconcile missed messages after a socket reconnect.
     socket.on('connect', () => {
       socket.emit('join', String(sid));
@@ -145,7 +145,7 @@ function ChatConversation({ sid }: { sid: number }) {
               {item.messageText ? <Text style={{ color: '#f8fafc' }}>{item.messageText}</Text> : null}
               {item.imageUrl ? (
                 <Image
-                  source={{ uri: item.imageUrl.startsWith('http') ? item.imageUrl : `${getApiBaseUrl()}${item.imageUrl}` }}
+                  source={{ uri: item.imageUrl.startsWith('http') ? item.imageUrl : `${getApiBaseUrl()}${item.imageUrl}`, headers: { Authorization: `Bearer ${user?.token}` } }}
                   style={{ width: 220, height: 160, borderRadius: 8, marginTop: 6 }}
                   resizeMode="cover"
                 />

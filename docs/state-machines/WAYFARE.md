@@ -61,3 +61,34 @@ This does not cancel replication already running when an account changes, coordi
 From repository root: `node scripts/state-index.mjs --check`. In `apps/wayfare-mobile`: `npm run verify`. Existing CI also runs platform bundles and the SQL/RLS/HTTP suites. The new tests cover overlapping calls, account separation, stale results, retry after failure and truthful partial-backup timestamps. Before shipping, test foreground/manual overlap, offline retry, owner conflict, account switching, media failure, GPS mode switches and wipe during sync on isolated devices.
 
 See [source-index.json](source-index.json) for file/line evidence and the companion Ariyoo inventory. Candidate scanning is deliberately broad and cannot prove that every possible runtime state machine has been found. Existing machine names and SQL enums are not blanket transition permissions.
+
+## Deployment hardening (November 2026)
+
+Replication, immediate trip pushes and local wipes now share a serial journal gate: wipe waits for an active sync, and a queued sync waits for wipe. Failures release the gate. Immediate pushes verify the authenticated account. Stale profile results no longer populate another account; feed generations guard error/finally and disabled/unmounted feeds. This does not serialize every journal editor or native recording task; device/account-switch and database integration remain mandatory before release.
+
+
+## Ownership and live-link follow-up (November 2026)
+
+Account restoration no longer overwrites a newer auth event or stalls permanently on a failed lookup. Guest restoration finishes before routing. Account epochs and effect cancellation reject stale profile/ownership reads, including a switch away and back to the same account. Ownership resolution runs under the journal queue; it never treats a failed read/count as an empty journal. While unresolved, failed, or conflicting, the navigation display is shielded and noninteractive, and automatic sync/community access is paused. The navigator stays mounted for auth routing and its account/readiness key resets old screen state. Errors offer retry/sign-out; conflict actions have a synchronous duplicate-operation guard and visible failure.
+
+Live-link create/push/end operations have their own serial queue, separate from the journal queue. End waits for an owner-authorized database row acknowledgement before removing local state. Failure preserves retry state. Push acknowledgement checks the current link ID so ended/replaced links are not restored by stale completion. Unit checks cover stale account adoption, storage failure, explicit ownership conflict, failed revocation, replacement races, and push-after-stop. The HTTP suite verifies exact owner revocation acknowledgement, outsider denial, and hidden coordinates on a revoked public viewer.
+
+No SQLite schema or persisted keys changed. This does not stop native recorders or cancel a native location callback already running on another JS context. Device checks for recording, sign-out/wipe and account transitions remain required; do not interpret the display/sync gate as authorization or a complete native-service shutdown protocol.
+
+
+## Native activity follow-up (November 2026)
+
+The installed Expo 57 `expo-audio` and `expo-location` API declarations/JSDoc were reviewed before these changes (the versioned Expo website returned HTTP 403 in this environment). The microphone now has one owner across screens. Cancellation during permission/preparation invalidates the attempt before `record`; cleanup stops a prepared recorder and resets recording audio mode. A failed native stop retains ownership for retry. Duplicate starts/saves are rejected synchronously. Voice-note persistence holds the journal queue, checks cancellation and verifies the target entry/trip; failed stop/save does not delete a previously existing moment. Journal buttons guard same-tick taps, and unmount cleanup consumes expected release errors.
+
+Location start/stop/refresh transitions now use a separate serial queue for the shared trip/live OS task. Failed trip start restores prior intent/mode. Background track insertion shares the journal queue and checks that its trip still exists. Before sign-out, owner-conflict wipe, account deletion or manual device wipe, `stopDeviceActivity` cancels recording, confirms live-link revocation and stops trip tracking; failures prevent the destructive step and are shown for retry.
+
+The new pure recorder tests cover cancellation while preparing, overlapping starts/saves, cancellation before persistence, preparation failure and native-stop retry. Typechecking and JS bundles do not validate OS permission dialogs, microphone release or separate background JS runtimes. Device acceptance remains mandatory. The SQLite journal is not partitioned by account; do not claim that all native/account transitions are proven isolated from these tests alone.
+
+
+The revocation HTTP regression exposed that the previous `get_live_share` RPC returned the last precise coordinates even for inactive links. Additive migration `20261116000000_live_share_expiry_privacy.sql` preserves the RPC shape and ended-link state while nulling latitude, longitude and accuracy for expired/revoked links. Apply it to staging and rerun RLS/HTTP checks before production. No live database has been modified here.
+
+Owner-conflict sign-out has a distinct recovery path: cancel the microphone and stop the local OS location task without pretending to revoke an older account's live link. The retained link is explicitly disclosed and remains available for revocation after signing back into its owner account. This avoids trapping the traveller in the wrong account when RLS correctly denies revocation. Normal sign-out/wipe still requires confirmed revocation.
+
+## Test-runner verification
+
+A direct check found file-only success reports with the isolated Node/tsx entrypoint in this environment. `scripts/unit.test.cjs` now explicitly registers every TypeScript unit module through the CJS loader and is executed directly so node:test runs its actual cases. The suite reports 51 individual passing cases, rather than 12 passing files. A negative control confirmed that a failed assertion exits nonzero. Ariyoo mobile likewise executes its CJS test module directly and reports five cases. CI runs these commands unchanged.

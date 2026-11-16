@@ -1,0 +1,59 @@
+import 'express-async-errors';
+import express from 'express';
+import http from 'http';
+import cors from 'cors';
+import helmet from 'helmet';
+import path from 'path';
+import { Server } from 'socket.io';
+import fs from 'fs';
+import { config } from './config.js';
+import { registerRoutes } from './routes/index.js';
+import { attachIo } from './io.js';
+import { secureSockets } from './socket.js';
+import { prisma } from './prisma.js';
+import { requireAuth, AuthRequest } from './middleware/auth.js';
+
+import { rateLimit } from 'express-rate-limit';
+
+export function createServer() {
+const app = express();
+app.set('trust proxy', Number(process.env.TRUST_PROXY || 0));
+const server = http.createServer(app);
+const io = new Server(server, { cors: { origin: config.corsOrigin } });
+attachIo(io);
+
+fs.mkdirSync(config.uploadDir, { recursive: true });
+
+app.use(cors({ origin: config.corsOrigin }));
+app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
+app.use(express.json({ limit: '200kb' }));
+app.use('/auth', rateLimit({ windowMs: 15 * 60 * 1000, limit: 30, standardHeaders: 'draft-7', legacyHeaders: false }));
+app.get('/health', (_req, res) => {
+  res.json({ ok: true, service: 'ariyoo-api' });
+});
+app.get('/ready', async (_req, res) => {
+  try { await prisma.$queryRaw`SELECT 1`; res.json({ ok: true }); }
+  catch { res.status(503).json({ ok: false }); }
+});
+app.get('/uploads/:filename', requireAuth, async (req: AuthRequest, res) => {
+  if (!/^[a-f0-9-]+\.(jpg|png|webp)$/.test(req.params.filename)) return res.sendStatus(404);
+  const message = await prisma.message.findFirst({ where: {
+    imageUrl: `/uploads/${req.params.filename}`,
+    session: { OR: [{ seekerId: req.user!.userId }, { solverId: req.user!.userId }] },
+  }});
+  if (!message) return res.sendStatus(404);
+  res.setHeader('Cache-Control', 'private, no-store');
+  res.sendFile(path.resolve(config.uploadDir, req.params.filename));
+});
+
+registerRoutes(app);
+
+secureSockets(io);
+app.use((error: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  const status = error.code === 'LIMIT_FILE_SIZE' || error.type === 'entity.too.large' ? 413 : error.code === 'P2002' ? 409 : error instanceof SyntaxError || error.name === 'MulterError' ? 400 : 500;
+  res.status(status).json({ message: status === 413 ? 'Request exceeds the allowed size' : status === 409 ? 'Already exists' : status === 400 ? 'Invalid request' : 'Request failed' });
+});
+
+
+return { app, server, io };
+}

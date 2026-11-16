@@ -3,6 +3,9 @@ import * as Linking from 'expo-linking';
 import { router } from 'expo-router';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { isSupabaseConfigured } from '../config';
+import { stopDeviceActivity, stopLocalDeviceActivity } from '../lib/deviceActivity';
+import { withJournalLock } from '../lib/journalGate';
+import { resolveJournalOwnership } from '../lib/ownership';
 import { countTrips, wipeLocalData } from '../lib/localDb';
 import { isGuestMode, setGuestMode } from '../lib/session';
 import { supabase } from '../lib/supabase';
@@ -23,6 +26,9 @@ type AuthContextValue = {
   guest: boolean;
   /** Signed in, but this device's journal belongs to another account. */
   ownerConflict: boolean;
+  journalReady: boolean;
+  journalError: string | null;
+  retryJournal: () => void;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, displayName: string, username?: string) => Promise<SignUpResult>;
   signOut: (opts?: { wipeLocal?: boolean }) => Promise<void>;
@@ -39,57 +45,85 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<MyProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [guest, setGuest] = useState(false);
-  const [ownerConflict, setOwnerConflict] = useState(false);
+  const [guestLoading, setGuestLoading] = useState(true);
+  const [ownership, setOwnership] = useState<{ userId: string | null; phase: 'checking' | 'ready' | 'conflict' | 'error'; error?: string }>({ userId: null, phase: 'checking' });
+  const [ownershipAttempt, setOwnershipAttempt] = useState(0);
+  const retryJournal = useCallback(() => setOwnershipAttempt(value => value + 1), []);
   const offlineMode = !isSupabaseConfigured;
   const userId = session?.user?.id ?? null;
-  const lastUser = useRef<string | null>(null);
+  const accountEpoch = useRef(0);
+  const currentUser = useRef(userId);
+  currentUser.current = userId;
+  const journalReady = !userId || (ownership.userId === userId && ownership.phase === 'ready');
+  const ownerConflict = !!userId && ownership.userId === userId && ownership.phase === 'conflict';
+  const journalError = ownership.userId === userId && ownership.phase === 'error' ? ownership.error ?? 'Could not open this journal.' : null;
 
   const refreshProfile = useCallback(async () => {
     if (!supabase || !userId) {
       setProfile(null);
       return;
     }
+    const epoch = accountEpoch.current;
     try {
-      setProfile(await fetchMyProfile(userId));
+      const next = await fetchMyProfile(userId);
+      if (currentUser.current === userId && accountEpoch.current === epoch) setProfile(next);
     } catch {
       // keep the last known profile when offline
     }
   }, [userId]);
 
   useEffect(() => {
-    isGuestMode().then(setGuest);
-    if (!supabase) {
+    let active = true;
+    let authChanged = false;
+    void isGuestMode().then(value => { if (active) setGuest(value); }).catch(() => undefined).finally(() => { if (active) setGuestLoading(false); });
+    if (!supabase) { setLoading(false); return () => { active = false; }; }
+    const applySession = (next: Session | null) => {
+      if (!active) return;
+      if (currentUser.current !== (next?.user.id ?? null)) ++accountEpoch.current;
+      currentUser.current = next?.user.id ?? null;
+      setSession(next);
       setLoading(false);
-      return;
-    }
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session);
-      setLoading(false);
+    };
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, next) => {
+      authChanged = true;
+      applySession(next);
     });
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, next) => setSession(next));
-    return () => sub.subscription.unsubscribe();
+    void supabase.auth.getSession().then(({ data, error }) => {
+      if (!active || authChanged) return;
+      if (error) { setLoading(false); return; }
+      applySession(data.session);
+    }).catch(() => { if (active) setLoading(false); });
+    return () => { active = false; sub.subscription.unsubscribe(); };
   }, []);
 
-  // When a traveller signs in: adopt guest journals, or flag another account's journals.
+  // Resolve ownership before mounting journal screens or starting automatic replication.
   useEffect(() => {
-    if (!userId || lastUser.current === userId) return;
-    lastUser.current = userId;
-    (async () => {
-      const owner = await getLocalOwner();
-      if (owner && owner !== userId) {
-        if ((await countTrips()) > 0) setOwnerConflict(true);
-        else await setLocalOwner(userId);
-      } else if (!owner) {
-        await setLocalOwner(userId);
+    let active = true;
+    if (!userId) { setOwnership({ userId: null, phase: 'ready' }); return; }
+    const epoch = accountEpoch.current;
+    const current = () => active && currentUser.current === userId && accountEpoch.current === epoch;
+    setOwnership({ userId, phase: 'checking' });
+    void withJournalLock(async () => {
+      const outcome = await resolveJournalOwnership(userId, current, {
+        owner: getLocalOwner, count: countTrips, adopt: setLocalOwner,
+      });
+      if (!current() || outcome === 'stale') return;
+      if (outcome === 'ready') {
+        await setGuestMode(false);
+        if (!current()) return;
+        setGuest(false);
+        void touchLastActive().catch(() => undefined);
       }
-      await setGuestMode(false);
-      setGuest(false);
-      touchLastActive();
-    })();
-  }, [userId]);
+      setOwnership({ userId, phase: outcome });
+    }).catch(() => {
+      if (current()) setOwnership({ userId, phase: 'error', error: 'Could not open this device’s journal. Retry before syncing.' });
+    });
+    return () => { active = false; };
+  }, [userId, ownershipAttempt]);
 
   useEffect(() => {
-    refreshProfile();
+    setProfile(null);
+    void refreshProfile();
   }, [refreshProfile]);
 
   const signIn = useCallback(async (email: string, password: string) => {
@@ -117,14 +151,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signOut = useCallback(async (opts?: { wipeLocal?: boolean }) => {
+    await stopDeviceActivity();
     if (opts?.wipeLocal) {
       await wipeLocalData();
       await setLocalOwner(null);
     }
-    if (supabase) await supabase.auth.signOut();
-    lastUser.current = null;
+    if (supabase) {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+    }
+    setOwnership({ userId: null, phase: 'ready' });
     setProfile(null);
-    setOwnerConflict(false);
+    retryJournal();
     router.replace('/login');
   }, []);
 
@@ -143,17 +181,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const resolveOwnerConflict = useCallback(
     async (choice: 'wipe' | 'signout') => {
       if (choice === 'wipe' && userId) {
+        await stopDeviceActivity();
+        if (currentUser.current !== userId) throw new Error('Account changed. Retry with the current account.');
         await wipeLocalData();
         await setLocalOwner(userId);
-        setOwnerConflict(false);
+        retryJournal();
         return;
       }
-      if (supabase) await supabase.auth.signOut();
-      lastUser.current = null;
-      setOwnerConflict(false);
+      await stopLocalDeviceActivity();
+      if (supabase) {
+        const { error } = await supabase.auth.signOut();
+        if (error) throw error;
+      }
+      setOwnership({ userId: null, phase: 'ready' });
+      setProfile(null);
       router.replace('/login');
     },
-    [userId]
+    [userId, retryJournal]
   );
 
   const value = useMemo(
@@ -161,10 +205,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       session,
       user: session?.user ?? null,
       profile,
-      loading,
+      loading: loading || guestLoading,
       offlineMode,
       guest,
       ownerConflict,
+      journalReady,
+      journalError,
+      retryJournal,
       signIn,
       signUp,
       signOut,
@@ -173,7 +220,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       refreshProfile,
       resolveOwnerConflict,
     }),
-    [session, profile, loading, offlineMode, guest, ownerConflict, signIn, signUp, signOut, sendPasswordReset, continueAsGuest, refreshProfile, resolveOwnerConflict]
+    [session, profile, loading, guestLoading, offlineMode, guest, ownerConflict, journalReady, journalError, retryJournal, signIn, signUp, signOut, sendPasswordReset, continueAsGuest, refreshProfile, resolveOwnerConflict]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
@@ -187,6 +234,6 @@ export function useAuth() {
 
 /** True when community features can be used (cloud configured and signed in). */
 export function useCanConnect() {
-  const { user, offlineMode } = useAuth();
-  return !offlineMode && !!user;
+  const { user, offlineMode, journalReady, ownerConflict } = useAuth();
+  return !offlineMode && !!user && journalReady && !ownerConflict;
 }
