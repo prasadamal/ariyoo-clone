@@ -11,6 +11,7 @@
     "test": "node scripts/unit.test.cjs",
     "test:db": "../../supabase/tests/run_local.sh",
     "verify": "npm run typecheck && npm test",
+    "preflight": "node scripts/preflight.cjs",
     "assets:generate": "python3 scripts/generate-brand-assets.py",
     "build:android": "eas build --platform android --profile production",
     "build:ios": "eas build --platform ios --profile production",

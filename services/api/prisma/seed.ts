@@ -17,13 +17,13 @@ async function main() {
   const solver = await prisma.user.upsert({
     where: { email: 'solver@example.com' },
     update: {},
-    create: { email: 'solver@example.com', passwordHash, fullName: 'Demo Solver', isSolver: true, isSeeker: true }
+    create: { email: 'solver@example.com', passwordHash, fullName: 'Demo Solver', isSolver: true, isSeeker: true, termsAcceptedAt: new Date() }
   });
 
   await prisma.user.upsert({
     where: { email: 'seeker@example.com' },
     update: {},
-    create: { email: 'seeker@example.com', passwordHash, fullName: 'Demo Seeker', isSolver: false, isSeeker: true }
+    create: { email: 'seeker@example.com', passwordHash, fullName: 'Demo Seeker', isSolver: false, isSeeker: true, termsAcceptedAt: new Date() }
   });
 
   const travel = await prisma.tag.findUnique({ where: { name: 'travel' } });

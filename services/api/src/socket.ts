@@ -1,11 +1,14 @@
 import type { Server } from 'socket.io';
-import { verifyToken } from './middleware/auth.js';
+import { isActiveAccount, verifyToken } from './middleware/auth.js';
 import { prisma } from './prisma.js';
 
 export function secureSockets(io: Server) {
-  io.use((socket, next) => {
+  io.use(async (socket, next) => {
     try {
-      socket.data.user = verifyToken(socket.handshake.auth?.token);
+      const user = verifyToken(socket.handshake.auth?.token);
+      // Deleted and suspended members must not keep listening with an old token.
+      if (!(await isActiveAccount(user.userId))) throw new Error('Session ended');
+      socket.data.user = user;
       next();
     } catch { next(new Error('Unauthorized')); }
   });

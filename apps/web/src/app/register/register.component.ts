@@ -13,6 +13,9 @@ export class RegisterComponent {
   password: string = '';
   flname: string = '';
   confirmPassword: string = '';
+  acceptedTerms: boolean = false;
+  readonly termsUrl = 'https://prasadamal.github.io/ariyoo-clone/privacy/ariyoo-terms.html';
+  readonly privacyUrl = 'https://prasadamal.github.io/ariyoo-clone/privacy/ariyoo.html';
 
 
   constructor(private router: Router, private authService: AuthService) {}
@@ -22,22 +25,30 @@ export class RegisterComponent {
       alert('Passwords do not match');
       return;
     }
+    if (this.password.length < 12) {
+      alert('Use a password of at least 12 characters');
+      return;
+    }
+    if (!this.acceptedTerms) {
+      alert('Please accept the Terms of Use and Privacy Policy');
+      return;
+    }
 
     const newUser:RegisterUser = {  
       email: this.email,
       password: this.password,
       flname: this.flname,
       isSeeker: true,
-      isSolver: false
+      isSolver: false,
+      acceptedTerms: true
     }
 
     this.authService.register(newUser).subscribe(
       response => {
-        console.log(response);
         this.router.navigate(['/login']);
       },
       error => {
-        alert('Registration failed: ' + error.message);
+        alert('Registration failed: ' + (error?.error?.message || error.message));
       }
     );
     

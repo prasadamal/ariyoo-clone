@@ -5,39 +5,64 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Ariyoo Privacy Policy</title>
   <style>
-    body { font-family: system-ui, sans-serif; max-width: 42rem; margin: 2rem auto; padding: 0 1rem; line-height: 1.6; color: #0f172a; }
-    h1 { font-size: 1.5rem; } h2 { font-size: 1.1rem; margin-top: 1.5rem; }
+    :root { --ink: #0f172a; --muted: #475569; --bg: #fff; --line: #e2e8f0; --link: #0369a1; --code: #f1f5f9; }
+    @media (prefers-color-scheme: dark) { :root { --ink: #f8fafc; --muted: #94a3b8; --bg: #0b1220; --line: #1e293b; --link: #38bdf8; --code: #1e293b; } }
+    body { font-family: system-ui, sans-serif; max-width: 44rem; margin: 2rem auto; padding: 0 1rem; line-height: 1.65; color: var(--ink); background: var(--bg); }
+    h1 { font-size: 1.6rem; } h2 { font-size: 1.15rem; margin-top: 1.8rem; border-top: 1px solid var(--line); padding-top: 1rem; }
+    a { color: var(--link); } .muted { color: var(--muted); }
+    code { background: var(--code); padding: .05em .35em; border-radius: 4px; }
   </style>
 </head>
 <body>
   <h1>Ariyoo Privacy Policy</h1>
-  <p><strong>Effective date:</strong> October 2, 2026<br />
+  <p><strong>Effective date:</strong> 17 November 2026<br />
   <strong>Contact:</strong> <a href="mailto:privacy@ariyoo.app">privacy@ariyoo.app</a></p>
-  <p>Ariyoo (&quot;we&quot;, &quot;our&quot;, or &quot;us&quot;) operates the Ariyoo mobile application, which connects seekers with expert solvers for travel and local Q&amp;A.</p>
-  <h2>Information we collect</h2>
+  <p>Ariyoo (<code>com.ariyoo.mobile</code>) lets you ask questions and get answers from other members who know a place or topic. This policy says what the app collects and what you can do about it.</p>
+
+  <h2>What we collect</h2>
   <ul>
-    <li><strong>Account information:</strong> email address, display name, and password (stored hashed on our servers).</li>
-    <li><strong>Profile data:</strong> optional username, seeker/solver preferences, and interest tags.</li>
-    <li><strong>Messages and content:</strong> questions, chat messages, and images you choose to share in sessions.</li>
-    <li><strong>Device data:</strong> standard mobile diagnostics (crash logs, OS version) when you opt in to analytics.</li>
+    <li><strong>Account:</strong> your email address, name, optional username, and a password (stored only as a one-way hash).</li>
+    <li><strong>Profile:</strong> whether you answer questions as an expert, and the topics you add.</li>
+    <li><strong>Your content:</strong> the questions you ask, the messages you send, and photos you choose to send in a conversation.</li>
+    <li><strong>Notification token:</strong> if you allow notifications, an identifier that lets us alert this phone about new questions and replies.</li>
+    <li><strong>Safety records:</strong> who you have blocked, and reports you file or that are filed about you.</li>
   </ul>
-  <p>We do not sell personal information.</p>
-  <h2>How we use information</h2>
+  <p>The app does not collect your location, contacts, or advertising identifier, and contains no advertising or analytics software. It does not read your photo library: photos are chosen in your phone's own picker, and the app receives only the photo you pick.</p>
+
+  <h2>How we use it</h2>
   <ul>
-    <li>Provide matching between seekers and solvers</li>
-    <li>Deliver chat and notifications</li>
-    <li>Maintain security and prevent abuse</li>
-    <li>Improve app reliability</li>
+    <li>To match your question with a member who follows its topics, and to show unmatched questions to members who answer questions.</li>
+    <li>To deliver conversations and notifications. Notifications never contain message text.</li>
+    <li>To keep the service safe: reviewing reports, and suspending accounts that break the <a href="ariyoo-terms.html">Terms of Use</a>.</li>
   </ul>
-  <h2>Data retention</h2>
-  <p>Account data is retained while your account is active. You may request deletion by emailing privacy@ariyoo.app.</p>
-  <h2>Third parties</h2>
-  <p>We use infrastructure providers for hosting and Apple/Google for app distribution. Message content is processed on servers configured for the production API.</p>
-  <h2>Children&apos;s privacy</h2>
-  <p>Ariyoo is not directed at children under 13.</p>
-  <h2>Changes</h2>
-  <p>We may update this policy and will post the revised version at this URL.</p>
+  <p>We do not sell personal information and do not use it for advertising.</p>
+
+  <h2>Who can see what</h2>
+  <ul>
+    <li>The person you are talking to sees your name, your question and your messages and photos in that conversation.</li>
+    <li>A question nobody was matched to is shown, with your name, to members who answer questions until one of them picks it up.</li>
+    <li>Your email address is never shown to other members.</li>
+    <li>When a conversation is reported, a moderator can read the reported person's messages in it.</li>
+  </ul>
+
+  <h2>Service providers</h2>
+  <p>We use a hosting provider for the server and database, Expo's push service together with Apple and Google to deliver notifications, and Apple and Google to distribute the app. They process data only to provide those services.</p>
+
+  <h2>Keeping and deleting</h2>
+  <p>We keep your data while your account exists. You can delete your account in the app at any time (Profile → Delete account); see <a href="ariyoo-delete-account.html">Delete your Ariyoo account</a> for what is removed. Backups can hold residual copies for up to 30 days.</p>
+
+  <h2>Security</h2>
+  <p>Connections to the service use HTTPS. Passwords are hashed. Photos can be opened only by the two people in the conversation. No system is perfectly secure, so do not share passwords, payment details or identity documents in a conversation.</p>
+
+  <h2>Age</h2>
+  <p>Ariyoo is for adults aged 18 and over. We do not knowingly collect data from anyone younger; if you believe someone under 18 has an account, write to us and we will remove it.</p>
+
   <h2>Your rights</h2>
-  <p>Depending on your region, you may request access, correction, or deletion of your data.</p>
+  <p>You can see and correct your profile in the app, and delete your account there. For a copy of your data, or any other request or complaint, including under India's Digital Personal Data Protection Act, the GDPR or similar laws, write to <a href="mailto:privacy@ariyoo.app">privacy@ariyoo.app</a>.</p>
+
+  <h2>Changes</h2>
+  <p>If this policy changes we will update this page and its effective date, and tell you in the app when a change is significant.</p>
+
+  <p class="muted"><small>See also the <a href="ariyoo-terms.html">Terms of Use</a>.</small></p>
 </body>
 </html>

@@ -28,6 +28,8 @@ eas init
 
 ```bash
 npm run verify            # typecheck + unit tests
+eas env:pull --environment production   # writes .env.local with the production values
+npm run preflight         # stops if the build would ship without its backend or web viewers
 npm run build:android
 npm run build:ios
 npm run submit:android   # after service account configured

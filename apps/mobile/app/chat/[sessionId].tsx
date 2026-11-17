@@ -1,13 +1,34 @@
+import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
-import { useLocalSearchParams } from 'expo-router';
+import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 import { FlatList, Image, KeyboardAvoidingView, Platform, View } from 'react-native';
-import { Button, Text, TextInput } from 'react-native-paper';
+import { Button, Dialog, IconButton, Menu, Portal, RadioButton, Text, TextInput } from 'react-native-paper';
 import io from 'socket.io-client';
-import { api } from '../../src/api/client';
+import { api, errorCode, errorMessage } from '../../src/api/client';
 import { useAuth } from '../../src/context/AuthContext';
 import { getApiBaseUrl } from '../../src/config';
 import { chatReducer, initialChatState, type ChatMessage } from '../../src/chatState';
+import { photoResizeTarget } from '../../src/lib/validation';
+
+type SessionInfo = {
+  title: string;
+  active: boolean;
+  role: 'seeker' | 'solver';
+  waiting: boolean;
+  peer: { userId: number; fullName: string } | null;
+  blocked: boolean;
+};
+
+const REASONS: { value: string; label: string }[] = [
+  { value: 'harassment', label: 'Harassment or bullying' },
+  { value: 'hate', label: 'Hate speech' },
+  { value: 'sexual', label: 'Sexual content' },
+  { value: 'spam', label: 'Spam' },
+  { value: 'scam', label: 'Scam or fraud' },
+  { value: 'unsafe_advice', label: 'Dangerous advice' },
+  { value: 'other', label: 'Something else' },
+];
 
 export default function ChatScreen() {
   const { sessionId } = useLocalSearchParams<{ sessionId: string }>();
@@ -21,11 +42,30 @@ function ChatConversation({ sid }: { sid: number }) {
   const { user } = useAuth();
   const [state, dispatch] = useReducer(chatReducer, initialChatState);
   const [text, setText] = useState('');
+  const [info, setInfo] = useState<SessionInfo | null>(null);
+  const [menu, setMenu] = useState(false);
+  const [dialog, setDialog] = useState<'report' | 'block' | null>(null);
+  const [reason, setReason] = useState('harassment');
+  const [details, setDetails] = useState('');
+  const [working, setWorking] = useState(false);
+  const [dialogError, setDialogError] = useState('');
   const request = useRef(0);
   const busy = useRef(false);
   const mounted = useRef(false);
+  const list = useRef<FlatList<ChatMessage>>(null);
   const { messages } = state;
   const sending = state.operation !== 'idle';
+  const closed = !!info && (!info.active || info.blocked);
+  const canWrite = state.load === 'ready' && !closed;
+
+  const loadInfo = useCallback(async () => {
+    try {
+      const res = await api.get<SessionInfo>(`/api/Message/session/${sid}`);
+      if (mounted.current) setInfo(res.data);
+    } catch {
+      // The message load below reports the failure.
+    }
+  }, [sid]);
 
   const loadMessages = useCallback(async () => {
     const id = ++request.current;
@@ -45,6 +85,7 @@ function ChatConversation({ sid }: { sid: number }) {
       return () => { mounted.current = false; };
     }
     void loadMessages();
+    void loadInfo();
     const socket = io(getApiBaseUrl(), { transports: ['websocket'], auth: { token: user.token } });
     // Rejoin and reconcile missed messages after a socket reconnect.
     socket.on('connect', () => {
@@ -52,16 +93,24 @@ function ChatConversation({ sid }: { sid: number }) {
       void loadMessages();
     });
     socket.on('message', (m: ChatMessage & { sessionId: number }) => {
-      if (Number(m.sessionId) === sid) dispatch({ type: 'received', message: m });
+      if (Number(m.sessionId) !== sid) return;
+      dispatch({ type: 'received', message: m });
+      // The first reply from an expert is also when "waiting" ends and the peer becomes known.
+      if (m.senderId !== user.userId) void loadInfo();
     });
     return () => {
       mounted.current = false;
       socket.disconnect();
     };
-  }, [sid, user, loadMessages]);
+  }, [sid, user, loadMessages, loadInfo]);
+
+  const refused = (e: unknown, fallback: string) => {
+    if (errorCode(e) === 'CHAT_CLOSED') void loadInfo();
+    return errorMessage(e, fallback);
+  };
 
   const send = async () => {
-    if (!user || !text.trim() || busy.current || state.load !== 'ready') return;
+    if (!user || !text.trim() || busy.current || !canWrite) return;
     busy.current = true;
     dispatch({ type: 'operation', operation: 'sending' });
     const submitted = text;
@@ -74,61 +123,111 @@ function ChatConversation({ sid }: { sid: number }) {
       // Preserve anything typed while this message was being sent.
       setText(current => current === submitted ? '' : current);
       dispatch({ type: 'operation', operation: 'idle' });
-    } catch {
-      if (mounted.current) dispatch({ type: 'failed', error: 'Message not sent. Your draft is saved here; try again.' });
+    } catch (e: unknown) {
+      if (mounted.current) dispatch({ type: 'failed', error: refused(e, 'Message not sent. Your draft is saved here; try again.') });
     } finally {
       busy.current = false;
     }
   };
 
   const pickImage = async () => {
-    if (!user || busy.current || state.load !== 'ready') return;
+    if (!user || busy.current || !canWrite) return;
     busy.current = true;
     dispatch({ type: 'operation', operation: 'picking' });
+    let failure: string | null = null;
     try {
-      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (!permission.granted) {
-        dispatch({ type: 'failed', error: 'Photo access is required to attach an image.' });
-        return;
-      }
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.8,
-      });
+      // The system photo picker needs no permission: the app only receives the chosen photo.
+      const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.7 });
       if (result.canceled || !result.assets[0] || !mounted.current) return;
       dispatch({ type: 'operation', operation: 'uploading' });
       const asset = result.assets[0];
+      // Shrink before upload: faster on mobile data, and photos are stored in a small free database.
+      const context = ImageManipulator.manipulate(asset.uri);
+      const target = photoResizeTarget(asset.width, asset.height);
+      if (target) context.resize(target);
+      const rendered = await context.renderAsync();
+      const small = await rendered.saveAsync({ format: SaveFormat.JPEG, compress: 0.7 });
       const form = new FormData();
       form.append('senderId', String(user.userId));
       form.append('sessionId', String(sid));
       form.append('image', {
-        uri: asset.uri, name: 'upload.jpg', type: asset.mimeType || 'image/jpeg',
+        uri: small.uri, name: 'upload.jpg', type: 'image/jpeg',
       } as unknown as Blob);
       const res = await api.post<ChatMessage>('/api/Message/uploadImage', form, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       if (mounted.current) dispatch({ type: 'received', message: res.data });
-    } catch {
-      if (mounted.current) dispatch({ type: 'failed', error: 'Photo not sent. Please try again.' });
+    } catch (e: unknown) {
+      failure = refused(e, 'Photo not sent. Please try again.');
     } finally {
       busy.current = false;
-      // Keep failure text while releasing the operation below.
-      if (mounted.current) dispatch({ type: 'operation', operation: 'idle' });
+      if (mounted.current) dispatch(failure ? { type: 'failed', error: failure } : { type: 'operation', operation: 'idle' });
     }
   };
 
+  const closeDialog = () => { if (!working) { setDialog(null); setDialogError(''); setDetails(''); } };
+
+  const submitSafety = async () => {
+    if (!info?.peer || working) return;
+    setWorking(true);
+    setDialogError('');
+    try {
+      if (dialog === 'report') {
+        await api.post('/api/safety/report', { userId: info.peer.userId, sessionId: sid, reason, details: details.trim() || undefined, block: true });
+      } else {
+        await api.post('/api/safety/block', { userId: info.peer.userId });
+      }
+      if (!mounted.current) return;
+      setDialog(null);
+      setDetails('');
+      // Blocked conversations leave the list, so there is nothing more to do here.
+      router.back();
+    } catch (e: unknown) {
+      if (mounted.current) setDialogError(errorMessage(e, 'That did not go through. Please try again.'));
+    } finally {
+      if (mounted.current) setWorking(false);
+    }
+  };
+
+  const banner = closed
+    ? 'This conversation is closed.'
+    : info?.waiting
+      ? info.role === 'seeker' ? 'Waiting for an expert to pick this up. You will be notified when someone answers.' : null
+      : null;
+
   return (
-    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      {state.load === 'loading' ? <Text style={{ padding: 12 }}>Loading conversation…</Text> : null}
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}>
+      <Stack.Screen
+        options={{
+          title: info?.peer?.fullName ?? 'Conversation',
+          headerRight: () =>
+            info?.peer ? (
+              <Menu
+                visible={menu}
+                onDismiss={() => setMenu(false)}
+                anchor={<IconButton icon="dots-vertical" iconColor="#f8fafc" accessibilityLabel="Report or block" onPress={() => setMenu(true)} />}
+              >
+                <Menu.Item leadingIcon="flag-outline" title="Report" onPress={() => { setMenu(false); setDialog('report'); }} />
+                <Menu.Item leadingIcon="block-helper" title="Block" onPress={() => { setMenu(false); setDialog('block'); }} />
+              </Menu>
+            ) : null,
+        }}
+      />
+      {state.load === 'loading' && messages.length === 0 ? <Text style={{ padding: 12 }}>Loading conversation…</Text> : null}
+      {banner ? <Text style={{ padding: 12, color: '#94a3b8', backgroundColor: '#1e293b' }}>{banner}</Text> : null}
       {state.error ? (
         <View style={{ padding: 12 }}>
-          <Text accessibilityRole="alert">{state.error}</Text>
+          <Text accessibilityRole="alert" style={{ color: '#f87171' }}>{state.error}</Text>
           {state.load === 'error' ? <Button onPress={loadMessages}>Retry loading</Button> : null}
         </View>
       ) : null}
       <FlatList
-        style={{ flex: 1, padding: 12 }}
+        ref={list}
+        style={{ flex: 1 }}
+        contentContainerStyle={{ padding: 12 }}
         data={messages}
-        keyExtractor={(item, idx) => String(item.id ?? idx)}
+        keyExtractor={(item, idx) => String(item.id ?? `local-${idx}`)}
+        onContentSizeChange={() => list.current?.scrollToEnd({ animated: false })}
         renderItem={({ item }) => {
           const mine = item.senderId === user?.userId;
           return (
@@ -142,36 +241,66 @@ function ChatConversation({ sid }: { sid: number }) {
                 maxWidth: '85%',
               }}
             >
-              {item.messageText ? <Text style={{ color: '#f8fafc' }}>{item.messageText}</Text> : null}
+              {item.messageText ? <Text selectable style={{ color: '#f8fafc' }}>{item.messageText}</Text> : null}
               {item.imageUrl ? (
                 <Image
+                  accessibilityLabel="Photo"
                   source={{ uri: item.imageUrl.startsWith('http') ? item.imageUrl : `${getApiBaseUrl()}${item.imageUrl}`, headers: { Authorization: `Bearer ${user?.token}` } }}
                   style={{ width: 220, height: 160, borderRadius: 8, marginTop: 6 }}
                   resizeMode="cover"
                 />
               ) : null}
               <Text style={{ color: '#cbd5e1', fontSize: 11, marginTop: 4 }}>
-                {new Date(item.createdAt).toLocaleTimeString()}
+                {new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
               </Text>
             </View>
           );
         }}
       />
-      <View style={{ flexDirection: 'row', gap: 8, padding: 12, borderTopWidth: 1, borderTopColor: '#334155' }}>
-        <Button mode="outlined" onPress={pickImage} disabled={sending || state.load !== 'ready'} style={{ alignSelf: 'center' }}>Photo</Button>
-        <TextInput
-          mode="outlined"
-          style={{ flex: 1 }}
-          value={text}
-          onChangeText={setText}
-          placeholder="Type a message"
-          dense
-        />
-        <Button mode="contained" onPress={send} loading={state.operation === 'sending'} disabled={!text.trim() || sending || state.load !== 'ready'} style={{ alignSelf: 'center' }}>
-          Send
-        </Button>
-      </View>
+      {closed ? null : (
+        <View style={{ flexDirection: 'row', gap: 8, padding: 12, borderTopWidth: 1, borderTopColor: '#334155' }}>
+          <IconButton icon="image-outline" mode="outlined" accessibilityLabel="Send a photo" onPress={pickImage} disabled={sending || !canWrite} style={{ alignSelf: 'center', margin: 0 }} />
+          <TextInput
+            mode="outlined"
+            style={{ flex: 1, maxHeight: 120 }}
+            value={text}
+            onChangeText={setText}
+            placeholder="Type a message"
+            multiline
+            maxLength={10000}
+            dense
+          />
+          <Button mode="contained" onPress={send} loading={state.operation === 'sending'} disabled={!text.trim() || sending || !canWrite} style={{ alignSelf: 'center' }}>
+            Send
+          </Button>
+        </View>
+      )}
+
+      <Portal>
+        <Dialog visible={dialog !== null} onDismiss={closeDialog}>
+          <Dialog.Title>{dialog === 'report' ? `Report ${info?.peer?.fullName ?? ''}` : `Block ${info?.peer?.fullName ?? ''}?`}</Dialog.Title>
+          <Dialog.Content>
+            {dialog === 'report' ? (
+              <>
+                <RadioButton.Group value={reason} onValueChange={setReason}>
+                  {REASONS.map(r => <RadioButton.Item key={r.value} value={r.value} label={r.label} mode="android" style={{ paddingVertical: 0 }} />)}
+                </RadioButton.Group>
+                <TextInput mode="outlined" label="Anything else we should know (optional)" value={details} onChangeText={setDetails} multiline maxLength={1000} style={{ marginTop: 8 }} />
+                <Text style={{ color: '#94a3b8', marginTop: 8 }}>We review reports within 24 hours. This person will also be blocked.</Text>
+              </>
+            ) : (
+              <Text>You will no longer see each other's messages, and you will not be matched again. They are not told.</Text>
+            )}
+            {dialogError ? <Text accessibilityRole="alert" style={{ color: '#f87171', marginTop: 8 }}>{dialogError}</Text> : null}
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={closeDialog} disabled={working}>Cancel</Button>
+            <Button onPress={submitSafety} loading={working} disabled={working} textColor="#f87171">
+              {dialog === 'report' ? 'Send report' : 'Block'}
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
     </KeyboardAvoidingView>
   );
 }
-

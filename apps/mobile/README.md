@@ -4,10 +4,17 @@ Production-ready Expo app for the Ariyoo expert Q&A platform.
 
 ## Stack
 
-- Expo SDK 51 + Expo Router (tabs + stack)
+- Expo SDK 57 + Expo Router (tabs + stack)
 - React Native Paper (dark theme)
 - Axios + Socket.IO client
-- Secure token storage (`expo-secure-store`)
+- Secure token storage (`expo-secure-store`), push via `expo-notifications`
+
+## What the app does
+
+- **Ask:** write a question with #topics. An expert who follows a topic gets it; otherwise it waits in the open queue.
+- **Chats:** your conversations, and (for experts) open questions to pick up.
+- **Conversation:** text and photos, live. Report or block from the ⋮ menu.
+- **Profile:** expert mode and topics, blocked people, terms and privacy, sign out, delete account.
 
 ## Development
 
@@ -15,8 +22,8 @@ Production-ready Expo app for the Ariyoo expert Q&A platform.
 cd apps/mobile
 npm ci
 cp .env.example .env.local   # optional
-npm run assets:generate      # icons & splash
 npm start
+npm run verify               # typecheck + unit tests
 ```
 
 Point the app at your API:
