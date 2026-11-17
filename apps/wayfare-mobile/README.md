@@ -73,6 +73,7 @@ Backend: follow [`supabase/README.md`](../../supabase/README.md).
 npm run typecheck        # TypeScript (run `npx expo start` once to generate typed routes)
 npm test                 # unit tests for pure logic (split, currency, places, geo, badges, wrapped…)
 npm run test:db          # SQL/RLS test-suite on a local Postgres (see supabase/README.md)
+npm run preflight        # before a store build: lists missing or placeholder release values
 npx expo export --platform android   # full Metro/Hermes bundle
 ```
 

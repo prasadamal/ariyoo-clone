@@ -12,13 +12,27 @@ export type SosInput = {
   note?: string | null;
 };
 
+/**
+ * Time as the sender's phone shows it, with the time zone. The person reading the SMS is often in
+ * another country, so "14:05" on its own could be hours out.
+ */
+export function stampTime(at: Date) {
+  const base = { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' } as const;
+  try {
+    return at.toLocaleString('en-IN', { ...base, timeZoneName: 'short' });
+  } catch {
+    // Older JS engines without time-zone names: fall back to UTC, labelled as such.
+    return `${at.toLocaleString('en-IN', { ...base, timeZone: 'UTC' })} UTC`;
+  }
+}
+
 export function mapsLink(latitude: number, longitude: number) {
   return `https://maps.google.com/?q=${latitude.toFixed(5)},${longitude.toFixed(5)}`;
 }
 
 export function buildSosMessage(i: SosInput) {
   const who = i.name?.trim() || 'your contact';
-  const when = i.at.toLocaleString('en-IN', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' });
+  const when = stampTime(i.at);
   const lines = [`SOS from ${who} via Wayfare. I may need help.`];
   if (i.latitude != null && i.longitude != null) {
     const acc = i.accuracyM != null ? ` (±${Math.round(i.accuracyM)} m)` : '';
@@ -35,6 +49,6 @@ export function buildSosMessage(i: SosInput) {
 }
 
 export function buildCheckInMessage(name: string | null, place: string | null, at: Date) {
-  const when = at.toLocaleString('en-IN', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' });
+  const when = stampTime(at);
   return `${name?.trim() || 'I'} checked in safe via Wayfare at ${when}${place ? ` near ${place}` : ''}. ✅`;
 }

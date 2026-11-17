@@ -46,6 +46,7 @@ Support email used in listings: **support@ariyoo.app** · Privacy: **privacy@ari
 - [x] Web viewers for share links + live location: `docs/wayfare-share`, `docs/wayfare-live` (config in `docs/wayfare-config.js`)
 - [x] Privacy policy v2 + Terms of Use (`docs/privacy/wayfare.html`, `docs/privacy/wayfare-terms.html`)
 - [x] CI: `.github/workflows/wayfare-tests.yml` (typecheck, unit tests, bundles, database + API tests)
+- [x] Release preflight: `npm run preflight` in `apps/wayfare-mobile` lists every value still missing for a store build
 
 ---
 
@@ -90,6 +91,7 @@ eas init
 
 ```bash
 npm run typecheck
+npm run preflight        # Wayfare only: must end with "Ready for a store build"
 npm run build:all
 npm run submit:android
 npm run submit:ios

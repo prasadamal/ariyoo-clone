@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { screenText } from '../contentFilter';
-import { buildSosMessage, mapsLink } from '../sosMessage';
+import { buildCheckInMessage, buildSosMessage, mapsLink, stampTime } from '../sosMessage';
 import { weatherCodeIcon, weatherCodeLabel } from '../weather';
 import { shouldApplyRemote } from '../syncRules';
 
@@ -55,4 +55,13 @@ test('pull merge rule protects unsynced local edits', () => {
   assert.equal(shouldApplyRemote(synced, '2026-10-01T10:00:00Z'), false);
   assert.equal(shouldApplyRemote({ ...synced, sync_status: 'pending' }, '2027-01-01T00:00:00Z'), false);
   assert.equal(shouldApplyRemote(synced, null), false);
+});
+
+test('SOS and check-in times carry a time zone', () => {
+  const at = new Date('2026-11-17T08:35:00Z');
+  // "GMT+5:30", "IST", "UTC"… whichever the phone uses, it must be there.
+  assert.match(stampTime(at), /(GMT|UTC|[A-Z]{2,5})([+-]\d{1,2}(:\d{2})?)?\s*$/);
+  const sos = buildSosMessage({ name: 'Asha', latitude: 32.24, longitude: 77.19, at });
+  assert.ok(sos.includes(stampTime(at)));
+  assert.ok(buildCheckInMessage('Asha', 'Manali', at).includes(stampTime(at)));
 });
