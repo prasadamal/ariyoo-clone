@@ -27,7 +27,13 @@ fs.mkdirSync(config.uploadDir, { recursive: true });
 app.use(cors({ origin: config.corsOrigin }));
 app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
 app.use(express.json({ limit: '200kb' }));
-app.use('/auth', rateLimit({ windowMs: 15 * 60 * 1000, limit: 30, standardHeaders: 'draft-7', legacyHeaders: false }));
+const limiter = (limit: number) => rateLimit({ windowMs: 15 * 60 * 1000, limit, standardHeaders: 'draft-7', legacyHeaders: false, message: { message: 'Too many requests. Try again in a few minutes.' } });
+app.use('/auth', limiter(30));
+app.use('/admin', limiter(120));
+app.use('/api/newsletter', limiter(10));
+app.use('/api/safety', limiter(60));
+// Generous enough for a busy chat, low enough to stop scripted flooding.
+app.use('/api', limiter(1500));
 app.get('/health', (_req, res) => {
   res.json({ ok: true, service: 'ariyoo-api' });
 });

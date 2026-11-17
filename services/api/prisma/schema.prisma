@@ -16,6 +16,11 @@ model User {
   isSeeker     Boolean   @default(true)
   isSolver     Boolean   @default(false)
   createdAt    DateTime  @default(now())
+  /// When the member accepted the Terms of Use (required to register).
+  termsAcceptedAt DateTime?
+  /// Set by a moderator; a suspended member cannot sign in or use the API.
+  suspendedAt  DateTime?
+  pushTokens   PushToken[]
   tags         UserTag[]
   places       UserPlace[]
   placeTags    UserPlaceTag[]
@@ -44,7 +49,7 @@ model PlaceTag {
 model UserTag {
   userId Int
   tagId  Int
-  user   User @relation(fields: [userId], references: [id])
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
   tag    Tag  @relation(fields: [tagId], references: [id])
   @@id([userId, tagId])
 }
@@ -53,7 +58,7 @@ model UserPlace {
   id      Int   @id @default(autoincrement())
   userId  Int
   placeId Int
-  user    User  @relation(fields: [userId], references: [id])
+  user    User  @relation(fields: [userId], references: [id], onDelete: Cascade)
   place   Place @relation(fields: [placeId], references: [id])
   @@unique([userId, placeId])
 }
@@ -62,7 +67,7 @@ model UserPlaceTag {
   id         Int      @id @default(autoincrement())
   userId     Int
   placeTagId Int
-  user       User     @relation(fields: [userId], references: [id])
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   placeTag   PlaceTag @relation(fields: [placeTagId], references: [id])
   @@unique([userId, placeTagId])
 }
@@ -70,14 +75,18 @@ model UserPlaceTag {
 model Session {
   id        Int      @id @default(autoincrement())
   seekerId  Int
-  solverId  Int
+  /// Null while the question waits in the open queue for an expert to pick it up.
+  solverId  Int?
   title     String
   active    Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   seeker    User     @relation("SeekerSessions", fields: [seekerId], references: [id])
-  solver    User     @relation("SolverSessions", fields: [solverId], references: [id])
+  solver    User?    @relation("SolverSessions", fields: [solverId], references: [id])
   messages  Message[]
+
+  @@index([seekerId])
+  @@index([solverId])
 }
 
 model Message {
@@ -87,11 +96,47 @@ model Message {
   messageText String?
   imageUrl   String?
   createdAt  DateTime @default(now())
-  session    Session  @relation(fields: [sessionId], references: [id])
+  session    Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
 }
 
 model Newsletter {
   id    Int    @id @default(autoincrement())
   email String @unique
   createdAt DateTime @default(now())
+}
+
+/// One member hiding another. Blocks work both ways: neither can message the other.
+model Block {
+  blockerId Int
+  blockedId Int
+  createdAt DateTime @default(now())
+
+  @@id([blockerId, blockedId])
+  @@index([blockedId])
+}
+
+/// A report for the moderator. Ids are plain numbers so a report outlives a deleted account.
+model Report {
+  id         Int      @id @default(autoincrement())
+  reporterId Int
+  reportedId Int
+  sessionId  Int?
+  reason     String
+  details    String?
+  status     String   @default("open")
+  createdAt  DateTime @default(now())
+
+  @@index([status, createdAt])
+}
+
+model PushToken {
+  token     String   @id
+  userId    Int
+  platform  String?
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }

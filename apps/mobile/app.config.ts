@@ -1,21 +1,29 @@
+import fs from 'node:fs';
+import path from 'node:path';
 import { ExpoConfig, ConfigContext } from 'expo/config';
 
 const BUNDLE_ID = 'com.ariyoo.mobile';
+const BG = '#0f172a';
+// The project id `eas init` prints for this app. EAS builds and push notifications need it, and
+// EAS CLI does not read .env files, so paste it here (or export EAS_PROJECT_ID before eas commands).
+const easProjectId = process.env.EAS_PROJECT_ID || '';
+// Android push (FCM): google-services.json from the Firebase console, saved next to this file or
+// uploaded as the EAS file variable GOOGLE_SERVICES_JSON.
+const googleServicesFile =
+  process.env.GOOGLE_SERVICES_JSON ??
+  (fs.existsSync(path.join(__dirname, 'google-services.json')) ? './google-services.json' : undefined);
 
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
   name: 'Ariyoo',
   slug: 'ariyoo',
   version: '1.0.0',
+  platforms: ['ios', 'android'],
   orientation: 'portrait',
   icon: './assets/icon.png',
   scheme: 'ariyoo',
   userInterfaceStyle: 'dark',
-  splash: {
-    image: './assets/splash.png',
-    resizeMode: 'contain',
-    backgroundColor: '#0f172a',
-  },
+  backgroundColor: BG,
   ios: {
     bundleIdentifier: BUNDLE_ID,
     buildNumber: '1',
@@ -24,51 +32,45 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       usesNonExemptEncryption: false,
     },
     infoPlist: {
-      NSCameraUsageDescription:
-        'Ariyoo uses the camera so you can share photos in expert chat sessions.',
-      NSPhotoLibraryUsageDescription:
-        'Ariyoo accesses your photo library so you can attach images to questions and replies.',
-      NSMicrophoneUsageDescription:
-        'Ariyoo may use the microphone for future voice messages in chat.',
+      // Photos are chosen in the system picker, which shows this text only on older iOS versions.
+      NSPhotoLibraryUsageDescription: 'Choose a photo to send in a conversation.',
       ITSAppUsesNonExemptEncryption: false,
     },
   },
   android: {
     package: BUNDLE_ID,
     versionCode: 1,
-    permissions: ['INTERNET', 'CAMERA', 'READ_MEDIA_IMAGES', 'READ_EXTERNAL_STORAGE'],
+    ...(googleServicesFile ? { googleServicesFile } : {}),
+    permissions: ['INTERNET', 'POST_NOTIFICATIONS', 'VIBRATE'],
+    // The system photo picker needs no media permission, and the app never uses the camera or
+    // microphone. Blocking them keeps Play's permission declarations (and review) short.
+    blockedPermissions: [
+      'android.permission.CAMERA',
+      'android.permission.RECORD_AUDIO',
+      'android.permission.READ_EXTERNAL_STORAGE',
+      'android.permission.WRITE_EXTERNAL_STORAGE',
+      'android.permission.READ_MEDIA_IMAGES',
+      'android.permission.READ_MEDIA_VIDEO',
+      'android.permission.READ_MEDIA_AUDIO',
+      'android.permission.READ_MEDIA_VISUAL_USER_SELECTED',
+      'android.permission.SYSTEM_ALERT_WINDOW',
+    ],
     adaptiveIcon: {
       foregroundImage: './assets/adaptive-icon.png',
-      backgroundColor: '#0f172a',
+      backgroundColor: BG,
     },
-    playStoreUrl: 'https://play.google.com/store/apps/details?id=com.ariyoo.mobile',
-  },
-  web: {
-    favicon: './assets/favicon.png',
   },
   plugins: [
     'expo-router',
     'expo-secure-store',
+    ['expo-splash-screen', { image: './assets/icon.png', imageWidth: 200, resizeMode: 'contain', backgroundColor: BG }],
+    ['expo-notifications', { color: '#38bdf8' }],
     [
       'expo-image-picker',
       {
-        photosPermission:
-          'Allow Ariyoo to access your photos so you can share images in chat.',
-        cameraPermission: 'Allow Ariyoo to use your camera to capture images for chat.',
-      },
-    ],
-    [
-      'expo-build-properties',
-      {
-        android: {
-          minSdkVersion: 24,
-          targetSdkVersion: 34,
-          compileSdkVersion: 34,
-          usesCleartextTraffic: process.env.EAS_BUILD_PROFILE !== 'production',
-        },
-        ios: {
-          deploymentTarget: '13.4',
-        },
+        photosPermission: 'Choose a photo to send in a conversation.',
+        cameraPermission: false,
+        microphonePermission: false,
       },
     ],
   ],
@@ -77,8 +79,6 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   },
   extra: {
     apiUrl: process.env.EXPO_PUBLIC_API_URL,
-    eas: {
-      projectId: process.env.EAS_PROJECT_ID ?? '00000000-0000-4000-8000-000000000000',
-    },
+    ...(easProjectId ? { eas: { projectId: easProjectId } } : {}),
   },
 });

@@ -25,6 +25,8 @@ jobs:
       DATABASE_URL: postgresql://postgres:isolated-ci-password@localhost:5432/ariyoo
       JWT_SECRET: isolated-ci-jwt-secret-never-use-in-production
       DEMO_PASSWORD: isolated-ci-reviewer-password
+      ADMIN_API_KEY: isolated-ci-admin-key-never-use-in-production
+      PUSH_DISABLED: '1'
       PORT: 3333
     defaults:
       run:
@@ -44,7 +46,7 @@ jobs:
         run: npx prisma migrate deploy
       - name: Seed isolated review users
         run: npm run prisma:seed
-      - name: Verify persisted question, reply and outsider denial
+      - name: Full flow against a real database (matching, queue, chat, photos, block, report, moderation, deletion)
         run: |
           node dist/index.js > /tmp/ariyoo-ci-api.log 2>&1 &
           api_pid=$!

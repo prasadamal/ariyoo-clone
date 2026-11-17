@@ -2,10 +2,15 @@ name: Mobile EAS Build
 
 on:
   workflow_dispatch:
+  pull_request:
+    paths:
+      - 'apps/mobile/**'
+      - '.github/workflows/mobile-eas-build.yml'
   push:
     branches: [main]
     paths:
       - 'apps/mobile/**'
+      - '.github/workflows/mobile-eas-build.yml'
 
 jobs:
   build:
@@ -27,6 +32,15 @@ jobs:
         run: npm ci
       - name: Typecheck
         run: npm run typecheck
+      - name: Unit tests
+        run: npm test
+      - name: Android and iOS bundles
+        run: |
+          npx expo export --platform android --output-dir "$RUNNER_TEMP/export-android"
+          npx expo export --platform ios --output-dir "$RUNNER_TEMP/export-ios"
+      - name: Native project generation
+        run: npx expo prebuild --platform all --no-install
+      # Store builds are started by hand (Actions → Mobile EAS Build → Run workflow), never by a push.
       - name: EAS Build (production)
-        if: env.EXPO_TOKEN != ''
+        if: github.event_name == 'workflow_dispatch' && env.EXPO_TOKEN != ''
         run: npx eas-cli build --platform all --profile production --non-interactive --no-wait

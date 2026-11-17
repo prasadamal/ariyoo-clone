@@ -21,27 +21,23 @@
           "text": "import { useEffect, useState } from 'react';"
         },
         {
-          "line": 10,
+          "line": 12,
           "text": "const [message, setMessage] = useState('');"
         },
         {
-          "line": 11,
+          "line": 13,
           "text": "const [tags, setTags] = useState<string[]>([]);"
         },
         {
-          "line": 12,
-          "text": "const [suggestions, setSuggestions] = useState<string[]>([]);"
-        },
-        {
-          "line": 13,
+          "line": 14,
           "text": "const [selectedTags, setSelectedTags] = useState<string[]>([]);"
         },
         {
-          "line": 14,
+          "line": 15,
           "text": "const [loading, setLoading] = useState(false);"
         },
         {
-          "line": 15,
+          "line": 16,
           "text": "const [error, setError] = useState('');"
         }
       ]
@@ -51,19 +47,55 @@
       "evidence": [
         {
           "line": 1,
-          "text": "import { useEffect, useState } from 'react';"
+          "text": "import { useCallback, useEffect, useState } from 'react';"
         },
         {
-          "line": 11,
+          "line": 17,
           "text": "const [userName, setUserName] = useState('');"
         },
         {
-          "line": 12,
+          "line": 18,
           "text": "const [isSolver, setIsSolver] = useState(false);"
         },
         {
-          "line": 13,
+          "line": 19,
           "text": "const [saving, setSaving] = useState(false);"
+        },
+        {
+          "line": 20,
+          "text": "const [notice, setNotice] = useState<{ ok: boolean; text: string } | null>(null);"
+        },
+        {
+          "line": 21,
+          "text": "const [topics, setTopics] = useState<Topic[]>([]);"
+        },
+        {
+          "line": 22,
+          "text": "const [newTopic, setNewTopic] = useState('');"
+        },
+        {
+          "line": 23,
+          "text": "const [topicBusy, setTopicBusy] = useState(false);"
+        },
+        {
+          "line": 24,
+          "text": "const [blocked, setBlocked] = useState<Blocked[]>([]);"
+        },
+        {
+          "line": 25,
+          "text": "const [deleting, setDeleting] = useState(false);"
+        },
+        {
+          "line": 26,
+          "text": "const [password, setPassword] = useState('');"
+        },
+        {
+          "line": 27,
+          "text": "const [deleteError, setDeleteError] = useState('');"
+        },
+        {
+          "line": 28,
+          "text": "const [deleteBusy, setDeleteBusy] = useState(false);"
         }
       ]
     },
@@ -72,19 +104,27 @@
       "evidence": [
         {
           "line": 2,
-          "text": "import { useCallback, useState } from 'react';"
+          "text": "import { useCallback, useRef, useState } from 'react';"
         },
         {
-          "line": 9,
-          "text": "type SessionRow = { sessionId: number; title: string; active: boolean };"
-        },
-        {
-          "line": 13,
+          "line": 16,
           "text": "const [sessions, setSessions] = useState<SessionRow[]>([]);"
         },
         {
-          "line": 14,
+          "line": 17,
+          "text": "const [queue, setQueue] = useState<OpenQuestion[]>([]);"
+        },
+        {
+          "line": 18,
           "text": "const [refreshing, setRefreshing] = useState(false);"
+        },
+        {
+          "line": 19,
+          "text": "const [error, setError] = useState('');"
+        },
+        {
+          "line": 20,
+          "text": "const [claiming, setClaiming] = useState<number | null>(null);"
         }
       ]
     },
@@ -96,12 +136,44 @@
           "text": "import { useCallback, useEffect, useReducer, useRef, useState } from 'react';"
         },
         {
-          "line": 22,
+          "line": 14,
+          "text": "active: boolean;"
+        },
+        {
+          "line": 41,
           "text": "const [state, dispatch] = useReducer(chatReducer, initialChatState);"
         },
         {
-          "line": 23,
+          "line": 42,
           "text": "const [text, setText] = useState('');"
+        },
+        {
+          "line": 43,
+          "text": "const [info, setInfo] = useState<SessionInfo | null>(null);"
+        },
+        {
+          "line": 44,
+          "text": "const [menu, setMenu] = useState(false);"
+        },
+        {
+          "line": 45,
+          "text": "const [dialog, setDialog] = useState<'report' | 'block' | null>(null);"
+        },
+        {
+          "line": 46,
+          "text": "const [reason, setReason] = useState('harassment');"
+        },
+        {
+          "line": 47,
+          "text": "const [details, setDetails] = useState('');"
+        },
+        {
+          "line": 48,
+          "text": "const [working, setWorking] = useState(false);"
+        },
+        {
+          "line": 49,
+          "text": "const [dialogError, setDialogError] = useState('');"
         }
       ]
     },
@@ -113,19 +185,19 @@
           "text": "import { useState } from 'react';"
         },
         {
-          "line": 9,
+          "line": 11,
           "text": "const [email, setEmail] = useState('');"
         },
         {
-          "line": 10,
+          "line": 12,
           "text": "const [password, setPassword] = useState('');"
         },
         {
-          "line": 11,
+          "line": 13,
           "text": "const [loading, setLoading] = useState(false);"
         },
         {
-          "line": 12,
+          "line": 14,
           "text": "const [error, setError] = useState('');"
         }
       ]
@@ -138,40 +210,49 @@
           "text": "import { useState } from 'react';"
         },
         {
-          "line": 9,
+          "line": 14,
           "text": "const [email, setEmail] = useState('');"
         },
         {
-          "line": 10,
+          "line": 15,
           "text": "const [password, setPassword] = useState('');"
         },
         {
-          "line": 11,
+          "line": 16,
           "text": "const [flname, setFlname] = useState('');"
         },
         {
-          "line": 12,
-          "text": "const [isSeeker, setIsSeeker] = useState(true);"
-        },
-        {
-          "line": 13,
+          "line": 17,
           "text": "const [isSolver, setIsSolver] = useState(false);"
         },
         {
-          "line": 14,
+          "line": 18,
+          "text": "const [accepted, setAccepted] = useState(false);"
+        },
+        {
+          "line": 19,
           "text": "const [loading, setLoading] = useState(false);"
         },
         {
-          "line": 15,
+          "line": 20,
           "text": "const [error, setError] = useState('');"
         },
         {
-          "line": 56,
-          "text": "<Checkbox status={isSeeker ? 'checked' : 'unchecked'} onPress={() => setIsSeeker(!isSeeker)} />"
+          "line": 68,
+          "text": "<Checkbox.Android status={isSolver ? 'checked' : 'unchecked'} onPress={() => setIsSolver(!isSolver)} />"
         },
         {
-          "line": 60,
-          "text": "<Checkbox status={isSolver ? 'checked' : 'unchecked'} onPress={() => setIsSolver(!isSolver)} />"
+          "line": 72,
+          "text": "<Checkbox.Android status={accepted ? 'checked' : 'unchecked'} onPress={() => setAccepted(!accepted)} />"
+        }
+      ]
+    },
+    {
+      "path": "apps/mobile/src/api/client.ts",
+      "evidence": [
+        {
+          "line": 27,
+          "text": "if (error.response?.status === 401 && !url.startsWith('/auth/') && error.config?.method !== 'delete') onSessionEnded?.();"
         }
       ]
     },
@@ -189,15 +270,24 @@
       "evidence": [
         {
           "line": 2,
-          "text": "import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';"
+          "text": "import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';"
         },
         {
-          "line": 29,
+          "line": 38,
           "text": "const [user, setUser] = useState<AuthUser | null>(null);"
         },
         {
-          "line": 30,
+          "line": 39,
           "text": "const [loading, setLoading] = useState(true);"
+        }
+      ]
+    },
+    {
+      "path": "apps/mobile/src/lib/sessionList.ts",
+      "evidence": [
+        {
+          "line": 4,
+          "text": "active: boolean;"
         }
       ]
     },
@@ -2661,7 +2751,7 @@
       "path": "apps/web/src/app/models/tag.model.ts",
       "evidence": [
         {
-          "line": 41,
+          "line": 43,
           "text": "active: boolean;"
         }
       ]
@@ -2683,8 +2773,8 @@
       "path": "apps/web/src/app/register/register.component.ts",
       "evidence": [
         {
-          "line": 40,
-          "text": "alert('Registration failed: ' + error.message);"
+          "line": 51,
+          "text": "alert('Registration failed: ' + (error?.error?.message || error.message));"
         }
       ]
     },
@@ -2722,11 +2812,11 @@
       "path": "services/api/src/app.ts",
       "evidence": [
         {
-          "line": 53,
+          "line": 59,
           "text": "const status = error.code === 'LIMIT_FILE_SIZE' || error.type === 'entity.too.large' ? 413 : error.code === 'P2002' ? 409 : error instanceof SyntaxError || error.name === 'MulterError' ? 400 : 500;"
         },
         {
-          "line": 54,
+          "line": 60,
           "text": "res.status(status).json({ message: status === 413 ? 'Request exceeds the allowed size' : status === 409 ? 'Already exists' : status === 400 ? 'Invalid request' : 'Request failed' });"
         }
       ]
@@ -2741,15 +2831,48 @@
       ]
     },
     {
+      "path": "services/api/src/routes/admin.ts",
+      "evidence": [
+        {
+          "line": 26,
+          "text": "const status = typeof req.query.status === 'string' ? req.query.status : 'open';"
+        },
+        {
+          "line": 44,
+          "text": "const body = z.object({ status: z.enum(['open', 'resolved', 'dismissed']) }).safeParse(req.body);"
+        },
+        {
+          "line": 46,
+          "text": "const updated = await prisma.report.updateMany({ where: { id: id.data }, data: { status: body.data.status } });"
+        }
+      ]
+    },
+    {
       "path": "services/api/src/routes/message.ts",
       "evidence": [
         {
-          "line": 44,
-          "text": "res.json(sessions.map(s => ({ sessionId: s.id, title: s.title, active: s.active })));"
+          "line": 26,
+          "text": "type SessionRow = { id: number; seekerId: number; solverId: number | null; title: string; active: boolean; updatedAt: Date };"
         },
         {
-          "line": 51,
-          "text": "res.json(sessions.map(s => ({ sessionId: s.id, title: s.title, active: s.active })));"
+          "line": 44,
+          "text": "active: s.active,"
+        },
+        {
+          "line": 64,
+          "text": "select: { id: true, tags: { select: { tag: { select: { name: true } } } }, _count: { select: { solverSessions: { where: { active: true } } } } },"
+        },
+        {
+          "line": 90,
+          "text": "where: { solverId: null, active: true, seekerId: { notIn: [userId, ...blocked] } },"
+        },
+        {
+          "line": 108,
+          "text": "const claimed = await prisma.session.updateMany({ where: { id: session.id, solverId: null, active: true }, data: { solverId: userId } });"
+        },
+        {
+          "line": 135,
+          "text": "sessionId: session.id, title: session.title, active: session.active,"
         }
       ]
     },
@@ -2757,7 +2880,7 @@
       "path": "services/api/src/socket.ts",
       "evidence": [
         {
-          "line": 14,
+          "line": 17,
           "text": "const timer = setTimeout(() => socket.disconnect(true),"
         }
       ]

@@ -1,25 +1,29 @@
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
+import { apiBase } from './lib/release';
 
-const extra = (Constants.expoConfig?.extra ?? {}) as { apiUrl?: string };
+const extra = (Constants.expoConfig?.extra ?? {}) as { apiUrl?: string; eas?: { projectId?: string } };
 
-/** Production API host — override with EXPO_PUBLIC_API_URL or app.config extra.apiUrl. */
-export const PRODUCTION_API_URL = 'https://api.ariyoo.app';
+const devDefault = Platform.OS === 'android' ? 'http://10.0.2.2:5296' : 'http://localhost:5296';
 
+/**
+ * Where the API lives. Store builds must be built with EXPO_PUBLIC_API_URL (an EAS environment
+ * variable); there is deliberately no built-in production address to fall back to.
+ */
 export function getApiBaseUrl(): string {
-  const fromEnv = process.env.EXPO_PUBLIC_API_URL?.trim();
-  if (fromEnv) return fromEnv.replace(/\/$/, '');
+  return apiBase(process.env.EXPO_PUBLIC_API_URL) ?? apiBase(extra.apiUrl) ?? (__DEV__ ? devDefault : '');
+}
 
-  const fromExtra = extra.apiUrl?.trim();
-  if (fromExtra) return fromExtra.replace(/\/$/, '');
+export const isApiConfigured = getApiBaseUrl() !== '';
 
-  if (!__DEV__) return PRODUCTION_API_URL;
+const PAGES_BASE = 'https://prasadamal.github.io/ariyoo-clone';
+export const PRIVACY_URL = `${PAGES_BASE}/privacy/ariyoo.html`;
+export const TERMS_URL = `${PAGES_BASE}/privacy/ariyoo-terms.html`;
+export const SUPPORT_EMAIL = 'support@ariyoo.app';
 
-  return (
-    Platform.select({
-      android: 'http://10.0.2.2:5296',
-      ios: 'http://localhost:5296',
-      default: 'http://localhost:5296',
-    }) ?? 'http://localhost:5296'
-  );
+export const APP_VERSION = Constants.expoConfig?.version ?? '1.0.0';
+
+export function easProjectId(): string | null {
+  const id = extra.eas?.projectId ?? Constants.easConfig?.projectId;
+  return id && !id.startsWith('00000000-') ? id : null;
 }

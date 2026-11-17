@@ -15,18 +15,17 @@ Complete these steps once before your first store upload.
 
 ## 1. Expo / EAS project
 
+Follow [`EAS_SECRETS.md`](EAS_SECRETS.md): link the project, paste the project id into
+`app.config.ts`, set `EXPO_PUBLIC_API_URL`, set up push. Deploy the API first
+(`services/api/DEPLOY_PRODUCTION.md`) and set `ADMIN_API_KEY` on it.
+
 ```bash
 cd apps/mobile
 npm ci
-npm i -g eas-cli
-eas login
-eas init   # links project; updates app.config.ts extra.eas.projectId
+npm run verify                         # typecheck + unit tests
+eas env:pull --environment production
+npm run preflight                      # must end with "Ready for a store build."
 ```
-
-Set secrets in Expo dashboard or locally:
-
-- `EXPO_PUBLIC_API_URL` → your production API (HTTPS)
-- Deploy `services/api` with PostgreSQL and set `JWT_SECRET`
 
 ## 2. Apple (iOS)
 
@@ -36,7 +35,7 @@ Set secrets in Expo dashboard or locally:
 4. Update `eas.json` → `submit.production.ios` with `appleId`, `ascAppId`, `appleTeamId`.
 5. Build: `npm run build:ios` (or `eas build --platform ios --profile production`).
 6. Submit: `npm run submit:ios` or upload the `.ipa` from the EAS build page.
-7. Complete App Privacy questionnaire (email, user content, diagnostics).
+7. Complete the App Privacy questionnaire from `DATA_SAFETY_AND_PRIVACY.md`. Set the age rating to 17+.
 8. Add screenshots (6.7", 6.5", 5.5" iPhone) — see `store/app-store-listing.md`.
 
 ## 3. Google Play (Android)
@@ -47,30 +46,41 @@ Set secrets in Expo dashboard or locally:
    `apps/mobile/store/google-play-service-account.json` (gitignored).
 4. Build: `npm run build:android` (AAB for production profile).
 5. Submit: `npm run submit:android` or upload AAB manually to Internal testing track first.
-6. Complete Data safety form (account info, messages, photos).
+6. Complete the Data safety form from `DATA_SAFETY_AND_PRIVACY.md`, and enter the account deletion URL from `APP_REVIEW_NOTES.md`.
 7. Upload feature graphic and phone screenshots.
 
 ## 4. Legal & compliance
 
-- [ ] Host privacy policy at a public HTTPS URL (template: `store/PRIVACY_POLICY.md`).
-- [ ] Support email active (`support@ariyoo.app` or your domain).
-- [ ] Age rating / content questionnaire completed on both stores.
+- [ ] GitHub Pages workflow has run: privacy policy, terms and account-deletion pages are live (`APP_REVIEW_NOTES.md` lists the URLs).
+- [ ] `support@ariyoo.app` and `privacy@ariyoo.app` reach a real inbox, or change them in `src/config.ts` and the three pages in `docs/privacy/`.
+- [ ] Someone checks the report queue every day (`services/api/MODERATION.md`). The stores and the Terms require action within 24 hours.
+- [ ] Two reviewer accounts exist on production (`APP_REVIEW_NOTES.md`).
+- [ ] Age rating and content questionnaires completed on both stores (18+, user-generated content with moderation).
 
-## 5. Pre-submission QA
+## 5. Device test (one Android phone and one iPhone, real builds)
 
 ```bash
-npm run typecheck
-eas build --platform all --profile preview   # internal APK/TestFlight
+eas build --platform all --profile preview
 ```
 
-Test on physical devices:
+| # | Do | Expect |
+| --- | --- | --- |
+| 1 | Register without ticking the terms box | Button stays disabled |
+| 2 | Register account A (asker) and, on the other phone, B (expert) with topic `goa` | Both land on Ask |
+| 3 | A asks "… #goa" | Conversation opens; B gets a notification and sees it under Chats |
+| 4 | B replies; A replies with a photo | Both see messages live; A's photo opens for B; no permission prompt for photos |
+| 5 | A asks a question with no topic | A sees "Waiting for an expert"; B sees it under "Open questions" and taps Answer |
+| 6 | Tap a notification with the app closed | Opens that conversation |
+| 7 | A reports B from the ⋮ menu | Conversation disappears for both; report appears in `/admin/reports` |
+| 8 | A unblocks B in Profile | B is listed, then removed |
+| 9 | Airplane mode, send a message | Error shown, draft kept; works again when back online |
+| 10 | Kill and reopen the app | Still signed in |
+| 11 | Suspend B from the admin API | B is signed out on the next action and cannot sign in |
+| 12 | A deletes the account in Profile | Returns to sign-in; signing in again fails; B no longer sees A's conversations |
+| 13 | Sign out on one phone, sign in as someone else | No notifications for the previous account |
 
-- Register new user
-- Ask question with tags → opens chat
-- Send text + image
-- Solver mode toggle on profile
-- Sign out / sign in
+## 6. CI
 
-## 6. CI (optional)
-
-See `.github/workflows/mobile-eas-build.yml` — requires `EXPO_TOKEN` repository secret.
+`.github/workflows/mobile-eas-build.yml` runs typecheck, unit tests, both bundles and native
+project generation on every pull request. With the `EXPO_TOKEN` secret set, running it by hand
+(Actions → Mobile EAS Build → Run workflow) also starts a production EAS build.

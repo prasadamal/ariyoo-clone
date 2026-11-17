@@ -1,55 +1,185 @@
+// End-to-end check against a running API and a real database:
+//   API_URL=http://localhost:3333 node scripts/smoke-flow.mjs
+// Creates its own accounts and deletes them again, so it is safe to run repeatedly. Never run it
+// against production with ADMIN_API_KEY set unless you mean to (it suspends only its own accounts).
+import assert from 'node:assert/strict';
+
 const base = process.env.API_URL || process.env.API_BASE || 'http://localhost:3333';
-const password = process.env.DEMO_PASSWORD;
-if (!password) throw new Error('Set DEMO_PASSWORD for an isolated reviewer/test database');
+const adminKey = process.env.ADMIN_API_KEY || '';
+const password = 'smoke-flow-password-123';
+const stamp = `${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
+
+async function call(method, path, { token, body, headers } = {}) {
+  const res = await fetch(`${base}${path}`, {
+    method,
+    headers: { ...(body ? { 'Content-Type': 'application/json' } : {}), ...(token ? { Authorization: `Bearer ${token}` } : {}), ...headers },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  const text = await res.text();
+  let json = null;
+  try { json = text ? JSON.parse(text) : null; } catch { /* not json */ }
+  return { status: res.status, json };
+}
+
+async function register(label, extra = {}) {
+  const res = await call('POST', '/auth/register', {
+    body: { email: `smoke-${label}-${stamp}@example.com`, password, flname: `Smoke ${label}`, isSeeker: true, isSolver: false, acceptedTerms: true, ...extra },
+  });
+  assert.equal(res.status, 200, `register ${label}: ${JSON.stringify(res.json)}`);
+  return res.json;
+}
 
 async function main() {
-  const health = await fetch(`${base}/health`);
-  if (!health.ok) throw new Error(`health ${health.status}`);
+  assert.equal((await call('GET', '/health')).status, 200);
+  assert.equal((await call('GET', '/ready')).status, 200);
 
-  const loginRes = await fetch(`${base}/auth/login`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email: 'solver@example.com', password }),
-  });
-  const login = await loginRes.json();
-  if (!loginRes.ok) throw new Error(`login ${loginRes.status} ${JSON.stringify(login)}`);
-  const headers = { Authorization: `Bearer ${login.token}`, 'Content-Type': 'application/json' };
+  // Terms must be accepted; weak passwords are refused.
+  const noTerms = await call('POST', '/auth/register', { body: { email: `x-${stamp}@example.com`, password, flname: 'X' } });
+  assert.equal(noTerms.status, 400); assert.equal(noTerms.json.code, 'TERMS_REQUIRED');
+  assert.equal((await call('POST', '/auth/register', { body: { email: `y-${stamp}@example.com`, password: 'short', flname: 'Y', acceptedTerms: true } })).status, 400);
 
-  const ask = await fetch(`${base}/api/Message/postQuestion`, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify({
-      message: 'Smoke test: quiet cafes in Mumbai #mumbai',
-      tag: [{ tagName: 'mumbai' }, { tagName: 'food' }],
-    }),
-  });
-  const asked = await ask.json();
-  if (!ask.ok) throw new Error(`ask ${ask.status} ${JSON.stringify(asked)}`);
+  const topic = `smoketopic${stamp.replace(/\D/g, '').slice(-10)}`;
+  const seeker = await register('seeker');
+  const expert = await register('expert', { isSolver: true });
+  const other = await register('other', { isSolver: true });
+  const outsider = await register('outsider');
+  assert.equal(expert.isSolver, true);
+  assert.equal(seeker.isSolver, false);
 
-  const sent = await fetch(`${base}/api/Message/postMessage`, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify({
-      senderId: login.userId,
-      messageText: 'Smoke test reply',
-      sessionId: asked.sessionId,
-    }),
-  });
-  if (!sent.ok) throw new Error(`message ${sent.status}`);
+  // Login returns the same shape; /me agrees.
+  const login = await call('POST', '/auth/login', { body: { email: seeker.email, password } });
+  assert.equal(login.status, 200); assert.equal(login.json.userId, seeker.userId);
+  assert.equal((await call('GET', '/api/user/me', { token: seeker.token })).json.email, seeker.email);
 
-  const history = await fetch(`${base}/api/Message/getMessagesBySessionId/${asked.sessionId}`, { headers });
-  if (!history.ok || (await history.json()).length !== 2) throw new Error('Persisted history did not contain both messages');
-  const outsiderRes = await fetch(`${base}/auth/register`, {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email: `smoke-${Date.now()}@example.com`, password, flname: 'Isolated smoke user', isSeeker: true, isSolver: false }),
-  });
-  if (!outsiderRes.ok) throw new Error('Could not create isolated outsider');
-  const outsider = await outsiderRes.json();
-  const denied = await fetch(`${base}/api/Message/getMessagesBySessionId/${asked.sessionId}`, {
-    headers: { Authorization: `Bearer ${outsider.token}` },
-  });
-  if (denied.status !== 403) throw new Error('Outsider could read persisted chat');
-  console.log('smoke-flow ok' , { sessionId: asked.sessionId });
+  // Topics: only your own, whatever userId the body claims.
+  const add = await call('POST', '/api/Tags/addUserTags', { token: expert.token, body: [{ tagName: topic, userId: seeker.userId }] });
+  assert.equal(add.status, 200);
+  assert.equal((await call('GET', `/api/Tags/getUserTags/${seeker.userId}`, { token: seeker.token })).json.length, 0);
+  const expertTags = (await call('GET', `/api/Tags/getUserTags/${expert.userId}`, { token: expert.token })).json;
+  assert.equal(expertTags.length, 1);
+  assert.equal((await call('GET', `/api/Tags/getUserTags/${expert.userId}`)).status, 401);
+  // Someone else cannot remove them.
+  await call('DELETE', `/api/Tags/deleteUserTag/${expert.userId}/${expertTags[0].tagId}`, { token: seeker.token });
+  assert.equal((await call('GET', `/api/Tags/getUserTags/${expert.userId}`, { token: expert.token })).json.length, 1);
+
+  // A question on the expert's topic goes straight to that expert.
+  const asked = await call('POST', '/api/Message/postQuestion', { token: seeker.token, body: { message: `Smoke: where to eat? #${topic}`, tag: [{ tagName: topic }] } });
+  assert.equal(asked.status, 200); assert.equal(asked.json.matched, true);
+  const sid = asked.json.sessionId;
+  const expertChats = (await call('GET', `/api/Message/getallsessionssolver/${expert.userId}`, { token: expert.token })).json;
+  assert.ok(expertChats.some(s => s.sessionId === sid && s.peerName === 'Smoke seeker'));
+  assert.equal((await call('GET', `/api/Message/getallsessionssolver/${expert.userId}`, { token: seeker.token })).status, 403);
+
+  const reply = await call('POST', '/api/Message/postMessage', { token: expert.token, body: { messageText: 'Smoke reply', sessionId: sid } });
+  assert.equal(reply.status, 200);
+  assert.equal((await call('GET', `/api/Message/getMessagesBySessionId/${sid}`, { token: seeker.token })).json.length, 2);
+  // Outsiders can neither read nor write.
+  assert.equal((await call('GET', `/api/Message/getMessagesBySessionId/${sid}`, { token: outsider.token })).status, 403);
+  assert.equal((await call('POST', '/api/Message/postMessage', { token: outsider.token, body: { messageText: 'hi', sessionId: sid } })).status, 403);
+  assert.equal((await call('GET', `/api/Message/session/${sid}`, { token: outsider.token })).status, 403);
+  const detail = (await call('GET', `/api/Message/session/${sid}`, { token: seeker.token })).json;
+  assert.equal(detail.peer.userId, expert.userId); assert.equal(detail.blocked, false);
+
+  // Abusive text is refused.
+  const abusive = await call('POST', '/api/Message/postMessage', { token: seeker.token, body: { messageText: 'kill yourself', sessionId: sid } });
+  assert.equal(abusive.status, 422); assert.equal(abusive.json.code, 'CONTENT_BLOCKED');
+
+  // A question nobody matches waits in the open queue; askers never see or claim their own.
+  const open = await call('POST', '/api/Message/postQuestion', { token: seeker.token, body: { message: `Smoke open question ${stamp}` } });
+  assert.equal(open.json.matched, false);
+  const openId = open.json.sessionId;
+  assert.ok((await call('GET', '/api/Message/openQuestions', { token: other.token })).json.some(q => q.sessionId === openId));
+  assert.deepEqual((await call('GET', '/api/Message/openQuestions', { token: outsider.token })).json, []);
+  assert.equal((await call('POST', `/api/Message/claim/${openId}`, { token: outsider.token })).status, 403);
+  assert.equal((await call('POST', `/api/Message/claim/${openId}`, { token: seeker.token })).status, 403);
+  // Two experts race for it: exactly one wins.
+  const race = await Promise.all([expert, other].map(u => call('POST', `/api/Message/claim/${openId}`, { token: u.token })));
+  assert.deepEqual(race.map(r => r.status).sort(), [200, 409]);
+  assert.ok(!(await call('GET', '/api/Message/openQuestions', { token: other.token })).json.some(q => q.sessionId === openId));
+
+  // Report + block: only people you have talked to; the chat closes both ways and leaves both lists.
+  assert.equal((await call('POST', '/api/safety/block', { token: seeker.token, body: { userId: outsider.userId } })).status, 404);
+  assert.equal((await call('POST', '/api/safety/report', { token: seeker.token, body: { userId: expert.userId, reason: 'nonsense' } })).status, 400);
+  const report = await call('POST', '/api/safety/report', { token: seeker.token, body: { userId: expert.userId, sessionId: sid, reason: 'harassment', details: 'smoke test' } });
+  assert.equal(report.status, 201); assert.equal(report.json.blocked, true);
+  for (const u of [seeker, expert]) {
+    const sent = await call('POST', '/api/Message/postMessage', { token: u.token, body: { messageText: 'after block', sessionId: sid } });
+    assert.equal(sent.status, 403); assert.equal(sent.json.code, 'CHAT_CLOSED');
+  }
+  assert.ok(!(await call('GET', `/api/Message/getallsessionsseeker/${seeker.userId}`, { token: seeker.token })).json.some(s => s.sessionId === sid));
+  assert.ok(!(await call('GET', `/api/Message/getallsessionssolver/${expert.userId}`, { token: expert.token })).json.some(s => s.sessionId === sid));
+  assert.equal((await call('GET', '/api/safety/blocks', { token: seeker.token })).json.length, 1);
+  // A blocked expert is not matched to this asker again.
+  const again = await call('POST', '/api/Message/postQuestion', { token: seeker.token, body: { message: `Smoke again #${topic}`, tag: [{ tagName: topic }] } });
+  assert.equal(again.json.matched, false);
+  assert.ok(!(await call('GET', '/api/Message/openQuestions', { token: expert.token })).json.some(q => q.sessionId === again.json.sessionId));
+  assert.equal((await call('DELETE', `/api/safety/block/${expert.userId}`, { token: seeker.token })).status, 200);
+
+  // Profile validation, password change.
+  assert.equal((await call('PUT', '/api/user', { token: seeker.token, body: { userName: 'a b' } })).status, 400);
+  assert.equal((await call('PUT', '/api/user', { token: seeker.token, body: { userName: `smoke_${stamp.replace(/\D/g, '').slice(-8)}`, isSolver: true } })).json.isSolver, true);
+  assert.equal((await call('PUT', '/api/user/updatepassword', { token: seeker.token, body: { oldPassword: password, newPassword: 'short' } })).status, 400);
+  assert.equal((await call('PUT', '/api/user/updatepassword', { token: seeker.token, body: { oldPassword: 'wrong', newPassword: 'another-long-password-1' } })).status, 401);
+
+  // Push tokens: validated, and they follow the last account to register them.
+  const pushToken = `ExponentPushToken[smoke${stamp.replace(/\D/g, '')}]`;
+  assert.equal((await call('POST', '/api/user/pushToken', { token: seeker.token, body: { token: 'nope' } })).status, 400);
+  assert.equal((await call('POST', '/api/user/pushToken', { token: seeker.token, body: { token: pushToken, platform: 'android' } })).status, 200);
+  assert.equal((await call('POST', '/api/user/pushToken', { token: outsider.token, body: { token: pushToken, platform: 'ios' } })).status, 200);
+  assert.equal((await call('DELETE', '/api/user/pushToken', { token: outsider.token, body: { token: pushToken } })).status, 200);
+
+  // Moderation (only when a key is configured for this run).
+  if (adminKey) {
+    const admin = { 'x-admin-key': adminKey };
+    assert.equal((await call('GET', '/admin/reports', { headers: { 'x-admin-key': 'wrong' } })).status, 401);
+    const queue = (await call('GET', '/admin/reports', { headers: admin })).json;
+    const mine = queue.find(r => r.id === report.json.reportId);
+    assert.ok(mine); assert.equal(mine.reported.email, expert.email);
+    assert.ok(mine.messages.some(m => m.messageText === 'Smoke reply'));
+    assert.equal((await call('POST', `/admin/users/${expert.userId}/suspend`, { headers: admin, body: { suspended: true } })).status, 200);
+    assert.equal((await call('GET', '/api/user/me', { token: expert.token })).status, 401);
+    const blockedLogin = await call('POST', '/auth/login', { body: { email: expert.email, password } });
+    assert.equal(blockedLogin.status, 403); assert.equal(blockedLogin.json.code, 'ACCOUNT_SUSPENDED');
+    assert.equal((await call('POST', `/admin/users/${expert.userId}/suspend`, { headers: admin, body: { suspended: false } })).status, 200);
+    assert.equal((await call('POST', `/admin/reports/${mine.id}`, { headers: admin, body: { status: 'resolved' } })).status, 200);
+    assert.equal((await call('GET', `/admin/users?email=${encodeURIComponent(expert.email)}`, { headers: admin })).json.id, expert.userId);
+  } else {
+    assert.equal((await call('GET', '/admin/reports')).status, 503);
+  }
+
+  // Photos: only JPEG/PNG/WebP bytes, readable by the two participants only.
+  const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==', 'base64');
+  const upload = async (bytes, token) => {
+    const form = new FormData();
+    form.append('sessionId', String(openId));
+    form.append('image', new Blob([bytes], { type: 'image/png' }), 'photo.png');
+    const res = await fetch(`${base}/api/Message/uploadImage`, { method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: form });
+    return { status: res.status, json: await res.json().catch(() => null) };
+  };
+  assert.equal((await upload(Buffer.from('<svg onload=alert(1)>'), seeker.token)).status, 415);
+  const photo = await upload(png, seeker.token);
+  assert.equal(photo.status, 200);
+  const photoUrl = photo.json.imageUrl;
+  const claimer = race[0].status === 200 ? expert : other;
+  assert.equal((await call('GET', photoUrl, { token: seeker.token })).status, 200);
+  assert.equal((await call('GET', photoUrl, { token: claimer.token })).status, 200);
+  assert.equal((await call('GET', photoUrl, { token: outsider.token })).status, 404);
+  assert.equal((await call('GET', photoUrl)).status, 401);
+
+  // Account deletion: needs the password, removes the conversations for both sides, kills the token.
+  assert.equal((await call('DELETE', '/api/user', { token: seeker.token, body: { password: 'wrong' } })).status, 401);
+  assert.equal((await call('DELETE', '/api/user', { token: seeker.token, body: { password } })).status, 200);
+  assert.equal((await call('GET', '/api/user/me', { token: seeker.token })).status, 401);
+  assert.equal((await call('POST', '/auth/login', { body: { email: seeker.email, password } })).status, 401);
+  assert.equal((await call('GET', `/api/Message/getMessagesBySessionId/${sid}`, { token: expert.token })).status, 403);
+  assert.ok(!(await call('GET', `/api/Message/getallsessionssolver/${expert.userId}`, { token: expert.token })).json.some(s => s.sessionId === sid));
+  // The photo went with the conversation, for the other participant too.
+  assert.equal((await call('GET', photoUrl, { token: claimer.token })).status, 404);
+
+  for (const u of [expert, other, outsider]) {
+    assert.equal((await call('DELETE', '/api/user', { token: u.token, body: { password } })).status, 200);
+  }
+  console.log('smoke-flow ok', { sessions: [sid, openId], moderation: adminKey ? 'checked' : 'skipped (no ADMIN_API_KEY)' });
 }
 
 main().catch(err => {

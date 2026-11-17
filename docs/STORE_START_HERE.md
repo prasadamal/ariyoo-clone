@@ -10,7 +10,7 @@ This repo is prepared so **you** only need accounts, cloud projects, and EAS lin
 
 | App | URL |
 | --- | --- |
-| Ariyoo | `https://prasadamal.github.io/ariyoo-clone/privacy/ariyoo.html` |
+| Ariyoo | `https://prasadamal.github.io/ariyoo-clone/privacy/ariyoo.html` (terms: `ariyoo-terms.html`, deletion: `ariyoo-delete-account.html`) |
 | Wayfare | `https://prasadamal.github.io/ariyoo-clone/privacy/wayfare.html` |
 
 Support email used in listings: **support@ariyoo.app** · Privacy: **privacy@ariyoo.app**
@@ -32,9 +32,14 @@ Support email used in listings: **support@ariyoo.app** · Privacy: **privacy@ari
 
 ## Ariyoo — DONE in repo
 
+- [x] Expo SDK 57 app with terms acceptance, report + block, in-app account deletion, expert topics, open-question queue and push
+- [x] Moderation API + runbook: `services/api/MODERATION.md`
+- [x] Release preflight: `npm run preflight` in `apps/mobile`
+- [x] Device test table: `apps/mobile/store/SUBMISSION_CHECKLIST.md` §5
+
 - [x] API smoke script: `services/api/scripts/smoke-flow.mjs`
 - [x] Production deploy template: `services/api/DEPLOY_PRODUCTION.md` + `Dockerfile`
-- [x] Demo seed users documented in `store/APP_REVIEW_NOTES.md`
+- [x] Reviewer account steps in `store/APP_REVIEW_NOTES.md`
 - [x] `.env.example` for mobile + API
 
 ## Wayfare — DONE in repo
@@ -61,8 +66,10 @@ Support email used in listings: **support@ariyoo.app** · Privacy: **privacy@ari
 ### 2. Ariyoo backend
 
 - [ ] Deploy API per `services/api/DEPLOY_PRODUCTION.md` → note HTTPS URL
-- [ ] Run `prisma migrate deploy` + `prisma:seed` on production DB
-- [ ] Set `EXPO_PUBLIC_API_URL` in EAS secrets for `apps/mobile`
+- [ ] Run `npx prisma migrate deploy` on the production database (do **not** run the demo seed there)
+- [ ] Set `ADMIN_API_KEY` and a persistent `UPLOAD_DIR` on the host; name who checks reports daily (`services/api/MODERATION.md`)
+- [ ] Set `EXPO_PUBLIC_API_URL` as an EAS environment variable for `apps/mobile` (`apps/mobile/store/EAS_SECRETS.md`)
+- [ ] Register the two reviewer accounts and add yourself as the first expert with real topics
 
 ### 3. Wayfare backend
 

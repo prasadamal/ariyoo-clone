@@ -23,6 +23,8 @@ export interface AskQuery {
     flname: string;
     isSeeker: boolean;
     isSolver: boolean;
+    /** Must be true: the API refuses registration without agreement to the terms. */
+    acceptedTerms?: boolean;
   }
 
   export interface Place {

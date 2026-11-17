@@ -10,9 +10,14 @@ const allowedOrigins = (process.env.CORS_ORIGINS || '').split(',').map(s => s.tr
 if (production && (!allowedOrigins.length || allowedOrigins.includes('*'))) {
   throw new Error('Production requires explicit CORS_ORIGINS');
 }
+if (production && process.env.ADMIN_API_KEY && process.env.ADMIN_API_KEY.length < 24) {
+  throw new Error('ADMIN_API_KEY must be at least 24 characters');
+}
 export const config = {
   port: Number(process.env.PORT || 3333),
   jwtSecret,
   uploadDir: process.env.UPLOAD_DIR || './uploads',
   corsOrigin: allowedOrigins.length ? allowedOrigins : !production,
+  /** Moderator key for /admin routes. They answer 503 until it is set. */
+  adminApiKey: process.env.ADMIN_API_KEY || '',
 };

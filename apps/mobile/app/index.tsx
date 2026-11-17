@@ -2,9 +2,23 @@ import { Redirect } from 'expo-router';
 import { ActivityIndicator, View } from 'react-native';
 import { Text } from 'react-native-paper';
 import { useAuth } from '../src/context/AuthContext';
+import { isApiConfigured, SUPPORT_EMAIL } from '../src/config';
 
 export default function Index() {
   const { user, loading } = useAuth();
+
+  // A build made without its server address. The release preflight stops this before upload;
+  // this screen is the safety net so nobody stares at endless spinners.
+  if (!isApiConfigured) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', padding: 24, backgroundColor: '#0f172a' }}>
+        <Text variant="headlineSmall" style={{ marginBottom: 8 }}>Ariyoo is not connected</Text>
+        <Text style={{ color: '#94a3b8' }}>
+          This version was built without a server address. Please update the app, or write to {SUPPORT_EMAIL}.
+        </Text>
+      </View>
+    );
+  }
 
   if (loading) {
     return (
