@@ -16,7 +16,6 @@ if (production && process.env.ADMIN_API_KEY && process.env.ADMIN_API_KEY.length 
 export const config = {
   port: Number(process.env.PORT || 3333),
   jwtSecret,
-  uploadDir: process.env.UPLOAD_DIR || './uploads',
   corsOrigin: allowedOrigins.length ? allowedOrigins : !production,
   /** Moderator key for /admin routes. They answer 503 until it is set. */
   adminApiKey: process.env.ADMIN_API_KEY || '',

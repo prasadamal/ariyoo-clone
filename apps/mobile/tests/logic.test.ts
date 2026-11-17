@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { apiBase, checkRelease, envValue, type ReleaseInputs } from '../src/lib/release';
 import { mergeSessions, sessionSubtitle } from '../src/lib/sessionList';
-import { cleanTopic, emailProblem, hashtags, passwordProblem } from '../src/lib/validation';
+import { cleanTopic, emailProblem, hashtags, passwordProblem, photoResizeTarget } from '../src/lib/validation';
 
 test('placeholders and blanks count as unset', () => {
   for (const v of [undefined, null, '', '  ', 'https://YOUR_HOST/api', 'REPLACE_WITH_TEAM_ID', 'https://api.example.com', '00000000-0000-4000-8000-000000000000']) {
@@ -78,4 +78,13 @@ test('conversation list merges both roles, newest first, with clear status lines
   assert.deepEqual(merged.map(s => s.sessionId), [2, 3, 1, 4]);
   assert.equal(merged[0].title, 'b');
   assert.deepEqual(merged.map(sessionSubtitle), ['Answered by Asha', 'You are answering Ravi', 'Waiting for an expert', 'Closed']);
+});
+
+test('photos are scaled down by their longer side, and small or unknown ones are left alone', () => {
+  assert.deepEqual(photoResizeTarget(4000, 3000), { width: 1280 });
+  assert.deepEqual(photoResizeTarget(3000, 4000), { height: 1280 });
+  assert.deepEqual(photoResizeTarget(1280, 1280), null);
+  assert.deepEqual(photoResizeTarget(800, 600), null);
+  assert.deepEqual(photoResizeTarget(undefined, 600), null);
+  assert.deepEqual(photoResizeTarget(0, 0), null);
 });

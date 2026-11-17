@@ -17,7 +17,6 @@ COPY package.json package-lock.json ./
 RUN npm ci --omit=dev --ignore-scripts
 COPY --from=build /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=build /app/dist ./dist
-RUN mkdir -p uploads && chown node:node uploads
 USER node
 EXPOSE 3333
 CMD ["node", "dist/index.js"]

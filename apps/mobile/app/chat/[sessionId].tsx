@@ -1,3 +1,4 @@
+import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
@@ -8,6 +9,7 @@ import { api, errorCode, errorMessage } from '../../src/api/client';
 import { useAuth } from '../../src/context/AuthContext';
 import { getApiBaseUrl } from '../../src/config';
 import { chatReducer, initialChatState, type ChatMessage } from '../../src/chatState';
+import { photoResizeTarget } from '../../src/lib/validation';
 
 type SessionInfo = {
   title: string;
@@ -139,11 +141,17 @@ function ChatConversation({ sid }: { sid: number }) {
       if (result.canceled || !result.assets[0] || !mounted.current) return;
       dispatch({ type: 'operation', operation: 'uploading' });
       const asset = result.assets[0];
+      // Shrink before upload: faster on mobile data, and photos are stored in a small free database.
+      const context = ImageManipulator.manipulate(asset.uri);
+      const target = photoResizeTarget(asset.width, asset.height);
+      if (target) context.resize(target);
+      const rendered = await context.renderAsync();
+      const small = await rendered.saveAsync({ format: SaveFormat.JPEG, compress: 0.7 });
       const form = new FormData();
       form.append('senderId', String(user.userId));
       form.append('sessionId', String(sid));
       form.append('image', {
-        uri: asset.uri, name: 'upload.jpg', type: asset.mimeType || 'image/jpeg',
+        uri: small.uri, name: 'upload.jpg', type: 'image/jpeg',
       } as unknown as Blob);
       const res = await api.post<ChatMessage>('/api/Message/uploadImage', form, {
         headers: { 'Content-Type': 'multipart/form-data' },

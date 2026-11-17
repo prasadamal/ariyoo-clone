@@ -4,8 +4,19 @@ import { getItem } from '../storage';
 
 export const api = axios.create({
   baseURL: getApiBaseUrl(),
-  timeout: 30000,
+  // A sleeping free-tier host can need about a minute to wake, so requests wait longer than usual.
+  timeout: 70000,
 });
+
+/**
+ * Wakes the server in the background when the app opens, so a host that sleeps when idle is already
+ * starting while the person reads the first screen. Never throws and never blocks anything.
+ */
+export function wakeServer(): void {
+  const base = getApiBaseUrl();
+  if (!base) return;
+  axios.get(`${base}/health`, { timeout: 90000 }).catch(() => undefined);
+}
 
 api.interceptors.request.use(async config => {
   const token = await getItem('token');

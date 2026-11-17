@@ -132,47 +132,47 @@
       "path": "apps/mobile/app/chat/[sessionId].tsx",
       "evidence": [
         {
-          "line": 3,
+          "line": 4,
           "text": "import { useCallback, useEffect, useReducer, useRef, useState } from 'react';"
         },
         {
-          "line": 14,
+          "line": 16,
           "text": "active: boolean;"
         },
         {
-          "line": 41,
+          "line": 43,
           "text": "const [state, dispatch] = useReducer(chatReducer, initialChatState);"
         },
         {
-          "line": 42,
+          "line": 44,
           "text": "const [text, setText] = useState('');"
         },
         {
-          "line": 43,
+          "line": 45,
           "text": "const [info, setInfo] = useState<SessionInfo | null>(null);"
         },
         {
-          "line": 44,
+          "line": 46,
           "text": "const [menu, setMenu] = useState(false);"
         },
         {
-          "line": 45,
+          "line": 47,
           "text": "const [dialog, setDialog] = useState<'report' | 'block' | null>(null);"
         },
         {
-          "line": 46,
+          "line": 48,
           "text": "const [reason, setReason] = useState('harassment');"
         },
         {
-          "line": 47,
+          "line": 49,
           "text": "const [details, setDetails] = useState('');"
         },
         {
-          "line": 48,
+          "line": 50,
           "text": "const [working, setWorking] = useState(false);"
         },
         {
-          "line": 49,
+          "line": 51,
           "text": "const [dialogError, setDialogError] = useState('');"
         }
       ]
@@ -251,7 +251,7 @@
       "path": "apps/mobile/src/api/client.ts",
       "evidence": [
         {
-          "line": 27,
+          "line": 38,
           "text": "if (error.response?.status === 401 && !url.startsWith('/auth/') && error.config?.method !== 'delete') onSessionEnded?.();"
         }
       ]
@@ -2851,27 +2851,27 @@
       "path": "services/api/src/routes/message.ts",
       "evidence": [
         {
-          "line": 26,
+          "line": 23,
           "text": "type SessionRow = { id: number; seekerId: number; solverId: number | null; title: string; active: boolean; updatedAt: Date };"
         },
         {
-          "line": 44,
+          "line": 41,
           "text": "active: s.active,"
         },
         {
-          "line": 64,
+          "line": 61,
           "text": "select: { id: true, tags: { select: { tag: { select: { name: true } } } }, _count: { select: { solverSessions: { where: { active: true } } } } },"
         },
         {
-          "line": 90,
+          "line": 87,
           "text": "where: { solverId: null, active: true, seekerId: { notIn: [userId, ...blocked] } },"
         },
         {
-          "line": 108,
+          "line": 105,
           "text": "const claimed = await prisma.session.updateMany({ where: { id: session.id, solverId: null, active: true }, data: { solverId: userId } });"
         },
         {
-          "line": 135,
+          "line": 132,
           "text": "sessionId: session.id, title: session.title, active: session.active,"
         }
       ]

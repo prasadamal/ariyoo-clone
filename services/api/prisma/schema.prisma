@@ -140,3 +140,13 @@ model PushToken {
 
   @@index([userId])
 }
+
+
+/// Chat photos, kept in the database so the API needs no disk (a free host has none).
+/// `name` is the file name inside Message.imageUrl (`/uploads/<name>`).
+model Upload {
+  name        String   @id
+  contentType String
+  data        Bytes
+  createdAt   DateTime @default(now())
+}

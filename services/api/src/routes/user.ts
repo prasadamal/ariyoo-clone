@@ -1,10 +1,8 @@
 import { Router } from 'express';
 import bcrypt from 'bcryptjs';
-import fs from 'fs';
 import path from 'path';
 import { z } from 'zod';
 import { prisma } from '../prisma.js';
-import { config } from '../config.js';
 import { requireAuth, AuthRequest } from '../middleware/auth.js';
 import { containsBlockedContent } from '../lib/contentFilter.js';
 import { EXPO_TOKEN } from '../lib/push.js';
@@ -77,20 +75,19 @@ export async function deleteAccount(userId: number): Promise<{ sessions: number;
   const images = sessionIds.length
     ? await prisma.message.findMany({ where: { sessionId: { in: sessionIds }, imageUrl: { not: null } }, select: { imageUrl: true } })
     : [];
-  await prisma.$transaction([
+  const names = images.map(({ imageUrl }) => path.basename(imageUrl || '')).filter(name => /^[a-f0-9-]+\.(jpg|png|webp)$/.test(name));
+  const [, , , , , , removed] = await prisma.$transaction([
     prisma.message.deleteMany({ where: { sessionId: { in: sessionIds } } }),
     prisma.session.deleteMany({ where: { id: { in: sessionIds } } }),
     prisma.block.deleteMany({ where: { OR: [{ blockerId: userId }, { blockedId: userId }] } }),
     // Reports this member filed go with them; reports about them stay for the moderator, by id only.
     prisma.report.deleteMany({ where: { reporterId: userId } }),
     prisma.user.delete({ where: { id: userId } }),
+    prisma.pushToken.deleteMany({ where: { userId } }),
+    // The photos go with the conversations, for the other participant too.
+    prisma.upload.deleteMany({ where: { name: { in: names } } }),
   ]);
-  let files = 0;
-  for (const { imageUrl } of images) {
-    const name = path.basename(imageUrl || '');
-    if (!/^[a-f0-9-]+\.(jpg|png|webp)$/.test(name)) continue;
-    await fs.promises.unlink(path.resolve(config.uploadDir, name)).then(() => { files += 1; }).catch(() => {});
-  }
+  const files = removed.count;
   return { sessions: sessionIds.length, files };
 }
 

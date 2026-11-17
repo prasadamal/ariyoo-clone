@@ -67,7 +67,7 @@ Support email used in listings: **support@ariyoo.app** · Privacy: **privacy@ari
 
 - [ ] Deploy API per `services/api/DEPLOY_PRODUCTION.md` → note HTTPS URL
 - [ ] Run `npx prisma migrate deploy` on the production database (do **not** run the demo seed there)
-- [ ] Set `ADMIN_API_KEY` and a persistent `UPLOAD_DIR` on the host; name who checks reports daily (`services/api/MODERATION.md`)
+- [ ] Set `ADMIN_API_KEY` on the host (photos are stored in the database, no disk needed); name who checks reports daily (`services/api/MODERATION.md`)
 - [ ] Set `EXPO_PUBLIC_API_URL` as an EAS environment variable for `apps/mobile` (`apps/mobile/store/EAS_SECRETS.md`)
 - [ ] Register the two reviewer accounts and add yourself as the first expert with real topics
 

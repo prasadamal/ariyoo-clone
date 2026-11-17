@@ -32,3 +32,13 @@ export function hashtags(text: string): string[] {
   for (const m of text.matchAll(/#([\p{L}\p{N}][\p{L}\p{M}\p{N}_-]{1,39})/gu)) found.add(m[1].toLowerCase());
   return [...found];
 }
+
+/**
+ * Size to scale a photo down to so its longer side is at most `max` pixels, or null when it is
+ * already small enough (or its size is unknown). Chat photos are stored in a free-tier database,
+ * so a phone's 12-megapixel original is shrunk before upload: about 200 KB instead of several MB.
+ */
+export function photoResizeTarget(width: number | undefined, height: number | undefined, max = 1280): { width: number } | { height: number } | null {
+  if (!width || !height || Math.max(width, height) <= max) return null;
+  return width >= height ? { width: max } : { height: max };
+}

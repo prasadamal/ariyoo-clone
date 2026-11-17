@@ -2,14 +2,11 @@ import { Router } from 'express';
 import { prisma } from '../prisma.js';
 import { requireAuth, AuthRequest } from '../middleware/auth.js';
 import multer from 'multer';
-import { config } from '../config.js';
 import { pickSolver } from '../utils/matching.js';
 import { emitSessionMessage } from '../io.js';
 import { blockedIdsFor, isBlockedPair } from '../lib/safety.js';
 import { containsBlockedContent } from '../lib/contentFilter.js';
 import { notifyUsers } from '../lib/push.js';
-import path from 'path';
-import fs from 'fs';
 import { randomUUID } from 'crypto';
 import { z } from 'zod';
 
@@ -191,20 +188,14 @@ messageRouter.post('/uploadImage', requireAuth, upload.single('image'), async (r
     : b.length >= 12 && b.toString('ascii', 0, 4) === 'RIFF' && b.toString('ascii', 8, 12) === 'WEBP' ? 'webp' : null;
   if (!ext) return res.status(415).json({ message: 'Use a JPEG, PNG or WebP image' });
   const filename = `${randomUUID()}.${ext}`;
-  const finalPath = path.join(config.uploadDir, filename);
   const imgUrl = `/uploads/${filename}`;
-  await fs.promises.writeFile(finalPath, b, { flag: 'wx' });
-  let msg;
-  try {
-    msg = await prisma.$transaction(async tx => {
-      const created = await tx.message.create({ data: { senderId, sessionId: numericSession, imageUrl: imgUrl } });
-      await tx.session.update({ where: { id: numericSession }, data: { updatedAt: new Date() } });
-      return created;
-    });
-  } catch (error) {
-    await fs.promises.unlink(finalPath).catch(() => {});
-    throw error;
-  }
+  // Photo and message are one transaction: no orphaned photo, no message without its photo.
+  const msg = await prisma.$transaction(async tx => {
+    await tx.upload.create({ data: { name: filename, contentType: ext === 'jpg' ? 'image/jpeg' : `image/${ext}`, data: b } });
+    const created = await tx.message.create({ data: { senderId, sessionId: numericSession, imageUrl: imgUrl } });
+    await tx.session.update({ where: { id: numericSession }, data: { updatedAt: new Date() } });
+    return created;
+  });
   emitSessionMessage(numericSession, msg);
   void notifyUsers([peerId], 'reply', numericSession);
   res.json(msg);

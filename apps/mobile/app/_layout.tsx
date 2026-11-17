@@ -1,6 +1,8 @@
 import { Stack } from 'expo-router';
+import { useEffect } from 'react';
 import { Provider as PaperProvider } from 'react-native-paper';
 import { StatusBar } from 'expo-status-bar';
+import { wakeServer } from '../src/api/client';
 import { AuthProvider, useAuth } from '../src/context/AuthContext';
 import { useNotificationTaps } from '../src/notifications';
 import { appTheme } from '../src/theme';
@@ -20,6 +22,7 @@ function Screens() {
 }
 
 export default function RootLayout() {
+  useEffect(() => { wakeServer(); }, []);
   return (
     <AuthProvider>
       <PaperProvider theme={appTheme}>

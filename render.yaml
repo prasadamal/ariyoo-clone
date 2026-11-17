@@ -1,0 +1,31 @@
+# Render Blueprint for the Ariyoo API (services/api). Free plan: the service sleeps after 15 minutes
+# without traffic and needs up to a minute to wake; the apps wake it when they open.
+# Upgrade path: change `plan: free` to `starter` (about $7/month) for an always-on server.
+services:
+  - type: web
+    name: ariyoo-api
+    runtime: docker
+    dockerfilePath: ./services/api/Dockerfile
+    dockerContext: ./services/api
+    plan: free
+    # Singapore: closest Render region to India.
+    region: singapore
+    branch: main
+    autoDeploy: true
+    healthCheckPath: /ready
+    envVars:
+      - key: NODE_ENV
+        value: production
+      # One proxy sits in front of the app; needed for per-client rate limits.
+      - key: TRUST_PROXY
+        value: '1'
+      # Origins allowed for the web app (the mobile app is not affected by CORS).
+      - key: CORS_ORIGINS
+        value: https://prasadamal.github.io
+      # Connection string of the Neon database (set in the Render dashboard, never in git).
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: ADMIN_API_KEY
+        generateValue: true
