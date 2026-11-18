@@ -1,4 +1,4 @@
-name: Mobile EAS Build
+name: Ariyoo validation and manual store build
 
 on:
   workflow_dispatch:
@@ -22,6 +22,20 @@ jobs:
       run:
         working-directory: apps/mobile
     steps:
+      - name: Check requested store build configuration
+        working-directory: .
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          EAS_PROJECT_ID: ${{ vars.ARIYOO_EAS_PROJECT_ID }}
+        run: |
+          if [ -z "$EXPO_TOKEN" ]; then
+            echo "::error::Set the EXPO_TOKEN repository secret before requesting a store build."
+            exit 1
+          fi
+          if [ -z "$EAS_PROJECT_ID" ]; then
+            echo "::error::Set the ARIYOO_EAS_PROJECT_ID repository variable to this app's Expo project UUID."
+            exit 1
+          fi
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
@@ -40,7 +54,12 @@ jobs:
           npx expo export --platform ios --output-dir "$RUNNER_TEMP/export-ios"
       - name: Native project generation
         run: npx expo prebuild --platform all --no-install
-      # Store builds are started by hand (Actions → Mobile EAS Build → Run workflow), never by a push.
       - name: EAS Build (production)
-        if: github.event_name == 'workflow_dispatch' && env.EXPO_TOKEN != ''
-        run: npx eas-cli build --platform all --profile production --non-interactive --no-wait
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          EAS_PROJECT_ID: ${{ vars.ARIYOO_EAS_PROJECT_ID }}
+        run: npx --yes eas-cli@27.10.0 build --platform all --profile production --non-interactive --wait
+      - name: Explain validation-only run
+        if: github.event_name != 'workflow_dispatch'
+        run: |
+          echo "Validation only. No signed Android or iOS build was requested. Use Run workflow to request a production build." >> "$GITHUB_STEP_SUMMARY"
