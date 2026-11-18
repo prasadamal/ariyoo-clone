@@ -16,7 +16,7 @@ export function getApiBaseUrl(): string {
 
 export const isApiConfigured = getApiBaseUrl() !== '';
 
-const PAGES_BASE = 'https://prasadamal.github.io/ariyoo-clone';
+const PAGES_BASE = 'https://ariyoo-docs.onrender.com';
 export const PRIVACY_URL = `${PAGES_BASE}/privacy/ariyoo.html`;
 export const TERMS_URL = `${PAGES_BASE}/privacy/ariyoo-terms.html`;
 export const SUPPORT_EMAIL = 'support@ariyoo.app';

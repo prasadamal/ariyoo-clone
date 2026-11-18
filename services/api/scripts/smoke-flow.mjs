@@ -144,7 +144,8 @@ async function main() {
     assert.equal((await call('POST', `/admin/reports/${mine.id}`, { headers: admin, body: { status: 'resolved' } })).status, 200);
     assert.equal((await call('GET', `/admin/users?email=${encodeURIComponent(expert.email)}`, { headers: admin })).json.id, expert.userId);
   } else {
-    assert.equal((await call('GET', '/admin/reports')).status, 503);
+    // Without a key in this run: 503 when the server has none configured, 401 when it has one (a real deployment).
+    assert.ok([401, 503].includes((await call('GET', '/admin/reports')).status));
   }
 
   // Photos: only JPEG/PNG/WebP bytes, readable by the two participants only.

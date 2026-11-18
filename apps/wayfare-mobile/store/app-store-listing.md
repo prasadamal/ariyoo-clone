@@ -44,10 +44,10 @@ Primary: Travel · Secondary: Social Networking
 https://github.com/prasadamal/ariyoo-clone
 
 ## Privacy policy URL
-https://prasadamal.github.io/ariyoo-clone/privacy/wayfare.html
+https://ariyoo-docs.onrender.com/privacy/wayfare.html
 
 ## License agreement
-Custom EULA → paste https://prasadamal.github.io/ariyoo-clone/privacy/wayfare-terms.html (contains the zero-tolerance UGC clause).
+Custom EULA → paste https://ariyoo-docs.onrender.com/privacy/wayfare-terms.html (contains the zero-tolerance UGC clause).
 
 ## Age rating
 Expected 17+ (user-generated content, users can chat and meet) — see `DATA_SAFETY_AND_PRIVACY.md`.

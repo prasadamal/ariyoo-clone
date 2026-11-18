@@ -7,7 +7,7 @@ data field is added.
 
 Does the app collect or share user data? **Yes, collects. Shares: No.**
 Is all data encrypted in transit? **Yes.** Can users request deletion? **Yes**
-(in app, and https://prasadamal.github.io/ariyoo-clone/privacy/ariyoo-delete-account.html).
+(in app, and https://ariyoo-docs.onrender.com/privacy/ariyoo-delete-account.html).
 
 | Data type | Collected | Shared | Required | Purpose |
 | --- | --- | --- | --- | --- |

@@ -40,7 +40,7 @@ Complete the IARC questionnaire: users interact, share location and user-generat
 support@ariyoo.app
 
 ## Privacy policy URL
-https://prasadamal.github.io/ariyoo-clone/privacy/wayfare.html
+https://ariyoo-docs.onrender.com/privacy/wayfare.html
 
 ## Data safety
 See `DATA_SAFETY_AND_PRIVACY.md` (includes the background-location declaration text).

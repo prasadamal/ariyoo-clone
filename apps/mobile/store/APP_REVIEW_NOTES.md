@@ -45,9 +45,9 @@ The app has no purchases, ads or tracking.
 
 | Field | URL |
 | --- | --- |
-| Privacy policy | https://prasadamal.github.io/ariyoo-clone/privacy/ariyoo.html |
-| Terms of use (Apple "License Agreement" / EULA link) | https://prasadamal.github.io/ariyoo-clone/privacy/ariyoo-terms.html |
-| Account deletion (Google Play "Delete account URL") | https://prasadamal.github.io/ariyoo-clone/privacy/ariyoo-delete-account.html |
+| Privacy policy | https://ariyoo-docs.onrender.com/privacy/ariyoo.html |
+| Terms of use (Apple "License Agreement" / EULA link) | https://ariyoo-docs.onrender.com/privacy/ariyoo-terms.html |
+| Account deletion (Google Play "Delete account URL") | https://ariyoo-docs.onrender.com/privacy/ariyoo-delete-account.html |
 
 The pages go live after the "Deploy privacy policies" workflow has run on `main`
 (see `docs/STORE_START_HERE.md`).

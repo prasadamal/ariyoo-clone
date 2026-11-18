@@ -31,7 +31,7 @@ Everyone (questionnaire: user-generated chat content)
 support@ariyoo.app
 
 ## Privacy policy URL
-https://prasadamal.github.io/ariyoo-clone/privacy/ariyoo.html
+https://ariyoo-docs.onrender.com/privacy/ariyoo.html
 
 *(Enable GitHub Pages → Actions once: see `docs/STORE_START_HERE.md`.)*
 
