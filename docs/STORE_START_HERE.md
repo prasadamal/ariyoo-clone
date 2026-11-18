@@ -10,8 +10,8 @@ This repo is prepared so **you** only need accounts, cloud projects, and EAS lin
 
 | App | URL |
 | --- | --- |
-| Ariyoo | `https://prasadamal.github.io/ariyoo-clone/privacy/ariyoo.html` (terms: `ariyoo-terms.html`, deletion: `ariyoo-delete-account.html`) |
-| Wayfare | `https://prasadamal.github.io/ariyoo-clone/privacy/wayfare.html` |
+| Ariyoo | `https://ariyoo-docs.onrender.com/privacy/ariyoo.html` (terms: `ariyoo-terms.html`, deletion: `ariyoo-delete-account.html`) |
+| Wayfare | `https://ariyoo-docs.onrender.com/privacy/wayfare.html` |
 
 Support email used in listings: **support@ariyoo.app** · Privacy: **privacy@ariyoo.app**
 

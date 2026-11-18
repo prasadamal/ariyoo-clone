@@ -25,8 +25,8 @@ Wayfare is a travel journal plus a traveller community.
 5. **Account deletion (Guideline 5.1.1(v)):** You tab → Settings & privacy → *Delete account* (type DELETE). This deletes the account and all its data immediately.
 6. **Safety:** Journeys → shield icon → Safety: SOS opens the SMS composer pre-filled with location for the user's own emergency contacts (nothing is sent automatically); live-location links are user-started and expire.
 
-Privacy policy: https://prasadamal.github.io/ariyoo-clone/privacy/wayfare.html
-Terms of use: https://prasadamal.github.io/ariyoo-clone/privacy/wayfare-terms.html
+Privacy policy: https://ariyoo-docs.onrender.com/privacy/wayfare.html
+Terms of use: https://ariyoo-docs.onrender.com/privacy/wayfare-terms.html
 
 ## Permission strings (why each is requested)
 

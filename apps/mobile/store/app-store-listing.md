@@ -32,7 +32,7 @@ https://github.com/prasadamal/ariyoo-clone
 https://github.com/prasadamal/ariyoo-clone
 
 ## Privacy Policy URL
-https://prasadamal.github.io/ariyoo-clone/privacy/ariyoo.html
+https://ariyoo-docs.onrender.com/privacy/ariyoo.html
 
 ## App Review notes
 See `store/APP_REVIEW_NOTES.md` (demo accounts + reviewer steps).

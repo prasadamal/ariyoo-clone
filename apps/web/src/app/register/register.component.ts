@@ -14,8 +14,8 @@ export class RegisterComponent {
   flname: string = '';
   confirmPassword: string = '';
   acceptedTerms: boolean = false;
-  readonly termsUrl = 'https://prasadamal.github.io/ariyoo-clone/privacy/ariyoo-terms.html';
-  readonly privacyUrl = 'https://prasadamal.github.io/ariyoo-clone/privacy/ariyoo.html';
+  readonly termsUrl = 'https://ariyoo-docs.onrender.com/privacy/ariyoo-terms.html';
+  readonly privacyUrl = 'https://ariyoo-docs.onrender.com/privacy/ariyoo.html';
 
 
   constructor(private router: Router, private authService: AuthService) {}

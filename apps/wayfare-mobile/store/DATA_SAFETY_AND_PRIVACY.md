@@ -7,7 +7,7 @@ Answers mirror the privacy policy (`docs/privacy/wayfare.html`). Re-check them i
 **Does your app collect or share any of the required user data types?** Yes.
 **Is all user data encrypted in transit?** Yes (HTTPS only).
 **Do you provide a way for users to request deletion?** Yes — in-app (You → Settings & privacy → Delete account) and on the web.
-**Delete account URL (required by Play):** `https://prasadamal.github.io/ariyoo-clone/privacy/wayfare-delete-account.html` (`docs/privacy/wayfare-delete-account.html`; use your own legal-site address if you host the pages elsewhere).
+**Delete account URL (required by Play):** `https://ariyoo-docs.onrender.com/privacy/wayfare-delete-account.html` (`docs/privacy/wayfare-delete-account.html`; use your own legal-site address if you host the pages elsewhere).
 **Data shared with third parties?** No (service providers processing on our behalf are not "sharing" under Play's definition).
 
 | Data type | Collected | Optional? | Purpose | Notes |

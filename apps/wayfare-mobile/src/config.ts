@@ -9,7 +9,7 @@ export const supabaseAnonKey =
 
 export const isSupabaseConfigured = isUsableSupabaseConfig(supabaseUrl, supabaseAnonKey);
 
-const PAGES_BASE = 'https://prasadamal.github.io/ariyoo-clone';
+const PAGES_BASE = 'https://ariyoo-docs.onrender.com';
 
 /** Public read-only trip page (GitHub Pages). */
 export function getShareBaseUrl() {

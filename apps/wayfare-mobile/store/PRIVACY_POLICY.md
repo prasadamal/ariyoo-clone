@@ -3,9 +3,9 @@
 The canonical, published versions are the HTML pages (keep this file as a pointer so the two
 cannot drift):
 
-- Privacy policy: `docs/privacy/wayfare.html` → https://prasadamal.github.io/ariyoo-clone/privacy/wayfare.html
+- Privacy policy: `docs/privacy/wayfare.html` → https://ariyoo-docs.onrender.com/privacy/wayfare.html
 - Terms of use (includes the zero-tolerance UGC clause Apple requires): `docs/privacy/wayfare-terms.html`
-  → https://prasadamal.github.io/ariyoo-clone/privacy/wayfare-terms.html
+  → https://ariyoo-docs.onrender.com/privacy/wayfare-terms.html
 
 Summary of what changed in 2.0: public profiles, posts, chats, travel board, tips, trip matching
 (destination + dates), opt-in approximate "nearby" presence (≤24 h), expiring live-location links
