@@ -6,7 +6,7 @@ const BUNDLE_ID = 'com.ariyoo.mobile';
 const BG = '#0f172a';
 // The project id `eas init` prints for this app. EAS builds and push notifications need it, and
 // EAS CLI does not read .env files, so paste it here (or export EAS_PROJECT_ID before eas commands).
-const easProjectId = process.env.EAS_PROJECT_ID || '';
+const easProjectId = process.env.EAS_PROJECT_ID || '543993a6-58b8-48ea-95e5-428693707d81';
 // Android push (FCM): google-services.json from the Firebase console, saved next to this file or
 // uploaded as the EAS file variable GOOGLE_SERVICES_JSON.
 const googleServicesFile =
@@ -17,6 +17,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
   name: 'Ariyoo',
   slug: 'ariyoo',
+  owner: 'prasadaamals-team',
   version: '1.0.0',
   platforms: ['ios', 'android'],
   orientation: 'portrait',

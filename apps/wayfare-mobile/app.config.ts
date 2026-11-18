@@ -13,7 +13,7 @@ const googleServicesFile =
   (fs.existsSync(path.join(__dirname, 'google-services.json')) ? './google-services.json' : undefined);
 // The project id `eas init` prints for this app. EAS builds and remote push need it, and EAS CLI
 // does not read .env files, so paste it here (or export EAS_PROJECT_ID before every eas command).
-const easProjectId = process.env.EAS_PROJECT_ID || '';
+const easProjectId = process.env.EAS_PROJECT_ID || 'ec83155f-8a41-45ac-9f51-0c0a96a320ca';
 
 /**
  * Apple rejects background modes an app does not use (guideline 2.5.4). Wayfare needs exactly one:
@@ -30,6 +30,7 @@ export default ({ config }: ConfigContext): ExpoConfig =>
     ...config,
     name: 'Wayfare',
     slug: 'wayfare',
+    owner: 'prasadaamals-team',
     version: '2.0.0',
     platforms: ['ios', 'android'],
     orientation: 'portrait',
