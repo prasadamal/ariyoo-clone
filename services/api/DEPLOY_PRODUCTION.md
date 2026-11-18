@@ -65,6 +65,8 @@ The `solver@example.com` and `seeker@example.com` accounts receive that password
 API_URL=https://your-api.example.com node scripts/smoke-flow.mjs
 ```
 
+Against a live server from a sandbox that needs a proxy, run it with `NODE_USE_ENV_PROXY=1`. It leaves one test topic behind (topics are shared, not per-account): remove it with `delete from "Tag" where name like 'smoketopic%'`.
+
 The script registers four throwaway accounts, runs the whole flow (matching, the open queue, chat, photos,
 blocking, reporting, deletion) and deletes them again. Add `ADMIN_API_KEY=...` to also check moderation.
 It makes about a dozen sign-up and sign-in calls, so two runs within 15 minutes can hit the sign-in rate limit.
