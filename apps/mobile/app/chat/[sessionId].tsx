@@ -11,6 +11,8 @@ import { getApiBaseUrl } from '../../src/config';
 import { chatReducer, initialChatState, type ChatMessage } from '../../src/chatState';
 import { closeAction, expertRecord, resolvedBanner, type ExpertStats } from '../../src/lib/resolve';
 import { photoResizeTarget } from '../../src/lib/validation';
+import { radius, space, type, useTokens } from '../../src/design/tokens';
+import { Avatar, Pill } from '../../src/design/ui';
 
 type SessionInfo = {
   title: string;
@@ -44,6 +46,7 @@ export default function ChatScreen() {
 
 function ChatConversation({ sid }: { sid: number }) {
   const { user } = useAuth();
+  const { c } = useTokens();
   const [state, dispatch] = useReducer(chatReducer, initialChatState);
   const [text, setText] = useState('');
   const [info, setInfo] = useState<SessionInfo | null>(null);
@@ -225,7 +228,7 @@ function ChatConversation({ sid }: { sid: number }) {
       : null;
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}>
+    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: c.bg }} behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}>
       <Stack.Screen
         options={{
           title: info?.peer?.fullName ?? 'Conversation',
@@ -234,7 +237,7 @@ function ChatConversation({ sid }: { sid: number }) {
               <Menu
                 visible={menu}
                 onDismiss={() => setMenu(false)}
-                anchor={<IconButton icon="dots-vertical" iconColor="#f8fafc" accessibilityLabel="Conversation options" onPress={() => setMenu(true)} />}
+                anchor={<IconButton icon="dots-vertical" iconColor={c.text} accessibilityLabel="Conversation options" onPress={() => setMenu(true)} />}
               >
                 {closing ? (
                   <Menu.Item
@@ -250,8 +253,21 @@ function ChatConversation({ sid }: { sid: number }) {
         }}
       />
       {state.load === 'loading' && messages.length === 0 ? <Text style={{ padding: 12 }}>Loading conversation…</Text> : null}
-      {record ? <Text style={{ paddingHorizontal: 12, paddingTop: 8, color: '#94a3b8' }} accessibilityLabel={`Expert record: ${record}`}>{record}</Text> : null}
-      {banner ? <Text style={{ padding: 12, color: '#94a3b8', backgroundColor: '#1e293b' }}>{banner}</Text> : null}
+      {info?.peer ? (
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.md, paddingHorizontal: space.lg, paddingVertical: space.md, borderBottomWidth: 1, borderBottomColor: c.border, backgroundColor: c.surface }}>
+          <Avatar name={info.peer.fullName} size={40} />
+          <View style={{ flex: 1 }}>
+            <Text style={[type.bodyStrong, { color: c.text }]} numberOfLines={1}>{info.title}</Text>
+            {record ? <Text style={[type.small, { color: c.textMuted }]} accessibilityLabel={`Expert record: ${record}`}>{record}</Text> : null}
+          </View>
+          {info.role === 'seeker' ? <Pill label="Local" tone="expert" /> : null}
+        </View>
+      ) : null}
+      {banner ? (
+        <View style={{ margin: space.md, marginBottom: 0, padding: space.md, borderRadius: radius.md, backgroundColor: info?.resolved && info.helpful ? c.accentSoft : c.surfaceAlt }}>
+          <Text style={[type.small, { color: info?.resolved && info.helpful ? c.onAccentSoft : c.textMuted, fontWeight: '600' }]}>{banner}</Text>
+        </View>
+      ) : null}
       {closing === 'answered' && messages.some(m => m.senderId !== user?.userId) ? (
         <Button mode="contained-tonal" icon="check-circle-outline" onPress={() => { setDialogError(''); setDialog('resolve'); }} style={{ marginHorizontal: 12, marginTop: 8 }}>
           Got your answer? Mark it answered
@@ -259,7 +275,7 @@ function ChatConversation({ sid }: { sid: number }) {
       ) : null}
       {state.error ? (
         <View style={{ padding: 12 }}>
-          <Text accessibilityRole="alert" style={{ color: '#f87171' }}>{state.error}</Text>
+          <Text accessibilityRole="alert" style={{ color: c.danger }}>{state.error}</Text>
           {state.load === 'error' ? <Button onPress={loadMessages}>Retry loading</Button> : null}
         </View>
       ) : null}
@@ -276,23 +292,28 @@ function ChatConversation({ sid }: { sid: number }) {
             <View
               style={{
                 alignSelf: mine ? 'flex-end' : 'flex-start',
-                backgroundColor: mine ? '#1d4ed8' : '#334155',
-                padding: 10,
-                borderRadius: 12,
-                marginBottom: 8,
-                maxWidth: '85%',
+                backgroundColor: mine ? c.bubbleMine : c.bubbleTheirs,
+                borderWidth: mine ? 0 : 1,
+                borderColor: c.border,
+                paddingVertical: space.sm + 2,
+                paddingHorizontal: space.md + 2,
+                borderRadius: radius.lg,
+                borderBottomRightRadius: mine ? 6 : radius.lg,
+                borderBottomLeftRadius: mine ? radius.lg : 6,
+                marginBottom: space.sm,
+                maxWidth: '82%',
               }}
             >
-              {item.messageText ? <Text selectable style={{ color: '#f8fafc' }}>{item.messageText}</Text> : null}
+              {item.messageText ? <Text selectable style={[type.body, { color: mine ? c.onBubbleMine : c.text }]}>{item.messageText}</Text> : null}
               {item.imageUrl ? (
                 <Image
                   accessibilityLabel="Photo"
                   source={{ uri: item.imageUrl.startsWith('http') ? item.imageUrl : `${getApiBaseUrl()}${item.imageUrl}`, headers: { Authorization: `Bearer ${user?.token}` } }}
-                  style={{ width: 220, height: 160, borderRadius: 8, marginTop: 6 }}
+                  style={{ width: 220, height: 160, borderRadius: radius.md, marginTop: 6 }}
                   resizeMode="cover"
                 />
               ) : null}
-              <Text style={{ color: '#cbd5e1', fontSize: 11, marginTop: 4 }}>
+              <Text style={{ color: mine ? c.onBubbleMine : c.textFaint, opacity: mine ? 0.75 : 1, fontSize: 11, marginTop: 4, alignSelf: 'flex-end' }}>
                 {new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
               </Text>
             </View>
@@ -300,7 +321,7 @@ function ChatConversation({ sid }: { sid: number }) {
         }}
       />
       {closed ? null : (
-        <View style={{ flexDirection: 'row', gap: 8, padding: 12, borderTopWidth: 1, borderTopColor: '#334155' }}>
+        <View style={{ flexDirection: 'row', gap: space.sm, padding: space.md, borderTopWidth: 1, borderTopColor: c.border, backgroundColor: c.surface }}>
           <IconButton icon="image-outline" mode="outlined" accessibilityLabel="Send a photo" onPress={pickImage} disabled={sending || !canWrite} style={{ alignSelf: 'center', margin: 0 }} />
           <TextInput
             mode="outlined"
@@ -327,7 +348,7 @@ function ChatConversation({ sid }: { sid: number }) {
                 ? 'Experts will no longer see it. You can always ask again.'
                 : 'The conversation closes for both of you. If it helped, we will let them know.'}
             </Text>
-            {dialogError ? <Text accessibilityRole="alert" style={{ color: '#f87171', marginTop: 8 }}>{dialogError}</Text> : null}
+            {dialogError ? <Text accessibilityRole="alert" style={{ color: c.danger, marginTop: 8 }}>{dialogError}</Text> : null}
           </Dialog.Content>
           <Dialog.Actions>
             <Button onPress={closeDialog} disabled={working}>Cancel</Button>
@@ -350,16 +371,16 @@ function ChatConversation({ sid }: { sid: number }) {
                   {REASONS.map(r => <RadioButton.Item key={r.value} value={r.value} label={r.label} mode="android" style={{ paddingVertical: 0 }} />)}
                 </RadioButton.Group>
                 <TextInput mode="outlined" label="Anything else we should know (optional)" value={details} onChangeText={setDetails} multiline maxLength={1000} style={{ marginTop: 8 }} />
-                <Text style={{ color: '#94a3b8', marginTop: 8 }}>We review reports within 24 hours. This person will also be blocked.</Text>
+                <Text style={{ color: c.textMuted, marginTop: 8 }}>We review reports within 24 hours. This person will also be blocked.</Text>
               </>
             ) : (
               <Text>You will no longer see each other's messages, and you will not be matched again. They are not told.</Text>
             )}
-            {dialogError ? <Text accessibilityRole="alert" style={{ color: '#f87171', marginTop: 8 }}>{dialogError}</Text> : null}
+            {dialogError ? <Text accessibilityRole="alert" style={{ color: c.danger, marginTop: 8 }}>{dialogError}</Text> : null}
           </Dialog.Content>
           <Dialog.Actions>
             <Button onPress={closeDialog} disabled={working}>Cancel</Button>
-            <Button onPress={submitSafety} loading={working} disabled={working} textColor="#f87171">
+            <Button onPress={submitSafety} loading={working} disabled={working} textColor={c.danger}>
               {dialog === 'report' ? 'Send report' : 'Block'}
             </Button>
           </Dialog.Actions>

@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Linking, ScrollView, View } from 'react-native';
-import { Button, Chip, Dialog, Divider, List, Portal, Switch, Text, TextInput } from 'react-native-paper';
+import { Linking, ScrollView, Text as RNText, View } from 'react-native';
+import { Button, Chip, Dialog, List, Portal, Switch, Text, TextInput } from 'react-native-paper';
+import { radius, space, type, useTokens } from '../../src/design/tokens';
+import { Avatar, Card, Notice, Pill, SectionLabel } from '../../src/design/ui';
 import { api, errorMessage, type Profile } from '../../src/api/client';
 import { useAuth } from '../../src/context/AuthContext';
 import { APP_VERSION, PRIVACY_URL, SUPPORT_EMAIL, TERMS_URL } from '../../src/config';
@@ -16,6 +18,7 @@ const open = (url: string) => Linking.openURL(url).catch(() => undefined);
 
 export default function ProfileTab() {
   const { user, signOut, applyProfile } = useAuth();
+  const { c } = useTokens();
   const [userName, setUserName] = useState('');
   const [isSolver, setIsSolver] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -139,66 +142,94 @@ export default function ProfileTab() {
   const dirty = userName.trim() !== (user.userName || '') || isSolver !== !!user.isSolver;
 
   return (
-    <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
-      <Text variant="titleLarge" style={{ marginBottom: 4 }}>{user.fullName}</Text>
-      <Text style={{ color: '#94a3b8', marginBottom: stats ? 8 : 24 }}>{user.email}</Text>
-      {stats ? (
-        <Text style={{ color: '#cbd5e1', marginBottom: 24 }}>
-          {stats.asked === 1 ? '1 question asked' : `${stats.asked} questions asked`}
-          {user.isSolver ? ` · ${expertRecord(stats)}` : ''}
-        </Text>
-      ) : null}
-      <TextInput mode="outlined" label="Username (optional)" value={userName} onChangeText={setUserName} autoCapitalize="none" autoCorrect={false} maxLength={30} style={{ marginBottom: 16 }} />
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-        <View style={{ flex: 1, paddingRight: 12 }}>
-          <Text variant="titleMedium">Answer questions as an expert</Text>
-          <Text style={{ color: '#94a3b8' }}>Get questions on your topics, and pick up open ones.</Text>
+    <ScrollView style={{ backgroundColor: c.bg }} contentContainerStyle={{ padding: space.lg, paddingBottom: space.xxxl }} keyboardShouldPersistTaps="handled">
+      <Card style={{ alignItems: 'center', paddingVertical: space.xl }}>
+        <Avatar name={user.fullName} size={72} />
+        <RNText accessibilityRole="header" style={[type.title, { color: c.text, marginTop: space.md, textAlign: 'center' }]}>{user.fullName}</RNText>
+        <RNText style={[type.small, { color: c.textMuted, marginTop: 2 }]}>{user.email}</RNText>
+        {user.isSolver ? <View style={{ marginTop: space.sm }}><Pill label="Local expert" tone="expert" /></View> : null}
+        {stats ? (
+          <View style={{ flexDirection: 'row', alignSelf: 'stretch', marginTop: space.lg, borderTopWidth: 1, borderTopColor: c.border, paddingTop: space.lg }}>
+            {[
+              { value: stats.asked, label: 'Asked' },
+              ...(user.isSolver ? [{ value: stats.answered, label: 'Answered' }, { value: stats.helpful, label: 'Helped' }] : []),
+            ].map(s => (
+              <View key={s.label} style={{ flex: 1, alignItems: 'center' }} accessible accessibilityLabel={`${s.value} ${s.label}`}>
+                <RNText style={{ color: c.text, fontSize: 22, fontWeight: '800' }}>{s.value}</RNText>
+                <RNText style={[type.small, { color: c.textMuted }]}>{s.label}</RNText>
+              </View>
+            ))}
+          </View>
+        ) : null}
+        {user.isSolver && stats ? <RNText style={[type.small, { color: c.textFaint, marginTop: space.md }]}>{expertRecord(stats)}</RNText> : null}
+      </Card>
+
+      <SectionLabel>Your profile</SectionLabel>
+      <Card>
+        <TextInput mode="outlined" label="Username (optional)" value={userName} onChangeText={setUserName} autoCapitalize="none" autoCorrect={false} maxLength={30} style={{ marginBottom: space.lg, backgroundColor: c.surface }} />
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: space.lg }}>
+          <View style={{ flex: 1, paddingRight: space.md }}>
+            <RNText style={[type.bodyStrong, { color: c.text }]}>Answer as a local expert</RNText>
+            <RNText style={[type.small, { color: c.textMuted }]}>Get questions on your topics, and pick up open ones.</RNText>
+          </View>
+          <Switch value={isSolver} onValueChange={setIsSolver} accessibilityLabel="Answer questions as an expert" />
         </View>
-        <Switch value={isSolver} onValueChange={setIsSolver} accessibilityLabel="Answer questions as an expert" />
-      </View>
-      {notice ? <Text accessibilityRole="alert" style={{ color: notice.ok ? '#4ade80' : '#f87171', marginBottom: 12 }}>{notice.text}</Text> : null}
-      <Button mode="contained" onPress={save} loading={saving} disabled={saving || !dirty} style={{ marginBottom: 24 }}>
-        Save profile
-      </Button>
+        {notice ? <Notice text={notice.text} tone={notice.ok ? 'success' : 'danger'} /> : null}
+        <Button mode="contained" onPress={save} loading={saving} disabled={saving || !dirty} style={{ borderRadius: radius.md }} contentStyle={{ height: 48 }}>
+          Save changes
+        </Button>
+      </Card>
 
       {user.isSolver ? (
-        <View style={{ marginBottom: 24 }}>
-          <Text variant="titleMedium" style={{ marginBottom: 4 }}>Your topics</Text>
-          <Text style={{ color: '#94a3b8', marginBottom: 12 }}>Questions tagged with these come to you first. Add places and subjects you really know.</Text>
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
-            {topics.map(t => <Chip key={t.tagId} onClose={() => removeTopic(t)}>#{t.tagName}</Chip>)}
-            {topics.length === 0 ? <Text style={{ color: '#fbbf24' }}>No topics yet. You will only see the open queue until you add some.</Text> : null}
-          </View>
-          <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
-            <TextInput mode="outlined" dense label="Add a topic" value={newTopic} onChangeText={setNewTopic} autoCapitalize="none" maxLength={40} onSubmitEditing={addTopic} style={{ flex: 1 }} />
-            <Button mode="contained-tonal" onPress={addTopic} loading={topicBusy} disabled={topicBusy || !newTopic.trim()}>Add</Button>
-          </View>
-        </View>
+        <>
+          <SectionLabel>Your topics</SectionLabel>
+          <Card>
+            <RNText style={[type.small, { color: c.textMuted, marginBottom: space.md }]}>Questions tagged with these come to you first. Add places and subjects you really know.</RNText>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.sm, marginBottom: space.md }}>
+              {topics.map(t => <Chip key={t.tagId} onClose={() => removeTopic(t)} closeIconAccessibilityLabel={`Remove ${t.tagName}`}>#{t.tagName}</Chip>)}
+              {topics.length === 0 ? <Notice text="No topics yet. You will only see the open queue until you add some." /> : null}
+            </View>
+            <View style={{ flexDirection: 'row', gap: space.sm, alignItems: 'center' }}>
+              <TextInput mode="outlined" dense label="Add a topic" placeholder="e.g. kochi" value={newTopic} onChangeText={setNewTopic} autoCapitalize="none" maxLength={40} onSubmitEditing={addTopic} style={{ flex: 1, backgroundColor: c.surface }} />
+              <Button mode="contained-tonal" onPress={addTopic} loading={topicBusy} disabled={topicBusy || !newTopic.trim()}>Add</Button>
+            </View>
+          </Card>
+        </>
       ) : null}
 
       {blocked.length > 0 ? (
-        <View style={{ marginBottom: 24 }}>
-          <Text variant="titleMedium" style={{ marginBottom: 4 }}>Blocked people</Text>
-          {blocked.map(b => (
-            <List.Item key={b.userId} title={b.fullName} style={{ paddingHorizontal: 0 }} right={() => <Button compact onPress={() => unblock(b)}>Unblock</Button>} />
-          ))}
-        </View>
+        <>
+          <SectionLabel>Blocked people</SectionLabel>
+          <Card style={{ paddingVertical: space.xs }}>
+            {blocked.map(b => (
+              <List.Item key={b.userId} title={b.fullName} titleStyle={{ color: c.text }} left={() => <Avatar name={b.fullName} size={36} />} style={{ paddingHorizontal: 0 }} right={() => <Button compact onPress={() => unblock(b)}>Unblock</Button>} />
+            ))}
+          </Card>
+        </>
       ) : null}
 
-      <Divider style={{ marginBottom: 8 }} />
-      <List.Item title="Change password" left={p => <List.Icon {...p} icon="lock-reset" />} onPress={() => { setPw({ current: '', next: '', again: '' }); setPwError(''); setChanging(true); }} style={{ paddingHorizontal: 0 }} />
-      <List.Item title="Terms of Use" left={p => <List.Icon {...p} icon="file-document-outline" />} onPress={() => open(TERMS_URL)} style={{ paddingHorizontal: 0 }} />
-      <List.Item title="Privacy Policy" left={p => <List.Icon {...p} icon="shield-lock-outline" />} onPress={() => open(PRIVACY_URL)} style={{ paddingHorizontal: 0 }} />
-      <List.Item title="Contact support" description={SUPPORT_EMAIL} left={p => <List.Icon {...p} icon="email-outline" />} onPress={() => open(`mailto:${SUPPORT_EMAIL}`)} style={{ paddingHorizontal: 0 }} />
-      <Divider style={{ marginVertical: 8 }} />
+      <SectionLabel>Account and help</SectionLabel>
+      <Card style={{ paddingVertical: space.xs }}>
+        {[
+          { title: 'Change password', icon: 'lock-reset', onPress: () => { setPw({ current: '', next: '', again: '' }); setPwError(''); setChanging(true); } },
+          { title: 'Contact support', icon: 'email-outline', description: SUPPORT_EMAIL, onPress: () => open(`mailto:${SUPPORT_EMAIL}`) },
+          { title: 'Terms of Use', icon: 'file-document-outline', onPress: () => open(TERMS_URL) },
+          { title: 'Privacy Policy', icon: 'shield-lock-outline', onPress: () => open(PRIVACY_URL) },
+        ].map((row, i) => (
+          <List.Item key={row.title} title={row.title} description={row.description} titleStyle={{ color: c.text, fontWeight: '600' }} descriptionStyle={{ color: c.textMuted }}
+            left={p => <List.Icon {...p} icon={row.icon} color={c.accent} />} right={p => <List.Icon {...p} icon="chevron-right" color={c.textFaint} />}
+            onPress={row.onPress} accessibilityRole="button"
+            style={{ paddingHorizontal: 0, borderTopWidth: i ? 1 : 0, borderTopColor: c.border }} />
+        ))}
+      </Card>
 
-      <Button mode="outlined" onPress={() => signOut()} style={{ marginTop: 8, marginBottom: 12 }}>
+      <Button mode="outlined" onPress={() => signOut()} style={{ marginTop: space.xl, borderRadius: radius.md }} contentStyle={{ height: 48 }}>
         Sign out
       </Button>
-      <Button mode="text" textColor="#f87171" onPress={() => { setPassword(''); setDeleteError(''); setDeleting(true); }}>
+      <Button mode="text" textColor={c.danger} onPress={() => { setPassword(''); setDeleteError(''); setDeleting(true); }} style={{ marginTop: space.sm }}>
         Delete account
       </Button>
-      <Text style={{ color: '#64748b', fontSize: 12, marginTop: 16, textAlign: 'center' }}>Ariyoo {APP_VERSION}</Text>
+      <RNText style={[type.small, { color: c.textFaint, marginTop: space.lg, textAlign: 'center' }]}>Ariyoo {APP_VERSION}</RNText>
 
       <Portal>
         <Dialog visible={changing} onDismiss={() => { if (!pwBusy) setChanging(false); }}>
@@ -207,7 +238,7 @@ export default function ProfileTab() {
             <TextInput mode="outlined" label="Current password" value={pw.current} onChangeText={v => setPw(c => ({ ...c, current: v }))} secureTextEntry autoComplete="current-password" style={{ marginBottom: 8 }} />
             <TextInput mode="outlined" label="New password (12+ characters)" value={pw.next} onChangeText={v => setPw(c => ({ ...c, next: v }))} secureTextEntry autoComplete="new-password" style={{ marginBottom: 8 }} />
             <TextInput mode="outlined" label="New password again" value={pw.again} onChangeText={v => setPw(c => ({ ...c, again: v }))} secureTextEntry autoComplete="new-password" onSubmitEditing={changePassword} />
-            {pwError ? <Text accessibilityRole="alert" style={{ color: '#f87171', marginTop: 8 }}>{pwError}</Text> : null}
+            {pwError ? <Text accessibilityRole="alert" style={{ color: c.danger, marginTop: 8 }}>{pwError}</Text> : null}
           </Dialog.Content>
           <Dialog.Actions>
             <Button onPress={() => setChanging(false)} disabled={pwBusy}>Cancel</Button>
@@ -221,11 +252,11 @@ export default function ProfileTab() {
               This permanently deletes your account, your questions and answers, your photos and your topics. It cannot be undone.
             </Text>
             <TextInput mode="outlined" label="Your password" value={password} onChangeText={setPassword} secureTextEntry autoComplete="current-password" />
-            {deleteError ? <Text accessibilityRole="alert" style={{ color: '#f87171', marginTop: 8 }}>{deleteError}</Text> : null}
+            {deleteError ? <Text accessibilityRole="alert" style={{ color: c.danger, marginTop: 8 }}>{deleteError}</Text> : null}
           </Dialog.Content>
           <Dialog.Actions>
             <Button onPress={() => setDeleting(false)} disabled={deleteBusy}>Keep my account</Button>
-            <Button onPress={deleteAccount} loading={deleteBusy} disabled={deleteBusy || !password} textColor="#f87171">Delete forever</Button>
+            <Button onPress={deleteAccount} loading={deleteBusy} disabled={deleteBusy || !password} textColor={c.danger}>Delete forever</Button>
           </Dialog.Actions>
         </Dialog>
       </Portal>

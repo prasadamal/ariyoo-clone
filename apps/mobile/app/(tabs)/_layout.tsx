@@ -2,13 +2,15 @@ import { Redirect, Tabs } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { ActivityIndicator, View } from 'react-native';
 import { useAuth } from '../../src/context/AuthContext';
+import { useTokens } from '../../src/design/tokens';
 
 export default function TabsLayout() {
   const { user, loading } = useAuth();
+  const { c } = useTokens();
   if (loading) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#0f172a' }}>
-        <ActivityIndicator color="#38bdf8" />
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: c.bg }}>
+        <ActivityIndicator color={c.accent} />
       </View>
     );
   }
@@ -17,19 +19,25 @@ export default function TabsLayout() {
   return (
     <Tabs
       screenOptions={{
-        headerStyle: { backgroundColor: '#0f172a' },
-        headerTintColor: '#f8fafc',
-        tabBarStyle: { backgroundColor: '#0f172a', borderTopColor: '#334155' },
-        tabBarActiveTintColor: '#38bdf8',
-        tabBarInactiveTintColor: '#94a3b8',
+        headerStyle: { backgroundColor: c.bg },
+        headerTintColor: c.text,
+        headerTitleStyle: { fontWeight: '700' },
+        headerShadowVisible: false,
+        // Every tab screen paints the app background (it used to show the navigator's light grey).
+        sceneStyle: { backgroundColor: c.bg },
+        tabBarStyle: { backgroundColor: c.surface, borderTopColor: c.border },
+        tabBarActiveTintColor: c.accent,
+        tabBarInactiveTintColor: c.textFaint,
+        tabBarLabelStyle: { fontWeight: '600' },
       }}
     >
       <Tabs.Screen
         name="home"
         options={{
           title: 'Ask',
-          tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="comment-question-outline" color={color} size={size} />
+          headerShown: false,
+          tabBarIcon: ({ color, size, focused }) => (
+            <MaterialCommunityIcons name={focused ? 'comment-question' : 'comment-question-outline'} color={color} size={size} />
           ),
         }}
       />
@@ -37,8 +45,8 @@ export default function TabsLayout() {
         name="sessions"
         options={{
           title: 'Chats',
-          tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="message-text-outline" color={color} size={size} />
+          tabBarIcon: ({ color, size, focused }) => (
+            <MaterialCommunityIcons name={focused ? 'message-text' : 'message-text-outline'} color={color} size={size} />
           ),
         }}
       />
@@ -46,8 +54,8 @@ export default function TabsLayout() {
         name="profile"
         options={{
           title: 'Profile',
-          tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="account-circle-outline" color={color} size={size} />
+          tabBarIcon: ({ color, size, focused }) => (
+            <MaterialCommunityIcons name={focused ? 'account-circle' : 'account-circle-outline'} color={color} size={size} />
           ),
         }}
       />
