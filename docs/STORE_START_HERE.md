@@ -2,11 +2,10 @@
 
 This repo is prepared so **you** only need accounts, cloud projects, and EAS linking. Everything below marked **DONE** is already in the repository.
 
-## Privacy policy URLs (after GitHub Pages)
+## Privacy policy URLs (live)
 
-1. In GitHub: **Settings → Pages → Build and deployment → Source: GitHub Actions** (one-time).
-2. Merge to `main` (or run workflow on this branch) so `Deploy privacy policies` runs.
-3. Use these URLs in both stores (replace org/repo if you fork):
+The free Render static site `ariyoo-docs` publishes the `docs/` folder from `main` on every push
+(GitHub Pages is not available for this private repository). Use these URLs in both stores:
 
 | App | URL |
 | --- | --- |
@@ -22,7 +21,7 @@ Support email used in listings: **support@ariyoo.app** · Privacy: **privacy@ari
 - [x] Bundle IDs, permissions, encryption flags in `app.config.ts`
 - [x] `eas.json` production/preview profiles + submit template
 - [x] Store listing copy (Play + App Store) under each `apps/*/store/`
-- [x] Privacy policy HTML + Pages workflow (`docs/privacy/`)
+- [x] Privacy policy HTML, served by the `ariyoo-docs` Render static site (`docs/privacy/`)
 - [x] Data safety / App Privacy answer sheets (`store/DATA_SAFETY_AND_PRIVACY.md`)
 - [x] App Review notes templates (`store/APP_REVIEW_NOTES.md`)
 - [x] Play Console icon 512 + feature graphic 1024×500 (`store/play-icon-512.png`, `store/feature-graphic.png`)
