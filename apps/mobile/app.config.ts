@@ -3,7 +3,7 @@ import path from 'node:path';
 import { ExpoConfig, ConfigContext } from 'expo/config';
 
 const BUNDLE_ID = 'com.ariyoo.mobile';
-const BG = '#0f172a';
+const BG = '#0F1513';
 // The project id `eas init` prints for this app. EAS builds and push notifications need it, and
 // EAS CLI does not read .env files, so paste it here (or export EAS_PROJECT_ID before eas commands).
 const easProjectId = process.env.EAS_PROJECT_ID || '543993a6-58b8-48ea-95e5-428693707d81';
@@ -23,7 +23,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   orientation: 'portrait',
   icon: './assets/icon.png',
   scheme: 'ariyoo',
-  userInterfaceStyle: 'dark',
+  userInterfaceStyle: 'automatic',
   backgroundColor: BG,
   ios: {
     bundleIdentifier: BUNDLE_ID,

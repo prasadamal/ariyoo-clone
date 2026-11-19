@@ -1,7 +1,9 @@
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useRef, useState } from 'react';
-import { RefreshControl, SectionList, TouchableOpacity, View } from 'react-native';
-import { Button, Text } from 'react-native-paper';
+import { RefreshControl, SectionList, Text as RNText, View } from 'react-native';
+import { Button } from 'react-native-paper';
+import { radius, space, type, useTokens } from '../../src/design/tokens';
+import { Avatar, Card, EmptyState, Notice, Pill } from '../../src/design/ui';
 import { api, errorCode, errorMessage } from '../../src/api/client';
 import { useAuth } from '../../src/context/AuthContext';
 import { mergeSessions, sessionSubtitle, type SessionRow } from '../../src/lib/sessionList';
@@ -13,6 +15,7 @@ const openChat = (sessionId: number) => router.push({ pathname: '/chat/[sessionI
 
 export default function SessionsTab() {
   const { user } = useAuth();
+  const { c } = useTokens();
   const [sessions, setSessions] = useState<SessionRow[]>([]);
   const [queue, setQueue] = useState<OpenQuestion[]>([]);
   const [refreshing, setRefreshing] = useState(false);
@@ -67,48 +70,74 @@ export default function SessionsTab() {
   if (queue.length) sections.push({ title: 'Open questions you can answer', data: queue.map(row => ({ kind: 'open' as const, row })) });
   if (sessions.length) sections.push({ title: 'Your conversations', data: sessions.map(row => ({ kind: 'chat' as const, row })) });
 
+  const status = (row: SessionRow): { label: string; tone: 'accent' | 'expert' | 'neutral' } => {
+    if (row.resolved) return row.helpful ? { label: 'Helped', tone: 'accent' } : { label: row.waiting ? 'Withdrawn' : 'Answered', tone: 'neutral' };
+    if (!row.active) return { label: 'Closed', tone: 'neutral' };
+    if (row.waiting) return { label: 'Waiting', tone: 'expert' };
+    return row.role === 'solver' ? { label: 'Answering', tone: 'expert' } : { label: 'Active', tone: 'accent' };
+  };
+  const when = (iso?: string) => {
+    if (!iso) return '';
+    const mins = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
+    if (mins < 1) return 'now';
+    if (mins < 60) return `${mins}m`;
+    if (mins < 60 * 24) return `${Math.round(mins / 60)}h`;
+    return new Date(iso).toLocaleDateString([], { day: 'numeric', month: 'short' });
+  };
+
   return (
-    <View style={{ flex: 1 }}>
-      {error ? <Text accessibilityRole="alert" style={{ color: '#f87171', padding: 16 }}>{error}</Text> : null}
+    <View style={{ flex: 1, backgroundColor: c.bg }}>
       <SectionList
         sections={sections}
         keyExtractor={item => `${item.kind}-${item.row.sessionId}`}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#38bdf8" />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={c.accent} colors={[c.accent]} />}
         stickySectionHeadersEnabled={false}
+        contentContainerStyle={{ padding: space.lg, paddingBottom: space.xxxl, flexGrow: 1 }}
+        ListHeaderComponent={error ? <Notice text={error} /> : null}
         renderSectionHeader={({ section }) => (
-          <Text style={{ color: '#94a3b8', fontSize: 12, letterSpacing: 0.5, paddingHorizontal: 16, paddingTop: 16, paddingBottom: 4 }}>
-            {section.title.toUpperCase()}
-          </Text>
+          <RNText style={[type.caption, { color: c.textFaint, textTransform: 'uppercase', marginTop: space.md, marginBottom: space.sm }]}>{section.title}</RNText>
         )}
+        ItemSeparatorComponent={() => <View style={{ height: space.sm }} />}
         ListEmptyComponent={
-          <View style={{ padding: 24 }}>
-            <Text style={{ color: '#94a3b8' }}>
-              {user?.isSolver
-                ? 'No conversations yet. New questions on your topics will appear here.'
-                : 'No conversations yet. Ask a question from the Ask tab.'}
-            </Text>
-          </View>
+          <EmptyState
+            icon="💬"
+            title="No conversations yet"
+            body={user?.isSolver
+              ? 'New questions on your topics will appear here. Pull down to refresh.'
+              : 'Ask a question and a local will reply here, usually within the hour.'}
+            action={user?.isSolver ? undefined : <Button mode="contained" onPress={() => router.navigate('/(tabs)/home')} style={{ borderRadius: radius.md }}>Ask a question</Button>}
+          />
         }
         renderItem={({ item }) =>
           item.kind === 'open' ? (
-            <View style={{ padding: 16, borderBottomWidth: 1, borderBottomColor: '#334155', flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-              <View style={{ flex: 1 }}>
-                <Text variant="titleMedium" numberOfLines={2}>{item.row.title}</Text>
-                <Text style={{ color: '#94a3b8', marginTop: 4 }}>Asked by {item.row.askedBy}</Text>
+            <Card style={{ borderColor: c.expert, backgroundColor: c.expertSoft }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.md }}>
+                <Avatar name={item.row.askedBy} size={40} />
+                <View style={{ flex: 1 }}>
+                  <RNText style={[type.bodyStrong, { color: c.text }]} numberOfLines={3}>{item.row.title}</RNText>
+                  <RNText style={[type.small, { color: c.onExpertSoft, marginTop: 2 }]}>{item.row.askedBy} · {when(item.row.createdAt)}</RNText>
+                </View>
               </View>
-              <Button mode="contained-tonal" compact loading={claiming === item.row.sessionId} disabled={claiming !== null} onPress={() => claim(item.row.sessionId)}>
-                Answer
+              <Button mode="contained" buttonColor={c.expert} textColor={c.onExpert} compact style={{ alignSelf: 'flex-start', marginTop: space.md, borderRadius: radius.sm }}
+                loading={claiming === item.row.sessionId} disabled={claiming !== null} onPress={() => claim(item.row.sessionId)}
+                accessibilityLabel={`Answer: ${item.row.title}`}>
+                Answer this
               </Button>
-            </View>
+            </Card>
           ) : (
-            <TouchableOpacity
-              accessibilityRole="button"
-              onPress={() => openChat(item.row.sessionId)}
-              style={{ padding: 16, borderBottomWidth: 1, borderBottomColor: '#334155' }}
-            >
-              <Text variant="titleMedium" numberOfLines={2}>{item.row.title}</Text>
-              <Text style={{ color: '#94a3b8', marginTop: 4 }}>{sessionSubtitle(item.row)}</Text>
-            </TouchableOpacity>
+            <Card onPress={() => openChat(item.row.sessionId)} accessibilityLabel={`${item.row.title}. ${sessionSubtitle(item.row)}`}>
+              <View style={{ flexDirection: 'row', gap: space.md }}>
+                <Avatar name={item.row.peerName ?? (item.row.waiting ? '?' : item.row.title)} size={44} />
+                <View style={{ flex: 1 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
+                    <RNText style={[type.bodyStrong, { color: c.text, flex: 1 }]} numberOfLines={2}>{item.row.title}</RNText>
+                    <RNText style={[type.small, { color: c.textFaint }]}>{when(item.row.updatedAt)}</RNText>
+                  </View>
+                  <RNText style={[type.small, { color: c.textMuted, marginTop: 2 }]} numberOfLines={1}>{sessionSubtitle(item.row)}</RNText>
+                  <View style={{ marginTop: space.sm }}><Pill {...status(item.row)} /></View>
+                </View>
+              </View>
+            </Card>
           )
         }
       />
