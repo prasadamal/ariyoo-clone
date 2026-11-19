@@ -37,7 +37,7 @@ Travel & Local
 Complete the IARC questionnaire: users interact, share location and user-generated content → expect Teen / Mature 17+.
 
 ## Contact email
-support@ariyoo.app
+amalprasadappu@gmail.com
 
 ## Privacy policy URL
 https://ariyoo-docs.onrender.com/privacy/wayfare.html

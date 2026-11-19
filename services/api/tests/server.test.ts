@@ -31,6 +31,13 @@ test('HTTP and real socket transport enforce private chat boundaries', async () 
       assert.equal((await socket.timeout(2000).emitWithAck('join', '../42')).ok, false);
     }
     assert.equal((await fetch(`${base}/uploads/test.jpg`)).status, 401);
+    // The public topic list asks only for topics someone still holds.
+    let tagQuery: any;
+    prisma.tag.findMany = (async (args: any) => { tagQuery = args; return [{ id: 7, name: 'kochi' }]; }) as any;
+    const topics = await fetch(`${base}/api/Tags/getAll`);
+    assert.equal(topics.status, 200);
+    assert.deepEqual(await topics.json(), [{ id: 7, tagName: 'kochi', description: 'tag' }]);
+    assert.deepEqual(tagQuery.where, { users: { some: {} } });
     // A valid token for an account that no longer exists is refused over HTTP and sockets.
     assert.equal((await fetch(`${base}/api/user/me`, { headers: { Authorization: `Bearer ${token(99)}` } })).status, 401);
     const ghost = connect(base, { auth: { token: token(99) }, reconnection: false }); sockets.push(ghost);

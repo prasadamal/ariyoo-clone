@@ -11,7 +11,7 @@ Summary of what changed in 2.0: public profiles, posts, chats, travel board, tip
 (destination + dates), opt-in approximate "nearby" presence (≤24 h), expiring live-location links
 (≤72 h), push tokens, reports/blocks, in-app account deletion. Emergency contacts stay on the device.
 
-Contacts: privacy@ariyoo.app · support@ariyoo.app
+Contacts: amalprasadappu@gmail.com · amalprasadappu@gmail.com
 
 Have the updated policy and terms reviewed by counsel before publishing (governing law, age
 requirement and retention periods are business decisions).

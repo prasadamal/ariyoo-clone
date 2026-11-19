@@ -97,6 +97,7 @@ async function main() {
   assert.deepEqual(race.map(r => r.status).sort(), [200, 409]);
   assert.ok(!(await call('GET', '/api/Message/openQuestions', { token: other.token })).json.some(q => q.sessionId === openId));
 
+
   // Report + block: only people you have talked to; the chat closes both ways and leaves both lists.
   assert.equal((await call('POST', '/api/safety/block', { token: seeker.token, body: { userId: outsider.userId } })).status, 404);
   assert.equal((await call('POST', '/api/safety/report', { token: seeker.token, body: { userId: expert.userId, reason: 'nonsense' } })).status, 400);
@@ -166,6 +167,23 @@ async function main() {
   assert.equal((await call('GET', photoUrl, { token: claimer.token })).status, 200);
   assert.equal((await call('GET', photoUrl, { token: outsider.token })).status, 404);
   assert.equal((await call('GET', photoUrl)).status, 401);
+
+  // The asker closes the claimed question and thanks the expert; only the asker can, and only once.
+  await call('POST', '/api/Message/postMessage', { token: claimer.token, body: { messageText: 'Try the beach shacks', sessionId: openId } });
+  assert.equal((await call('POST', `/api/Message/resolve/${openId}`, { token: claimer.token, body: { helpful: true } })).status, 404);
+  const resolved = await call('POST', `/api/Message/resolve/${openId}`, { token: seeker.token, body: { helpful: true } });
+  assert.equal(resolved.status, 200); assert.equal(resolved.json.helpful, true);
+  assert.equal((await call('POST', `/api/Message/resolve/${openId}`, { token: seeker.token, body: { helpful: false } })).json.code, 'ALREADY_RESOLVED');
+  const afterResolve = await call('POST', '/api/Message/postMessage', { token: claimer.token, body: { messageText: 'one more thing', sessionId: openId } });
+  assert.equal(afterResolve.json.code, 'CHAT_CLOSED');
+  const closedInfo = (await call('GET', `/api/Message/session/${openId}`, { token: seeker.token })).json;
+  assert.equal(closedInfo.resolved, true); assert.deepEqual(closedInfo.peerStats, { answered: 1, helpful: 1 });
+  assert.deepEqual((await call('GET', '/api/user/stats', { token: claimer.token })).json, { asked: 0, answered: 1, helpful: 1 });
+  // A question nobody picked up can be withdrawn; there is nobody to thank.
+  const lonely = await call('POST', '/api/Message/postQuestion', { token: seeker.token, body: { message: `Smoke withdrawn ${stamp}` } });
+  const withdrawn = await call('POST', `/api/Message/resolve/${lonely.json.sessionId}`, { token: seeker.token, body: { helpful: true } });
+  assert.equal(withdrawn.json.helpful, null);
+  assert.ok(!(await call('GET', '/api/Message/openQuestions', { token: other.token })).json.some(q => q.sessionId === lonely.json.sessionId));
 
   // Account deletion: needs the password, removes the conversations for both sides, kills the token.
   assert.equal((await call('DELETE', '/api/user', { token: seeker.token, body: { password: 'wrong' } })).status, 401);

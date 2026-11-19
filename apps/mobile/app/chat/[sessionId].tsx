@@ -9,6 +9,7 @@ import { api, errorCode, errorMessage } from '../../src/api/client';
 import { useAuth } from '../../src/context/AuthContext';
 import { getApiBaseUrl } from '../../src/config';
 import { chatReducer, initialChatState, type ChatMessage } from '../../src/chatState';
+import { closeAction, expertRecord, resolvedBanner, type ExpertStats } from '../../src/lib/resolve';
 import { photoResizeTarget } from '../../src/lib/validation';
 
 type SessionInfo = {
@@ -18,6 +19,9 @@ type SessionInfo = {
   waiting: boolean;
   peer: { userId: number; fullName: string } | null;
   blocked: boolean;
+  resolved?: boolean;
+  helpful?: boolean | null;
+  peerStats?: ExpertStats | null;
 };
 
 const REASONS: { value: string; label: string }[] = [
@@ -44,7 +48,7 @@ function ChatConversation({ sid }: { sid: number }) {
   const [text, setText] = useState('');
   const [info, setInfo] = useState<SessionInfo | null>(null);
   const [menu, setMenu] = useState(false);
-  const [dialog, setDialog] = useState<'report' | 'block' | null>(null);
+  const [dialog, setDialog] = useState<'report' | 'block' | 'resolve' | null>(null);
   const [reason, setReason] = useState('harassment');
   const [details, setDetails] = useState('');
   const [working, setWorking] = useState(false);
@@ -189,8 +193,33 @@ function ChatConversation({ sid }: { sid: number }) {
     }
   };
 
+  const closing = info ? closeAction(info) : null;
+
+  const resolve = async (helpful?: boolean) => {
+    if (working) return;
+    setWorking(true);
+    setDialogError('');
+    try {
+      await api.post(`/api/Message/resolve/${sid}`, helpful === undefined ? {} : { helpful });
+      if (!mounted.current) return;
+      setDialog(null);
+      await loadInfo();
+    } catch (e: unknown) {
+      // Closed on another device in the meantime: show the conversation as it now is.
+      if (errorCode(e) === 'ALREADY_RESOLVED') {
+        setDialog(null);
+        void loadInfo();
+      } else if (mounted.current) {
+        setDialogError(errorMessage(e, 'That did not go through. Please try again.'));
+      }
+    } finally {
+      if (mounted.current) setWorking(false);
+    }
+  };
+
+  const record = info?.role === 'seeker' ? expertRecord(info.peerStats) : null;
   const banner = closed
-    ? 'This conversation is closed.'
+    ? (info && resolvedBanner(info, info.peer?.fullName)) ?? 'This conversation is closed.'
     : info?.waiting
       ? info.role === 'seeker' ? 'Waiting for an expert to pick this up. You will be notified when someone answers.' : null
       : null;
@@ -201,20 +230,33 @@ function ChatConversation({ sid }: { sid: number }) {
         options={{
           title: info?.peer?.fullName ?? 'Conversation',
           headerRight: () =>
-            info?.peer ? (
+            info?.peer || closing ? (
               <Menu
                 visible={menu}
                 onDismiss={() => setMenu(false)}
-                anchor={<IconButton icon="dots-vertical" iconColor="#f8fafc" accessibilityLabel="Report or block" onPress={() => setMenu(true)} />}
+                anchor={<IconButton icon="dots-vertical" iconColor="#f8fafc" accessibilityLabel="Conversation options" onPress={() => setMenu(true)} />}
               >
-                <Menu.Item leadingIcon="flag-outline" title="Report" onPress={() => { setMenu(false); setDialog('report'); }} />
-                <Menu.Item leadingIcon="block-helper" title="Block" onPress={() => { setMenu(false); setDialog('block'); }} />
+                {closing ? (
+                  <Menu.Item
+                    leadingIcon={closing === 'answered' ? 'check-circle-outline' : 'close-circle-outline'}
+                    title={closing === 'answered' ? 'Mark as answered' : 'Withdraw question'}
+                    onPress={() => { setMenu(false); setDialogError(''); setDialog('resolve'); }}
+                  />
+                ) : null}
+                {info?.peer ? <Menu.Item leadingIcon="flag-outline" title="Report" onPress={() => { setMenu(false); setDialog('report'); }} /> : null}
+                {info?.peer ? <Menu.Item leadingIcon="block-helper" title="Block" onPress={() => { setMenu(false); setDialog('block'); }} /> : null}
               </Menu>
             ) : null,
         }}
       />
       {state.load === 'loading' && messages.length === 0 ? <Text style={{ padding: 12 }}>Loading conversation…</Text> : null}
+      {record ? <Text style={{ paddingHorizontal: 12, paddingTop: 8, color: '#94a3b8' }} accessibilityLabel={`Expert record: ${record}`}>{record}</Text> : null}
       {banner ? <Text style={{ padding: 12, color: '#94a3b8', backgroundColor: '#1e293b' }}>{banner}</Text> : null}
+      {closing === 'answered' && messages.some(m => m.senderId !== user?.userId) ? (
+        <Button mode="contained-tonal" icon="check-circle-outline" onPress={() => { setDialogError(''); setDialog('resolve'); }} style={{ marginHorizontal: 12, marginTop: 8 }}>
+          Got your answer? Mark it answered
+        </Button>
+      ) : null}
       {state.error ? (
         <View style={{ padding: 12 }}>
           <Text accessibilityRole="alert" style={{ color: '#f87171' }}>{state.error}</Text>
@@ -277,7 +319,29 @@ function ChatConversation({ sid }: { sid: number }) {
       )}
 
       <Portal>
-        <Dialog visible={dialog !== null} onDismiss={closeDialog}>
+        <Dialog visible={dialog === 'resolve'} onDismiss={closeDialog}>
+          <Dialog.Title>{closing === 'withdraw' ? 'Withdraw this question?' : `Did ${info?.peer?.fullName ?? 'the expert'}'s answer help?`}</Dialog.Title>
+          <Dialog.Content>
+            <Text>
+              {closing === 'withdraw'
+                ? 'Experts will no longer see it. You can always ask again.'
+                : 'The conversation closes for both of you. If it helped, we will let them know.'}
+            </Text>
+            {dialogError ? <Text accessibilityRole="alert" style={{ color: '#f87171', marginTop: 8 }}>{dialogError}</Text> : null}
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={closeDialog} disabled={working}>Cancel</Button>
+            {closing === 'withdraw' ? (
+              <Button onPress={() => resolve()} loading={working} disabled={working}>Withdraw</Button>
+            ) : (
+              <>
+                <Button onPress={() => resolve(false)} disabled={working}>Not really</Button>
+                <Button mode="contained" onPress={() => resolve(true)} loading={working} disabled={working}>Yes, it helped</Button>
+              </>
+            )}
+          </Dialog.Actions>
+        </Dialog>
+        <Dialog visible={dialog === 'report' || dialog === 'block'} onDismiss={closeDialog}>
           <Dialog.Title>{dialog === 'report' ? `Report ${info?.peer?.fullName ?? ''}` : `Block ${info?.peer?.fullName ?? ''}?`}</Dialog.Title>
           <Dialog.Content>
             {dialog === 'report' ? (

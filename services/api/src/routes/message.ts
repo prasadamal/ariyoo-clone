@@ -15,6 +15,7 @@ const questionSchema = z.object({ message: z.string().trim().min(1).max(10000), 
 const messageSchema = z.object({ messageText: z.string().trim().min(1).max(10000), sessionId: sessionIdSchema });
 const BLOCKED_TEXT = { message: 'This message breaks the community rules and was not sent.', code: 'CONTENT_BLOCKED' };
 const CLOSED = { message: 'This conversation is closed.', code: 'CHAT_CLOSED' };
+const resolveSchema = z.object({ helpful: z.boolean().optional() }).strict();
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024, files: 1, fields: 3 } });
 
@@ -43,8 +44,19 @@ async function listSessions(userId: number, role: 'seeker' | 'solver') {
       // True while no expert has picked the question up yet.
       waiting: s.solverId === null,
       peerName: role === 'seeker' ? s.solver?.fullName ?? null : s.seeker.fullName,
+      resolved: s.resolvedAt !== null,
+      helpful: s.helpful,
       updatedAt: s.updatedAt,
     }));
+}
+
+/** An expert's public record: questions they saw through to the end, and how many askers said it helped. */
+export async function expertStats(userId: number) {
+  const [answered, helpful] = await Promise.all([
+    prisma.session.count({ where: { solverId: userId, resolvedAt: { not: null } } }),
+    prisma.session.count({ where: { solverId: userId, helpful: true } }),
+  ]);
+  return { answered, helpful };
 }
 
 messageRouter.post('/postQuestion', requireAuth, async (req: AuthRequest, res) => {
@@ -128,13 +140,35 @@ messageRouter.get('/session/:sessionId', requireAuth, async (req: AuthRequest, r
   });
   if (!isMember(session, userId)) return res.status(403).json({ message: 'Forbidden' });
   const peer = session.seekerId === userId ? session.solver : session.seeker;
+  const role = session.seekerId === userId ? 'seeker' : 'solver';
   res.json({
     sessionId: session.id, title: session.title, active: session.active,
-    role: session.seekerId === userId ? 'seeker' : 'solver',
+    role,
     waiting: session.solverId === null,
+    resolved: session.resolvedAt !== null,
+    helpful: session.helpful,
     peer: peer ? { userId: peer.id, fullName: peer.fullName } : null,
+    // Askers see the expert's record; experts are not shown a score for askers.
+    peerStats: role === 'seeker' && peer ? await expertStats(peer.id) : null,
     blocked: await isBlockedPair(userId, peer?.id),
   });
+});
+
+messageRouter.post('/resolve/:sessionId', requireAuth, async (req: AuthRequest, res) => {
+  const id = sessionIdSchema.safeParse(req.params.sessionId);
+  const body = resolveSchema.safeParse(req.body ?? {});
+  if (!id.success || !body.success) return res.status(400).json({ message: 'Invalid request' });
+  const userId = req.user!.userId;
+  const session = await prisma.session.findUnique({ where: { id: id.data } });
+  // Only the person who asked can close their question; anyone else learns nothing about it.
+  if (!session || session.seekerId !== userId) return res.status(404).json({ message: 'Question not found' });
+  // Withdrawn before any expert picked it up: there is nobody to thank.
+  const helpful = session.solverId === null ? null : body.data.helpful ?? null;
+  // Conditional update: a double tap or a second device closes it exactly once.
+  const done = await prisma.session.updateMany({ where: { id: session.id, resolvedAt: null }, data: { active: false, resolvedAt: new Date(), helpful } });
+  if (!done.count) return res.status(409).json({ message: 'This question is already closed', code: 'ALREADY_RESOLVED' });
+  if (helpful && !(await isBlockedPair(userId, session.solverId))) void notifyUsers([session.solverId], 'thanked', session.id);
+  res.json({ sessionId: session.id, resolved: true, helpful });
 });
 
 messageRouter.get('/getMessagesBySessionId/:sessionId', requireAuth, async (req: AuthRequest, res) => {

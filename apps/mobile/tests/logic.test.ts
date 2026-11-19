@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { apiBase, checkRelease, envValue, type ReleaseInputs } from '../src/lib/release';
+import { closeAction, expertRecord, resolvedBanner } from '../src/lib/resolve';
 import { mergeSessions, sessionSubtitle } from '../src/lib/sessionList';
 import { cleanTopic, emailProblem, hashtags, passwordProblem, photoResizeTarget } from '../src/lib/validation';
 
@@ -87,4 +88,33 @@ test('photos are scaled down by their longer side, and small or unknown ones are
   assert.deepEqual(photoResizeTarget(800, 600), null);
   assert.deepEqual(photoResizeTarget(undefined, 600), null);
   assert.deepEqual(photoResizeTarget(0, 0), null);
+});
+
+test('closed questions read correctly for the asker and the expert', () => {
+  assert.equal(resolvedBanner({ role: 'seeker', resolved: false }), null);
+  assert.equal(resolvedBanner({ role: 'seeker', resolved: true, helpful: true }, 'Asha'), 'You marked this answered and thanked Asha.');
+  assert.equal(resolvedBanner({ role: 'seeker', resolved: true, helpful: false }, 'Asha'), 'You marked this answered.');
+  assert.equal(resolvedBanner({ role: 'seeker', resolved: true, waiting: true, helpful: null }), 'You withdrew this question.');
+  assert.equal(resolvedBanner({ role: 'solver', resolved: true, helpful: true }), 'The asker marked this answered and said your answer helped.');
+  assert.equal(resolvedBanner({ role: 'solver', resolved: true, helpful: null }), 'The asker marked this answered.');
+  assert.equal(sessionSubtitle({ sessionId: 1, title: 't', active: false, role: 'seeker', resolved: true, helpful: true, peerName: 'Asha' }), 'Answered by Asha · helped');
+  assert.equal(sessionSubtitle({ sessionId: 1, title: 't', active: false, role: 'seeker', resolved: true, waiting: true }), 'Withdrawn');
+  assert.equal(sessionSubtitle({ sessionId: 1, title: 't', active: false, role: 'solver', resolved: true, helpful: true, peerName: 'Ravi' }), 'Ravi said your answer helped');
+  assert.equal(sessionSubtitle({ sessionId: 1, title: 't', active: false, role: 'seeker' }), 'Closed');
+});
+
+test('only the asker of an open, unblocked question is offered a way to close it', () => {
+  assert.equal(closeAction({ role: 'seeker', active: true }), 'answered');
+  assert.equal(closeAction({ role: 'seeker', active: true, waiting: true }), 'withdraw');
+  assert.equal(closeAction({ role: 'solver', active: true }), null);
+  assert.equal(closeAction({ role: 'seeker', active: false }), null);
+  assert.equal(closeAction({ role: 'seeker', active: true, resolved: true }), null);
+  assert.equal(closeAction({ role: 'seeker', active: true, blocked: true }), null);
+});
+
+test('an expert record is short, singular-aware and never shows a zero score', () => {
+  assert.equal(expertRecord(null), null);
+  assert.equal(expertRecord({ answered: 0, helpful: 0 }), 'New expert on Ariyoo');
+  assert.equal(expertRecord({ answered: 1, helpful: 0 }), '1 answer');
+  assert.equal(expertRecord({ answered: 12, helpful: 9 }), '12 answers · 9 found helpful');
 });

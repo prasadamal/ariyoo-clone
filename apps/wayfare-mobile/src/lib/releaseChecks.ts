@@ -57,7 +57,7 @@ export function checkRelease(i: ReleaseInputs): ReleaseProblem[] {
 
   for (const name of ['EXPO_PUBLIC_WAYFARE_SHARE_BASE', 'EXPO_PUBLIC_WAYFARE_LIVE_BASE']) {
     const value = i.env[name];
-    if (value && (!envValue(value) || !value.startsWith('https://'))) error(`${name} must be an https URL (or unset to use GitHub Pages).`);
+    if (value && (!envValue(value) || !value.startsWith('https://'))) error(`${name} must be an https URL (or unset to use the ariyoo-docs pages).`);
   }
 
   const ios = i.eas.submit?.production?.ios ?? {};

@@ -50,52 +50,72 @@
           "text": "import { useCallback, useEffect, useState } from 'react';"
         },
         {
-          "line": 17,
+          "line": 19,
           "text": "const [userName, setUserName] = useState('');"
         },
         {
-          "line": 18,
+          "line": 20,
           "text": "const [isSolver, setIsSolver] = useState(false);"
         },
         {
-          "line": 19,
+          "line": 21,
           "text": "const [saving, setSaving] = useState(false);"
         },
         {
-          "line": 20,
+          "line": 22,
           "text": "const [notice, setNotice] = useState<{ ok: boolean; text: string } | null>(null);"
         },
         {
-          "line": 21,
+          "line": 23,
           "text": "const [topics, setTopics] = useState<Topic[]>([]);"
         },
         {
-          "line": 22,
+          "line": 24,
           "text": "const [newTopic, setNewTopic] = useState('');"
         },
         {
-          "line": 23,
+          "line": 25,
           "text": "const [topicBusy, setTopicBusy] = useState(false);"
         },
         {
-          "line": 24,
+          "line": 26,
           "text": "const [blocked, setBlocked] = useState<Blocked[]>([]);"
         },
         {
-          "line": 25,
+          "line": 27,
           "text": "const [deleting, setDeleting] = useState(false);"
         },
         {
-          "line": 26,
+          "line": 28,
           "text": "const [password, setPassword] = useState('');"
         },
         {
-          "line": 27,
+          "line": 29,
           "text": "const [deleteError, setDeleteError] = useState('');"
         },
         {
-          "line": 28,
+          "line": 30,
           "text": "const [deleteBusy, setDeleteBusy] = useState(false);"
+        },
+        {
+          "line": 31,
+          "text": "const [stats, setStats] = useState<Stats | null>(null);"
+        },
+        {
+          "line": 32,
+          "text": "const [changing, setChanging] = useState(false);"
+        },
+        {
+          "line": 33,
+          "text": "const [pw, setPw] = useState({ current: '', next: '', again: '' });"
+        },
+        {
+          "line": 34,
+          "text": "const [pwError, setPwError] = useState('');"
+        },
+        {
+          "line": 35,
+          "text": "const [pwBusy, setPwBusy] = useState(false);"
         }
       ]
     },
@@ -136,43 +156,43 @@
           "text": "import { useCallback, useEffect, useReducer, useRef, useState } from 'react';"
         },
         {
-          "line": 16,
+          "line": 17,
           "text": "active: boolean;"
         },
         {
-          "line": 43,
+          "line": 47,
           "text": "const [state, dispatch] = useReducer(chatReducer, initialChatState);"
         },
         {
-          "line": 44,
+          "line": 48,
           "text": "const [text, setText] = useState('');"
         },
         {
-          "line": 45,
+          "line": 49,
           "text": "const [info, setInfo] = useState<SessionInfo | null>(null);"
         },
         {
-          "line": 46,
+          "line": 50,
           "text": "const [menu, setMenu] = useState(false);"
         },
         {
-          "line": 47,
-          "text": "const [dialog, setDialog] = useState<'report' | 'block' | null>(null);"
+          "line": 51,
+          "text": "const [dialog, setDialog] = useState<'report' | 'block' | 'resolve' | null>(null);"
         },
         {
-          "line": 48,
+          "line": 52,
           "text": "const [reason, setReason] = useState('harassment');"
         },
         {
-          "line": 49,
+          "line": 53,
           "text": "const [details, setDetails] = useState('');"
         },
         {
-          "line": 50,
+          "line": 54,
           "text": "const [working, setWorking] = useState(false);"
         },
         {
-          "line": 51,
+          "line": 55,
           "text": "const [dialogError, setDialogError] = useState('');"
         }
       ]
@@ -279,6 +299,15 @@
         {
           "line": 39,
           "text": "const [loading, setLoading] = useState(true);"
+        }
+      ]
+    },
+    {
+      "path": "apps/mobile/src/lib/resolve.ts",
+      "evidence": [
+        {
+          "line": 33,
+          "text": "export function closeAction(s: ResolveState & { active: boolean; blocked?: boolean }): 'answered' | 'withdraw' | null {"
         }
       ]
     },
@@ -1979,26 +2008,46 @@
       "evidence": [
         {
           "line": 1,
-          "text": "import { useCallback, useEffect, useState } from 'react';"
+          "text": "import { useCallback, useEffect, useRef, useState } from 'react';"
         },
         {
-          "line": 11,
+          "line": 20,
           "text": "const [items, setItems] = useState<LocalPackingItem[]>([]);"
         },
         {
-          "line": 12,
+          "line": 21,
           "text": "const [label, setLabel] = useState('');"
         },
         {
-          "line": 21,
+          "line": 22,
+          "text": "const [sources, setSources] = useState<{ id: string; title: string; items: number }[]>([]);"
+        },
+        {
+          "line": 23,
+          "text": "const [picking, setPicking] = useState(false);"
+        },
+        {
+          "line": 24,
+          "text": "const [copying, setCopying] = useState(false);"
+        },
+        {
+          "line": 25,
+          "text": "// A ref, not state: two fast taps must not both copy before the first re-render."
+        },
+        {
+          "line": 27,
+          "text": "const [notice, setNotice] = useState('');"
+        },
+        {
+          "line": 40,
           "text": "await upsertPackingItem({ ...item, packed: item.packed ? 0 : 1, sync_status: 'pending', updated_at: new Date().toISOString() });"
         },
         {
-          "line": 49,
+          "line": 86,
           "text": "for (const i of items.filter(x => x.packed)) await upsertPackingItem({ ...i, packed: 0, sync_status: 'pending', updated_at: now });"
         },
         {
-          "line": 77,
+          "line": 114,
           "text": "<Checkbox.Android status={item.packed ? 'checked' : 'unchecked'} onPress={() => toggle(item)} />"
         }
       ]
@@ -2144,147 +2193,151 @@
       "path": "apps/wayfare-mobile/src/lib/localDb.ts",
       "evidence": [
         {
-          "line": 15,
+          "line": 16,
           "text": "visibility: string;"
         },
         {
-          "line": 17,
+          "line": 18,
           "text": "status: string;"
         },
         {
-          "line": 26,
+          "line": 27,
           "text": "sync_status: string;"
         },
         {
-          "line": 41,
+          "line": 42,
           "text": "sync_status: string;"
         },
         {
-          "line": 57,
+          "line": 58,
           "text": "sync_status: string;"
         },
         {
-          "line": 67,
+          "line": 68,
           "text": "sync_status: string;"
         },
         {
-          "line": 81,
+          "line": 82,
           "text": "sync_status: string;"
         },
         {
-          "line": 93,
+          "line": 94,
           "text": "sync_status: string;"
         },
         {
-          "line": 103,
+          "line": 104,
           "text": "sync_status: string;"
         },
         {
-          "line": 259,
+          "line": 260,
           "text": "await database.runAsync(\"UPDATE packing_items SET id = ?, sync_status = 'pending' WHERE id = ?\", [uuid(), p.id]);"
         },
         {
-          "line": 289,
+          "line": 290,
           "text": "starts_on=excluded.starts_on, ends_on=excluded.ends_on, visibility=excluded.visibility,"
         },
         {
-          "line": 290,
+          "line": 291,
           "text": "companions=excluded.companions, status=excluded.status, notes=excluded.notes,"
         },
         {
-          "line": 293,
+          "line": 294,
           "text": "dest_lng=excluded.dest_lng, sync_status=excluded.sync_status, updated_at=excluded.updated_at`,"
         },
         {
-          "line": 322,
+          "line": 323,
           "text": "const next: LocalTrip = { ...trip, ...patch, id, sync_status: 'pending', updated_at: now() };"
         },
         {
-          "line": 388,
+          "line": 389,
           "text": "longitude=excluded.longitude, altitude_m=excluded.altitude_m, sync_status=excluded.sync_status,"
         },
         {
-          "line": 442,
+          "line": 443,
           "text": "sync_status=excluded.sync_status, updated_at=excluded.updated_at`,"
         },
         {
-          "line": 483,
+          "line": 484,
           "text": "sync_status=excluded.sync_status, updated_at=excluded.updated_at`,"
         },
         {
-          "line": 500,
+          "line": 501,
           "text": "sync_status: 'pending',"
         },
         {
-          "line": 520,
+          "line": 521,
           "text": "sync_status: 'pending',"
         },
         {
-          "line": 547,
+          "line": 550,
+          "text": "sync_status: 'pending',"
+        },
+        {
+          "line": 578,
           "text": "sort_order=excluded.sort_order, sync_status=excluded.sync_status, updated_at=excluded.updated_at`,"
         },
         {
-          "line": 652,
+          "line": 683,
           "text": "sync_status=excluded.sync_status, updated_at=excluded.updated_at`,"
         },
         {
-          "line": 680,
+          "line": 711,
           "text": "return database.getAllAsync<T>(`SELECT * FROM ${table} WHERE sync_status = 'pending'`);"
         },
         {
-          "line": 686,
+          "line": 717,
           "text": "`SELECT * FROM track_points WHERE sync_status = 'pending' ORDER BY recorded_at ASC LIMIT ?`,"
         },
         {
-          "line": 695,
+          "line": 726,
           "text": "await database.runAsync(`UPDATE ${table} SET sync_status = 'synced' WHERE id = ? AND updated_at = ?`, ["
         },
         {
-          "line": 700,
+          "line": 731,
           "text": "await database.runAsync(`UPDATE ${table} SET sync_status = 'synced' WHERE id = ?`, [id]);"
         },
         {
-          "line": 708,
+          "line": 739,
           "text": "await database.runAsync(`UPDATE track_points SET sync_status = 'synced' WHERE id IN (${placeholders})`, ids);"
         },
         {
-          "line": 731,
+          "line": 762,
           "text": "return database.getFirstAsync<{ sync_status: string; updated_at: string }>("
         },
         {
-          "line": 740,
+          "line": 771,
           "text": "const rows = await database.getAllAsync<{ id: string }>(`SELECT id FROM ${table} WHERE sync_status = 'synced'`);"
         },
         {
-          "line": 754,
+          "line": 785,
           "text": "const rows = await database.getAllAsync<{ id: string }>(\"SELECT id FROM trips WHERE sync_status = 'synced'\");"
         },
         {
-          "line": 776,
+          "line": 807,
           "text": "(SELECT COUNT(*) FROM trips WHERE sync_status = 'pending') +"
         },
         {
-          "line": 777,
+          "line": 808,
           "text": "(SELECT COUNT(*) FROM entries WHERE sync_status = 'pending') +"
         },
         {
-          "line": 778,
+          "line": 809,
           "text": "(SELECT COUNT(*) FROM expenses WHERE sync_status = 'pending') +"
         },
         {
-          "line": 779,
+          "line": 810,
           "text": "(SELECT COUNT(*) FROM packing_items WHERE sync_status = 'pending') +"
         },
         {
-          "line": 780,
+          "line": 811,
           "text": "(SELECT COUNT(*) FROM itinerary_items WHERE sync_status = 'pending') +"
         },
         {
-          "line": 781,
+          "line": 812,
           "text": "(SELECT COUNT(*) FROM track_points WHERE sync_status = 'pending') +"
         },
         {
-          "line": 782,
+          "line": 813,
           "text": "(SELECT COUNT(*) FROM entry_media WHERE sync_status = 'pending') +"
         }
       ]
@@ -2809,14 +2862,47 @@
       ]
     },
     {
+      "path": "services/api/src/adminConsole.ts",
+      "evidence": [
+        {
+          "line": 95,
+          "text": "if (res.status === 401) throw new Error('That key is not right.');"
+        },
+        {
+          "line": 96,
+          "text": "if (res.status === 429) throw new Error('Too many requests. Wait a few minutes.');"
+        },
+        {
+          "line": 135,
+          "text": "var status = $('status').value;"
+        },
+        {
+          "line": 137,
+          "text": "return call('GET', '/admin/reports?status=' + encodeURIComponent(status)).then(function (reports) {"
+        },
+        {
+          "line": 152,
+          "text": "r.status !== 'resolved' ? button('Mark resolved', 'ok', function () { return call('POST', '/admin/reports/' + r.id, { status: 'resolved' }).then(loadReports); }) : null,"
+        },
+        {
+          "line": 153,
+          "text": "r.status !== 'dismissed' ? button('Dismiss', '', function () { return call('POST', '/admin/reports/' + r.id, { status: 'dismissed' }).then(loadReports); }) : null,"
+        },
+        {
+          "line": 154,
+          "text": "r.status !== 'open' ? button('Reopen', '', function () { return call('POST', '/admin/reports/' + r.id, { status: 'open' }).then(loadReports); }) : null"
+        }
+      ]
+    },
+    {
       "path": "services/api/src/app.ts",
       "evidence": [
         {
-          "line": 59,
+          "line": 93,
           "text": "const status = error.code === 'LIMIT_FILE_SIZE' || error.type === 'entity.too.large' ? 413 : error.code === 'P2002' ? 409 : error instanceof SyntaxError || error.name === 'MulterError' ? 400 : 500;"
         },
         {
-          "line": 60,
+          "line": 94,
           "text": "res.status(status).json({ message: status === 413 ? 'Request exceeds the allowed size' : status === 409 ? 'Already exists' : status === 400 ? 'Invalid request' : 'Request failed' });"
         }
       ]
@@ -2851,28 +2937,32 @@
       "path": "services/api/src/routes/message.ts",
       "evidence": [
         {
-          "line": 23,
+          "line": 24,
           "text": "type SessionRow = { id: number; seekerId: number; solverId: number | null; title: string; active: boolean; updatedAt: Date };"
         },
         {
-          "line": 41,
+          "line": 42,
           "text": "active: s.active,"
         },
         {
-          "line": 61,
+          "line": 73,
           "text": "select: { id: true, tags: { select: { tag: { select: { name: true } } } }, _count: { select: { solverSessions: { where: { active: true } } } } },"
         },
         {
-          "line": 87,
+          "line": 99,
           "text": "where: { solverId: null, active: true, seekerId: { notIn: [userId, ...blocked] } },"
         },
         {
-          "line": 105,
+          "line": 117,
           "text": "const claimed = await prisma.session.updateMany({ where: { id: session.id, solverId: null, active: true }, data: { solverId: userId } });"
         },
         {
-          "line": 132,
+          "line": 145,
           "text": "sessionId: session.id, title: session.title, active: session.active,"
+        },
+        {
+          "line": 168,
+          "text": "const done = await prisma.session.updateMany({ where: { id: session.id, resolvedAt: null }, data: { active: false, resolvedAt: new Date(), helpful } });"
         }
       ]
     },

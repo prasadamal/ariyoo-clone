@@ -76,4 +76,4 @@ where r.created_at > now() - interval '7 days'
 group by 1 order by 2 desc limit 20;
 ```
 
-Contact for escalations and law-enforcement requests: privacy@ariyoo.app.
+Contact for escalations and law-enforcement requests: amalprasadappu@gmail.com.

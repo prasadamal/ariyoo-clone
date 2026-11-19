@@ -11,19 +11,19 @@ export const isSupabaseConfigured = isUsableSupabaseConfig(supabaseUrl, supabase
 
 const PAGES_BASE = 'https://ariyoo-docs.onrender.com';
 
-/** Public read-only trip page (GitHub Pages). */
+/** Public read-only trip page (ariyoo-docs static site). */
 export function getShareBaseUrl() {
   return envValue(process.env.EXPO_PUBLIC_WAYFARE_SHARE_BASE) ?? `${PAGES_BASE}/wayfare-share/index.html`;
 }
 
-/** Public live-location viewer for trusted contacts (GitHub Pages). */
+/** Public live-location viewer for trusted contacts (ariyoo-docs static site). */
 export function getLiveShareBaseUrl() {
   return envValue(process.env.EXPO_PUBLIC_WAYFARE_LIVE_BASE) ?? `${PAGES_BASE}/wayfare-live/index.html`;
 }
 
 export const PRIVACY_URL = `${PAGES_BASE}/privacy/wayfare.html`;
 export const TERMS_URL = `${PAGES_BASE}/privacy/wayfare-terms.html`;
-export const SUPPORT_EMAIL = 'support@ariyoo.app';
+export const SUPPORT_EMAIL = 'amalprasadappu@gmail.com';
 
 export const APP_VERSION = Constants.expoConfig?.version ?? '2.0.0';
 

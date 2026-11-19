@@ -5,6 +5,8 @@ export type SessionRow = {
   role?: 'seeker' | 'solver';
   waiting?: boolean;
   peerName?: string | null;
+  resolved?: boolean;
+  helpful?: boolean | null;
   updatedAt?: string;
 };
 
@@ -16,6 +18,11 @@ export function mergeSessions(asked: SessionRow[], answering: SessionRow[]): Ses
 }
 
 export function sessionSubtitle(row: SessionRow): string {
+  if (row.resolved) {
+    if (row.role === 'solver') return row.helpful ? `${row.peerName || 'The asker'} said your answer helped` : 'Marked answered';
+    if (row.waiting) return 'Withdrawn';
+    return row.helpful ? `Answered by ${row.peerName || 'an expert'} · helped` : 'Answered';
+  }
   if (!row.active) return 'Closed';
   if (row.role === 'solver') return row.peerName ? `You are answering ${row.peerName}` : 'You are answering';
   if (row.waiting) return 'Waiting for an expert';

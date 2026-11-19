@@ -9,9 +9,35 @@ import { registerRoutes } from './routes/index.js';
 import { attachIo } from './io.js';
 import { secureSockets } from './socket.js';
 import { prisma } from './prisma.js';
-import { requireAuth, AuthRequest } from './middleware/auth.js';
+import { requireAuth, AuthRequest, verifyToken } from './middleware/auth.js';
+import { ADMIN_CONSOLE_HTML, ADMIN_CONSOLE_JS } from './adminConsole.js';
 
-import { rateLimit } from 'express-rate-limit';
+import { ipKeyGenerator, rateLimit } from 'express-rate-limit';
+
+const WINDOW_MS = 15 * 60 * 1000;
+const byAddress = (req: express.Request) => `ip:${ipKeyGenerator(req.ip || '')}`;
+
+/**
+ * Signed-in requests count against the account, not the network: mobile carriers put many people
+ * behind one shared address, and one busy person on it must not lock out everyone else.
+ */
+export function rateLimitKey(req: express.Request): string {
+  const header = req.headers.authorization;
+  if (typeof header === 'string' && header.startsWith('Bearer ')) {
+    try {
+      return `user:${verifyToken(header.slice(7)).userId}`;
+    } catch {
+      // An invalid or expired token counts like an anonymous request.
+    }
+  }
+  return byAddress(req);
+}
+
+/** Sign-in: per address and email (stops guessing one password) plus a looser cap per address. */
+const signInKey = (req: express.Request) => {
+  const email = typeof req.body?.email === 'string' ? req.body.email.trim().toLowerCase().slice(0, 254) : '';
+  return email ? `${byAddress(req)}|email:${email}` : byAddress(req);
+};
 
 export function createServer() {
 const app = express();
@@ -23,13 +49,21 @@ attachIo(io);
 app.use(cors({ origin: config.corsOrigin }));
 app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
 app.use(express.json({ limit: '200kb' }));
-const limiter = (limit: number) => rateLimit({ windowMs: 15 * 60 * 1000, limit, standardHeaders: 'draft-7', legacyHeaders: false, message: { message: 'Too many requests. Try again in a few minutes.' } });
-app.use('/auth', limiter(30));
+const limiter = (limit: number, keyGenerator: (req: express.Request) => string = rateLimitKey) =>
+  rateLimit({ windowMs: WINDOW_MS, limit, keyGenerator, standardHeaders: 'draft-7', legacyHeaders: false, message: { message: 'Too many requests. Try again in a few minutes.' } });
+app.use('/auth', limiter(30, signInKey), limiter(300, byAddress));
 app.use('/admin', limiter(120));
 app.use('/api/newsletter', limiter(10));
 app.use('/api/safety', limiter(60));
 // Generous enough for a busy chat, low enough to stop scripted flooding.
 app.use('/api', limiter(1500));
+// Moderation page: static, no secrets inside; it calls /admin with the key the moderator types.
+app.get('/admin-console', (_req, res) => {
+  res.set({ 'Cache-Control': 'no-store', 'X-Robots-Tag': 'noindex' }).type('html').send(ADMIN_CONSOLE_HTML);
+});
+app.get('/admin-console.js', (_req, res) => {
+  res.set('Cache-Control', 'no-store').type('application/javascript').send(ADMIN_CONSOLE_JS);
+});
 app.get('/health', (_req, res) => {
   res.json({ ok: true, service: 'ariyoo-api' });
 });

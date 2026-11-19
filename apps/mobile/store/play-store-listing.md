@@ -28,12 +28,12 @@ Travel & Local
 Everyone (questionnaire: user-generated chat content)
 
 ## Contact email
-support@ariyoo.app
+amalprasadappu@gmail.com
 
 ## Privacy policy URL
 https://ariyoo-docs.onrender.com/privacy/ariyoo.html
 
-*(Enable GitHub Pages → Actions once: see `docs/STORE_START_HERE.md`.)*
+*(Served by the `ariyoo-docs` Render static site from `main`: see `docs/STORE_START_HERE.md`.)*
 
 ## Feature graphic
 Use `store/feature-graphic.png` (1024×500) after export.

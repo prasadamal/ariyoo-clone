@@ -3,8 +3,8 @@
 // The anon key is meant to be public: row-level security and the read-only RPCs
 // (get_shared_trip, get_live_share) decide what a link can see.
 window.WAYFARE_CONFIG = {
-  supabaseUrl: 'https://YOUR_PROJECT.supabase.co',
-  supabaseAnonKey: 'YOUR_ANON_KEY',
+  supabaseUrl: 'https://ujtylwimukufmbungnju.supabase.co',
+  supabaseAnonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVqdHlsd2ltdWt1Zm1idW5nbmp1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA3MTczMjQsImV4cCI6MjEwNjI5MzMyNH0.CJPE_jPoEHbu0UC9GxYyAlk0IkxPZCSBjem26X3mj1w',
 };
 
 // Small helpers shared by the viewers (no innerHTML with user content anywhere).

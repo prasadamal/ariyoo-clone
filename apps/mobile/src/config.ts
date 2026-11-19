@@ -19,7 +19,7 @@ export const isApiConfigured = getApiBaseUrl() !== '';
 const PAGES_BASE = 'https://ariyoo-docs.onrender.com';
 export const PRIVACY_URL = `${PAGES_BASE}/privacy/ariyoo.html`;
 export const TERMS_URL = `${PAGES_BASE}/privacy/ariyoo-terms.html`;
-export const SUPPORT_EMAIL = 'support@ariyoo.app';
+export const SUPPORT_EMAIL = 'amalprasadappu@gmail.com';
 
 export const APP_VERSION = Constants.expoConfig?.version ?? '1.0.0';
 

@@ -1,3 +1,4 @@
+import { labelsToCopy } from './packing';
 import { withJournalLock } from './journalGate';
 import * as SQLite from 'expo-sqlite';
 import { uuid } from './id';
@@ -521,6 +522,36 @@ export async function seedPackingTemplate(tripId: string, labels: string[]) {
       updated_at: stamp,
     });
   }
+}
+
+/** Other trips that have a packing list, newest first, for "copy from a past trip". */
+export async function listPackingSources(excludeTripId: string) {
+  const database = await getDb();
+  return database.getAllAsync<{ id: string; title: string; items: number }>(
+    `SELECT t.id, t.title, COUNT(p.id) AS items FROM trips t JOIN packing_items p ON p.trip_id = t.id
+     WHERE t.id <> ? GROUP BY t.id, t.title ORDER BY MAX(t.updated_at) DESC LIMIT 15`,
+    [excludeTripId]
+  );
+}
+
+/** Adds the source trip's items this trip does not have yet, unpacked, after the existing ones. */
+export async function copyPackingFrom(sourceTripId: string, targetTripId: string): Promise<number> {
+  const [source, target] = await Promise.all([listPacking(sourceTripId), listPacking(targetTripId)]);
+  const labels = labelsToCopy(target.map(i => i.label), source.map(i => i.label));
+  const start = target.reduce((max, i) => Math.max(max, i.sort_order), -1) + 1;
+  const stamp = now();
+  for (let i = 0; i < labels.length; i++) {
+    await upsertPackingItem({
+      id: uuid(),
+      trip_id: targetTripId,
+      label: labels[i],
+      packed: 0,
+      sort_order: start + i,
+      sync_status: 'pending',
+      updated_at: stamp,
+    });
+  }
+  return labels.length;
 }
 
 // ---------------------------------------------------------------------------

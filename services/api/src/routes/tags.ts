@@ -13,8 +13,10 @@ const tagList = z.array(z.object({ tagId: z.number().int().nonnegative().optiona
 const MAX_TOPICS = 30;
 const id = z.coerce.number().int().positive().max(2147483647);
 
+// Only topics at least one member follows: a topic nobody holds any more (removed by its last
+// expert, or left by a test run) is not offered to the public.
 tagsRouter.get('/getAll', async (_req, res) => {
-  const tags = await prisma.tag.findMany({ orderBy: { name: 'asc' } });
+  const tags = await prisma.tag.findMany({ where: { users: { some: {} } }, orderBy: { name: 'asc' } });
   res.json(tags.map(t => ({ id: t.id, tagName: t.name, description: 'tag' })));
 });
 

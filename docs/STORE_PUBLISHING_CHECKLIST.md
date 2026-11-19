@@ -8,7 +8,7 @@ Both apps live in this monorepo, ship with **Expo EAS**, and can be built **with
 
 - [x] App configs, permissions, EAS profiles, submit templates
 - [x] Store listing copy + Play icon 512 + feature graphics
-- [x] Privacy HTML + GitHub Pages workflow (`docs/privacy/`)
+- [x] Privacy HTML, served by the `ariyoo-docs` Render static site (`docs/privacy/`)
 - [x] Data safety / App Privacy answer sheets + App Review note templates
 - [x] Ariyoo API Dockerfile + deploy guide + demo seed users
 - [x] Wayfare Supabase migrations + setup README

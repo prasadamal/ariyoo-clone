@@ -51,8 +51,8 @@ npm run preflight                      # must end with "Ready for a store build.
 
 ## 4. Legal & compliance
 
-- [ ] GitHub Pages workflow has run: privacy policy, terms and account-deletion pages are live (`APP_REVIEW_NOTES.md` lists the URLs).
-- [ ] `support@ariyoo.app` and `privacy@ariyoo.app` reach a real inbox, or change them in `src/config.ts` and the three pages in `docs/privacy/`.
+- [x] Privacy policy, terms and account-deletion pages are live on https://ariyoo-docs.onrender.com (checked 19 Nov 2026; `APP_REVIEW_NOTES.md` lists the URLs).
+- [x] Contact address is amalprasadappu@gmail.com (a real inbox) until a domain is bought; then change it in `src/config.ts` and the three pages in `docs/privacy/`.
 - [ ] Someone checks the report queue every day (`services/api/MODERATION.md`). The stores and the Terms require action within 24 hours.
 - [ ] Two reviewer accounts exist on production (`APP_REVIEW_NOTES.md`).
 - [ ] Age rating and content questionnaires completed on both stores (18+, user-generated content with moderation).

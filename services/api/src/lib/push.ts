@@ -3,12 +3,13 @@ import { prisma } from '../prisma.js';
 const EXPO_PUSH_URL = 'https://exp.host/--/api/v2/push/send';
 export const EXPO_TOKEN = /^(ExponentPushToken|ExpoPushToken)\[[A-Za-z0-9_-]+\]$/;
 
-export type PushKind = 'question' | 'reply' | 'claimed';
+export type PushKind = 'question' | 'reply' | 'claimed' | 'thanked';
 
 const COPY: Record<PushKind, { title: string; body: string }> = {
   question: { title: 'New question for you', body: 'Someone asked about a topic you know. Open Ariyoo to answer.' },
   reply: { title: 'New message', body: 'You have a new message in Ariyoo.' },
   claimed: { title: 'An expert picked up your question', body: 'Open Ariyoo to continue the conversation.' },
+  thanked: { title: 'Your answer helped', body: 'Someone marked your answer as helpful. Thank you!' },
 };
 
 /** What goes over the wire: never the message text, only a pointer to the conversation. */
