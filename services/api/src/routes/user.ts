@@ -7,6 +7,7 @@ import { requireAuth, AuthRequest } from '../middleware/auth.js';
 import { containsBlockedContent } from '../lib/contentFilter.js';
 import { EXPO_TOKEN } from '../lib/push.js';
 import { passwordRule, publicSelf } from './auth.js';
+import { expertStats } from './message.js';
 
 const profileSchema = z.object({
   fullName: z.string().trim().min(1).max(100).optional(),
@@ -23,6 +24,13 @@ userRouter.get('/me', requireAuth, async (req: AuthRequest, res) => {
   const user = await prisma.user.findUnique({ where: { id: req.user!.userId } });
   if (!user) return res.status(404).json({ message: 'User not found' });
   res.json(publicSelf(user));
+});
+
+/** Your own activity: questions asked, and your record as an expert. */
+userRouter.get('/stats', requireAuth, async (req: AuthRequest, res) => {
+  const userId = req.user!.userId;
+  const [asked, record] = await Promise.all([prisma.session.count({ where: { seekerId: userId } }), expertStats(userId)]);
+  res.json({ asked, ...record });
 });
 
 userRouter.put('/', requireAuth, async (req: AuthRequest, res) => {

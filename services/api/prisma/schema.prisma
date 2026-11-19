@@ -79,6 +79,10 @@ model Session {
   solverId  Int?
   title     String
   active    Boolean  @default(true)
+  /// Set when the asker marks the question answered (or withdraws it); the conversation then closes.
+  resolvedAt DateTime?
+  /// The asker's thanks: true when the answer helped. Null when withdrawn before an expert answered.
+  helpful   Boolean?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   seeker    User     @relation("SeekerSessions", fields: [seekerId], references: [id])
