@@ -32,7 +32,7 @@ User-generated content safeguards (guideline 1.2):
   and hides the conversation for both people.
 - Messages are screened against a blocklist before they are sent.
 - Reports are reviewed within 24 hours; offending accounts are suspended or removed.
-- Contact: support@ariyoo.app
+- Contact: amalprasadappu@gmail.com
 
 Account deletion (guideline 5.1.1(v)): Profile tab → Delete account → enter password.
 It deletes the account, its conversations and photos immediately.

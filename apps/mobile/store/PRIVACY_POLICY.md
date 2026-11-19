@@ -1,7 +1,7 @@
 # Ariyoo Privacy Policy
 
 **Effective date:** October 2, 2026  
-**Contact:** privacy@ariyoo.app
+**Contact:** amalprasadappu@gmail.com
 
 Ariyoo ("we", "our", or "us") operates the Ariyoo mobile application, which connects seekers with expert solvers for travel and local Q&A.
 
@@ -23,7 +23,7 @@ We do not sell personal information.
 
 ## Data retention
 
-Account data is retained while your account is active. You may request deletion by emailing privacy@ariyoo.app.
+Account data is retained while your account is active. You may request deletion by emailing amalprasadappu@gmail.com.
 
 ## Third parties
 

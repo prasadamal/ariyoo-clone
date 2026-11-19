@@ -12,7 +12,7 @@ The free Render static site `ariyoo-docs` publishes the `docs/` folder from `mai
 | Ariyoo | `https://ariyoo-docs.onrender.com/privacy/ariyoo.html` (terms: `ariyoo-terms.html`, deletion: `ariyoo-delete-account.html`) |
 | Wayfare | `https://ariyoo-docs.onrender.com/privacy/wayfare.html` |
 
-Support email used in listings: **support@ariyoo.app** · Privacy: **privacy@ariyoo.app**
+Support and privacy email used in listings and policies: **amalprasadappu@gmail.com** (until a domain is bought)
 
 ---
 

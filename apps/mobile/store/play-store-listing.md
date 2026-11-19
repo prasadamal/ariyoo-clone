@@ -28,7 +28,7 @@ Travel & Local
 Everyone (questionnaire: user-generated chat content)
 
 ## Contact email
-support@ariyoo.app
+amalprasadappu@gmail.com
 
 ## Privacy policy URL
 https://ariyoo-docs.onrender.com/privacy/ariyoo.html

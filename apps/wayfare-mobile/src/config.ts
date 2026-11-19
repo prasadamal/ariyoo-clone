@@ -23,7 +23,7 @@ export function getLiveShareBaseUrl() {
 
 export const PRIVACY_URL = `${PAGES_BASE}/privacy/wayfare.html`;
 export const TERMS_URL = `${PAGES_BASE}/privacy/wayfare-terms.html`;
-export const SUPPORT_EMAIL = 'support@ariyoo.app';
+export const SUPPORT_EMAIL = 'amalprasadappu@gmail.com';
 
 export const APP_VERSION = Constants.expoConfig?.version ?? '2.0.0';
 
