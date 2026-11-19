@@ -32,6 +32,12 @@
         "EXPO_PUBLIC_SUPABASE_URL": "https://ujtylwimukufmbungnju.supabase.co",
         "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVqdHlsd2ltdWt1Zm1idW5nbmp1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA3MTczMjQsImV4cCI6MjEwNjI5MzMyNH0.CJPE_jPoEHbu0UC9GxYyAlk0IkxPZCSBjem26X3mj1w"
       }
+    },
+    "simulator": {
+      "extends": "preview",
+      "ios": {
+        "simulator": true
+      }
     }
   },
   "submit": {

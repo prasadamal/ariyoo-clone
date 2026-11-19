@@ -32,6 +32,12 @@
       "env": {
         "EXPO_PUBLIC_API_URL": "https://ariyoo-api-cboa.onrender.com"
       }
+    },
+    "simulator": {
+      "extends": "preview",
+      "ios": {
+        "simulator": true
+      }
     }
   },
   "submit": {
