@@ -13,6 +13,9 @@ test('only the asker closes a question, exactly once, and thanks reach the exper
     [11, { id: 11, seekerId: 1, solverId: null, active: true, resolvedAt: null, helpful: null }],
   ]);
   const pushedTo: number[][] = [];
+  // CI turns pushes off; this test needs the lookup to run (it finds no devices, so nothing is sent).
+  const pushSetting = process.env.PUSH_DISABLED;
+  delete process.env.PUSH_DISABLED;
   prisma.user.findUnique = (async ({ where }: any) => ([1, 2, 3].includes(where.id) ? { suspendedAt: null } : null)) as any;
   prisma.block.findFirst = (async () => null) as any;
   prisma.session.findUnique = (async ({ where }: any) => rows.get(where.id) ?? null) as any;
@@ -68,6 +71,8 @@ test('only the asker closes a question, exactly once, and thanks reach the exper
     const expertView = await (await fetch(`${base}/api/Message/session/10`, { headers: as(2) })).json();
     assert.equal(expertView.peerStats, null);
   } finally {
+    if (pushSetting === undefined) delete process.env.PUSH_DISABLED;
+    else process.env.PUSH_DISABLED = pushSetting;
     await new Promise<void>(resolve => io.close(() => resolve()));
   }
 });
