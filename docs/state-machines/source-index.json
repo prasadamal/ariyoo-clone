@@ -2008,26 +2008,46 @@
       "evidence": [
         {
           "line": 1,
-          "text": "import { useCallback, useEffect, useState } from 'react';"
+          "text": "import { useCallback, useEffect, useRef, useState } from 'react';"
         },
         {
-          "line": 11,
+          "line": 20,
           "text": "const [items, setItems] = useState<LocalPackingItem[]>([]);"
         },
         {
-          "line": 12,
+          "line": 21,
           "text": "const [label, setLabel] = useState('');"
         },
         {
-          "line": 21,
+          "line": 22,
+          "text": "const [sources, setSources] = useState<{ id: string; title: string; items: number }[]>([]);"
+        },
+        {
+          "line": 23,
+          "text": "const [picking, setPicking] = useState(false);"
+        },
+        {
+          "line": 24,
+          "text": "const [copying, setCopying] = useState(false);"
+        },
+        {
+          "line": 25,
+          "text": "// A ref, not state: two fast taps must not both copy before the first re-render."
+        },
+        {
+          "line": 27,
+          "text": "const [notice, setNotice] = useState('');"
+        },
+        {
+          "line": 40,
           "text": "await upsertPackingItem({ ...item, packed: item.packed ? 0 : 1, sync_status: 'pending', updated_at: new Date().toISOString() });"
         },
         {
-          "line": 49,
+          "line": 86,
           "text": "for (const i of items.filter(x => x.packed)) await upsertPackingItem({ ...i, packed: 0, sync_status: 'pending', updated_at: now });"
         },
         {
-          "line": 77,
+          "line": 114,
           "text": "<Checkbox.Android status={item.packed ? 'checked' : 'unchecked'} onPress={() => toggle(item)} />"
         }
       ]
@@ -2173,147 +2193,151 @@
       "path": "apps/wayfare-mobile/src/lib/localDb.ts",
       "evidence": [
         {
-          "line": 15,
+          "line": 16,
           "text": "visibility: string;"
         },
         {
-          "line": 17,
+          "line": 18,
           "text": "status: string;"
         },
         {
-          "line": 26,
+          "line": 27,
           "text": "sync_status: string;"
         },
         {
-          "line": 41,
+          "line": 42,
           "text": "sync_status: string;"
         },
         {
-          "line": 57,
+          "line": 58,
           "text": "sync_status: string;"
         },
         {
-          "line": 67,
+          "line": 68,
           "text": "sync_status: string;"
         },
         {
-          "line": 81,
+          "line": 82,
           "text": "sync_status: string;"
         },
         {
-          "line": 93,
+          "line": 94,
           "text": "sync_status: string;"
         },
         {
-          "line": 103,
+          "line": 104,
           "text": "sync_status: string;"
         },
         {
-          "line": 259,
+          "line": 260,
           "text": "await database.runAsync(\"UPDATE packing_items SET id = ?, sync_status = 'pending' WHERE id = ?\", [uuid(), p.id]);"
         },
         {
-          "line": 289,
+          "line": 290,
           "text": "starts_on=excluded.starts_on, ends_on=excluded.ends_on, visibility=excluded.visibility,"
         },
         {
-          "line": 290,
+          "line": 291,
           "text": "companions=excluded.companions, status=excluded.status, notes=excluded.notes,"
         },
         {
-          "line": 293,
+          "line": 294,
           "text": "dest_lng=excluded.dest_lng, sync_status=excluded.sync_status, updated_at=excluded.updated_at`,"
         },
         {
-          "line": 322,
+          "line": 323,
           "text": "const next: LocalTrip = { ...trip, ...patch, id, sync_status: 'pending', updated_at: now() };"
         },
         {
-          "line": 388,
+          "line": 389,
           "text": "longitude=excluded.longitude, altitude_m=excluded.altitude_m, sync_status=excluded.sync_status,"
         },
         {
-          "line": 442,
+          "line": 443,
           "text": "sync_status=excluded.sync_status, updated_at=excluded.updated_at`,"
         },
         {
-          "line": 483,
+          "line": 484,
           "text": "sync_status=excluded.sync_status, updated_at=excluded.updated_at`,"
         },
         {
-          "line": 500,
+          "line": 501,
           "text": "sync_status: 'pending',"
         },
         {
-          "line": 520,
+          "line": 521,
           "text": "sync_status: 'pending',"
         },
         {
-          "line": 547,
+          "line": 550,
+          "text": "sync_status: 'pending',"
+        },
+        {
+          "line": 578,
           "text": "sort_order=excluded.sort_order, sync_status=excluded.sync_status, updated_at=excluded.updated_at`,"
         },
         {
-          "line": 652,
+          "line": 683,
           "text": "sync_status=excluded.sync_status, updated_at=excluded.updated_at`,"
         },
         {
-          "line": 680,
+          "line": 711,
           "text": "return database.getAllAsync<T>(`SELECT * FROM ${table} WHERE sync_status = 'pending'`);"
         },
         {
-          "line": 686,
+          "line": 717,
           "text": "`SELECT * FROM track_points WHERE sync_status = 'pending' ORDER BY recorded_at ASC LIMIT ?`,"
         },
         {
-          "line": 695,
+          "line": 726,
           "text": "await database.runAsync(`UPDATE ${table} SET sync_status = 'synced' WHERE id = ? AND updated_at = ?`, ["
         },
         {
-          "line": 700,
+          "line": 731,
           "text": "await database.runAsync(`UPDATE ${table} SET sync_status = 'synced' WHERE id = ?`, [id]);"
         },
         {
-          "line": 708,
+          "line": 739,
           "text": "await database.runAsync(`UPDATE track_points SET sync_status = 'synced' WHERE id IN (${placeholders})`, ids);"
         },
         {
-          "line": 731,
+          "line": 762,
           "text": "return database.getFirstAsync<{ sync_status: string; updated_at: string }>("
         },
         {
-          "line": 740,
+          "line": 771,
           "text": "const rows = await database.getAllAsync<{ id: string }>(`SELECT id FROM ${table} WHERE sync_status = 'synced'`);"
         },
         {
-          "line": 754,
+          "line": 785,
           "text": "const rows = await database.getAllAsync<{ id: string }>(\"SELECT id FROM trips WHERE sync_status = 'synced'\");"
         },
         {
-          "line": 776,
+          "line": 807,
           "text": "(SELECT COUNT(*) FROM trips WHERE sync_status = 'pending') +"
         },
         {
-          "line": 777,
+          "line": 808,
           "text": "(SELECT COUNT(*) FROM entries WHERE sync_status = 'pending') +"
         },
         {
-          "line": 778,
+          "line": 809,
           "text": "(SELECT COUNT(*) FROM expenses WHERE sync_status = 'pending') +"
         },
         {
-          "line": 779,
+          "line": 810,
           "text": "(SELECT COUNT(*) FROM packing_items WHERE sync_status = 'pending') +"
         },
         {
-          "line": 780,
+          "line": 811,
           "text": "(SELECT COUNT(*) FROM itinerary_items WHERE sync_status = 'pending') +"
         },
         {
-          "line": 781,
+          "line": 812,
           "text": "(SELECT COUNT(*) FROM track_points WHERE sync_status = 'pending') +"
         },
         {
-          "line": 782,
+          "line": 813,
           "text": "(SELECT COUNT(*) FROM entry_media WHERE sync_status = 'pending') +"
         }
       ]
