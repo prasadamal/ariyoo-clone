@@ -109,7 +109,7 @@ const darkColors: typeof lightColors = {
   tierTraveler: '#d6d3d1',
   tierHardcore: '#fb923c',
   tierLegendary: '#c4b5fd',
-  bubbleMine: '#ea580c',
+  bubbleMine: '#c2410c', // white text at 5.2:1 (was 3.6:1)
   onBubbleMine: '#ffffff',
   bubbleTheirs: '#292524',
   onBubbleTheirs: '#fafaf9',
@@ -120,7 +120,7 @@ const darkColors: typeof lightColors = {
   violetStart: '#6d28d9',
   violetEnd: '#2e1065',
   danger: '#ef4444',
-  onDanger: '#ffffff',
+  onDanger: '#1a0505', // dark text on the bright red reads at 5.2:1 (white was 3.8:1)
 };
 
 export const wayfareLightTheme = {

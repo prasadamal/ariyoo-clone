@@ -235,7 +235,7 @@ export default function SettingsScreen() {
         </>
       ) : null}
 
-      <Text style={{ color: colors.subtle, fontSize: 12, marginTop: 24, textAlign: 'center' }}>Wayfare {APP_VERSION} · com.wayfare.app</Text>
+      <Text style={{ color: colors.muted, fontSize: 12, marginTop: 24, textAlign: 'center' }}>Wayfare {APP_VERSION} · com.wayfare.app</Text>
 
       <Portal>
         <Dialog visible={deleteOpen} onDismiss={() => !deleting && setDeleteOpen(false)}>

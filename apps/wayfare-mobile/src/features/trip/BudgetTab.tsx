@@ -136,7 +136,7 @@ export function BudgetTab({ trip, onChanged }: Props) {
         {total.unconverted.length ? (
           <Notice tone="warning" text={`${total.unconverted.join(', ')} not included — connect once to download exchange rates.`} />
         ) : rates && expenses.some(e => e.currency !== tripCurrency) ? (
-          <Text style={{ color: colors.subtle, fontSize: 11, marginTop: 6 }}>
+          <Text style={{ color: colors.muted, fontSize: 11, marginTop: 6 }}>
             Converted with {rates.source} rates from {timeAgo(rates.fetchedAt)} ago.
           </Text>
         ) : null}
