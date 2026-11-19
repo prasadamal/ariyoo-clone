@@ -10,6 +10,7 @@ import { attachIo } from './io.js';
 import { secureSockets } from './socket.js';
 import { prisma } from './prisma.js';
 import { requireAuth, AuthRequest, verifyToken } from './middleware/auth.js';
+import { ADMIN_CONSOLE_HTML, ADMIN_CONSOLE_JS } from './adminConsole.js';
 
 import { ipKeyGenerator, rateLimit } from 'express-rate-limit';
 
@@ -56,6 +57,13 @@ app.use('/api/newsletter', limiter(10));
 app.use('/api/safety', limiter(60));
 // Generous enough for a busy chat, low enough to stop scripted flooding.
 app.use('/api', limiter(1500));
+// Moderation page: static, no secrets inside; it calls /admin with the key the moderator types.
+app.get('/admin-console', (_req, res) => {
+  res.set({ 'Cache-Control': 'no-store', 'X-Robots-Tag': 'noindex' }).type('html').send(ADMIN_CONSOLE_HTML);
+});
+app.get('/admin-console.js', (_req, res) => {
+  res.set('Cache-Control', 'no-store').type('application/javascript').send(ADMIN_CONSOLE_JS);
+});
 app.get('/health', (_req, res) => {
   res.json({ ok: true, service: 'ariyoo-api' });
 });

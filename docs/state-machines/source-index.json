@@ -2862,14 +2862,47 @@
       ]
     },
     {
+      "path": "services/api/src/adminConsole.ts",
+      "evidence": [
+        {
+          "line": 95,
+          "text": "if (res.status === 401) throw new Error('That key is not right.');"
+        },
+        {
+          "line": 96,
+          "text": "if (res.status === 429) throw new Error('Too many requests. Wait a few minutes.');"
+        },
+        {
+          "line": 135,
+          "text": "var status = $('status').value;"
+        },
+        {
+          "line": 137,
+          "text": "return call('GET', '/admin/reports?status=' + encodeURIComponent(status)).then(function (reports) {"
+        },
+        {
+          "line": 152,
+          "text": "r.status !== 'resolved' ? button('Mark resolved', 'ok', function () { return call('POST', '/admin/reports/' + r.id, { status: 'resolved' }).then(loadReports); }) : null,"
+        },
+        {
+          "line": 153,
+          "text": "r.status !== 'dismissed' ? button('Dismiss', '', function () { return call('POST', '/admin/reports/' + r.id, { status: 'dismissed' }).then(loadReports); }) : null,"
+        },
+        {
+          "line": 154,
+          "text": "r.status !== 'open' ? button('Reopen', '', function () { return call('POST', '/admin/reports/' + r.id, { status: 'open' }).then(loadReports); }) : null"
+        }
+      ]
+    },
+    {
       "path": "services/api/src/app.ts",
       "evidence": [
         {
-          "line": 85,
+          "line": 93,
           "text": "const status = error.code === 'LIMIT_FILE_SIZE' || error.type === 'entity.too.large' ? 413 : error.code === 'P2002' ? 409 : error instanceof SyntaxError || error.name === 'MulterError' ? 400 : 500;"
         },
         {
-          "line": 86,
+          "line": 94,
           "text": "res.status(status).json({ message: status === 413 ? 'Request exceeds the allowed size' : status === 409 ? 'Already exists' : status === 400 ? 'Invalid request' : 'Request failed' });"
         }
       ]

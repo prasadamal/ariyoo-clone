@@ -1,5 +1,16 @@
 # Moderation runbook — Ariyoo
 
+## Moderation page (no command line needed)
+
+Open **https://ariyoo-api-cboa.onrender.com/admin-console** in any browser (phone works). Paste the
+admin key (Render dashboard → service `ariyoo-api-cboa` → Environment → `ADMIN_API_KEY` → reveal) and
+press Load. You see every open report with the reported person's latest messages in that conversation,
+and can mark it resolved or dismissed, suspend or un-suspend the person, or delete their account
+(you must type DELETE). "Find a member by email" handles deletion requests that arrive by email.
+The key is kept only for that browser tab; "Forget key" clears it. The first load after the server has
+been idle can take up to a minute while it wakes up.
+
+
 Both stores require that reports about user content are acted on, and Ariyoo's Terms promise a
 review **within 24 hours**. Someone has to own this from the day the app is public.
 
