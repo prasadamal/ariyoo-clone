@@ -4,11 +4,13 @@ import { Button, Chip, Dialog, Divider, List, Portal, Switch, Text, TextInput } 
 import { api, errorMessage, type Profile } from '../../src/api/client';
 import { useAuth } from '../../src/context/AuthContext';
 import { APP_VERSION, PRIVACY_URL, SUPPORT_EMAIL, TERMS_URL } from '../../src/config';
-import { cleanTopic } from '../../src/lib/validation';
+import { expertRecord } from '../../src/lib/resolve';
+import { cleanTopic, passwordProblem } from '../../src/lib/validation';
 import { registerForPush } from '../../src/notifications';
 
 type Topic = { tagId: number; tagName: string };
 type Blocked = { userId: number; fullName: string };
+type Stats = { asked: number; answered: number; helpful: number };
 
 const open = (url: string) => Linking.openURL(url).catch(() => undefined);
 
@@ -26,6 +28,11 @@ export default function ProfileTab() {
   const [password, setPassword] = useState('');
   const [deleteError, setDeleteError] = useState('');
   const [deleteBusy, setDeleteBusy] = useState(false);
+  const [stats, setStats] = useState<Stats | null>(null);
+  const [changing, setChanging] = useState(false);
+  const [pw, setPw] = useState({ current: '', next: '', again: '' });
+  const [pwError, setPwError] = useState('');
+  const [pwBusy, setPwBusy] = useState(false);
   const userId = user?.userId;
 
   useEffect(() => {
@@ -38,12 +45,14 @@ export default function ProfileTab() {
 
   const loadExtras = useCallback(async () => {
     if (!userId) return;
-    const [t, b] = await Promise.all([
+    const [t, b, st] = await Promise.all([
       api.get<Topic[]>(`/api/Tags/getUserTags/${userId}`).catch(() => null),
       api.get<Blocked[]>('/api/safety/blocks').catch(() => null),
+      api.get<Stats>('/api/user/stats').catch(() => null),
     ]);
     if (t) setTopics(t.data);
     if (b) setBlocked(b.data);
+    if (st) setStats(st.data);
   }, [userId]);
   useEffect(() => { void loadExtras(); }, [loadExtras]);
 
@@ -93,6 +102,24 @@ export default function ProfileTab() {
     void loadExtras();
   };
 
+  const changePassword = async () => {
+    if (pwBusy) return;
+    const problem = !pw.current ? 'Enter your current password.' : passwordProblem(pw.next) ?? (pw.next !== pw.again ? 'The new passwords do not match.' : pw.next === pw.current ? 'Choose a password you have not used here.' : null);
+    if (problem) return setPwError(problem);
+    setPwBusy(true);
+    setPwError('');
+    try {
+      await api.put('/api/user/updatepassword', { oldPassword: pw.current, newPassword: pw.next });
+      setChanging(false);
+      setPw({ current: '', next: '', again: '' });
+      setNotice({ ok: true, text: 'Password changed.' });
+    } catch (e: unknown) {
+      setPwError(errorMessage(e, 'Could not change the password. Please try again.'));
+    } finally {
+      setPwBusy(false);
+    }
+  };
+
   const deleteAccount = async () => {
     if (deleteBusy || !password) return;
     setDeleteBusy(true);
@@ -114,7 +141,13 @@ export default function ProfileTab() {
   return (
     <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
       <Text variant="titleLarge" style={{ marginBottom: 4 }}>{user.fullName}</Text>
-      <Text style={{ color: '#94a3b8', marginBottom: 24 }}>{user.email}</Text>
+      <Text style={{ color: '#94a3b8', marginBottom: stats ? 8 : 24 }}>{user.email}</Text>
+      {stats ? (
+        <Text style={{ color: '#cbd5e1', marginBottom: 24 }}>
+          {stats.asked === 1 ? '1 question asked' : `${stats.asked} questions asked`}
+          {user.isSolver ? ` · ${expertRecord(stats)}` : ''}
+        </Text>
+      ) : null}
       <TextInput mode="outlined" label="Username (optional)" value={userName} onChangeText={setUserName} autoCapitalize="none" autoCorrect={false} maxLength={30} style={{ marginBottom: 16 }} />
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
         <View style={{ flex: 1, paddingRight: 12 }}>
@@ -153,6 +186,7 @@ export default function ProfileTab() {
       ) : null}
 
       <Divider style={{ marginBottom: 8 }} />
+      <List.Item title="Change password" left={p => <List.Icon {...p} icon="lock-reset" />} onPress={() => { setPw({ current: '', next: '', again: '' }); setPwError(''); setChanging(true); }} style={{ paddingHorizontal: 0 }} />
       <List.Item title="Terms of Use" left={p => <List.Icon {...p} icon="file-document-outline" />} onPress={() => open(TERMS_URL)} style={{ paddingHorizontal: 0 }} />
       <List.Item title="Privacy Policy" left={p => <List.Icon {...p} icon="shield-lock-outline" />} onPress={() => open(PRIVACY_URL)} style={{ paddingHorizontal: 0 }} />
       <List.Item title="Contact support" description={SUPPORT_EMAIL} left={p => <List.Icon {...p} icon="email-outline" />} onPress={() => open(`mailto:${SUPPORT_EMAIL}`)} style={{ paddingHorizontal: 0 }} />
@@ -167,6 +201,19 @@ export default function ProfileTab() {
       <Text style={{ color: '#64748b', fontSize: 12, marginTop: 16, textAlign: 'center' }}>Ariyoo {APP_VERSION}</Text>
 
       <Portal>
+        <Dialog visible={changing} onDismiss={() => { if (!pwBusy) setChanging(false); }}>
+          <Dialog.Title>Change password</Dialog.Title>
+          <Dialog.Content>
+            <TextInput mode="outlined" label="Current password" value={pw.current} onChangeText={v => setPw(c => ({ ...c, current: v }))} secureTextEntry autoComplete="current-password" style={{ marginBottom: 8 }} />
+            <TextInput mode="outlined" label="New password (12+ characters)" value={pw.next} onChangeText={v => setPw(c => ({ ...c, next: v }))} secureTextEntry autoComplete="new-password" style={{ marginBottom: 8 }} />
+            <TextInput mode="outlined" label="New password again" value={pw.again} onChangeText={v => setPw(c => ({ ...c, again: v }))} secureTextEntry autoComplete="new-password" onSubmitEditing={changePassword} />
+            {pwError ? <Text accessibilityRole="alert" style={{ color: '#f87171', marginTop: 8 }}>{pwError}</Text> : null}
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setChanging(false)} disabled={pwBusy}>Cancel</Button>
+            <Button onPress={changePassword} loading={pwBusy} disabled={pwBusy}>Change</Button>
+          </Dialog.Actions>
+        </Dialog>
         <Dialog visible={deleting} onDismiss={() => { if (!deleteBusy) setDeleting(false); }}>
           <Dialog.Title>Delete your account?</Dialog.Title>
           <Dialog.Content>

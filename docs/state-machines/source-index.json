@@ -50,52 +50,72 @@
           "text": "import { useCallback, useEffect, useState } from 'react';"
         },
         {
-          "line": 17,
+          "line": 19,
           "text": "const [userName, setUserName] = useState('');"
         },
         {
-          "line": 18,
+          "line": 20,
           "text": "const [isSolver, setIsSolver] = useState(false);"
         },
         {
-          "line": 19,
+          "line": 21,
           "text": "const [saving, setSaving] = useState(false);"
         },
         {
-          "line": 20,
+          "line": 22,
           "text": "const [notice, setNotice] = useState<{ ok: boolean; text: string } | null>(null);"
         },
         {
-          "line": 21,
+          "line": 23,
           "text": "const [topics, setTopics] = useState<Topic[]>([]);"
         },
         {
-          "line": 22,
+          "line": 24,
           "text": "const [newTopic, setNewTopic] = useState('');"
         },
         {
-          "line": 23,
+          "line": 25,
           "text": "const [topicBusy, setTopicBusy] = useState(false);"
         },
         {
-          "line": 24,
+          "line": 26,
           "text": "const [blocked, setBlocked] = useState<Blocked[]>([]);"
         },
         {
-          "line": 25,
+          "line": 27,
           "text": "const [deleting, setDeleting] = useState(false);"
         },
         {
-          "line": 26,
+          "line": 28,
           "text": "const [password, setPassword] = useState('');"
         },
         {
-          "line": 27,
+          "line": 29,
           "text": "const [deleteError, setDeleteError] = useState('');"
         },
         {
-          "line": 28,
+          "line": 30,
           "text": "const [deleteBusy, setDeleteBusy] = useState(false);"
+        },
+        {
+          "line": 31,
+          "text": "const [stats, setStats] = useState<Stats | null>(null);"
+        },
+        {
+          "line": 32,
+          "text": "const [changing, setChanging] = useState(false);"
+        },
+        {
+          "line": 33,
+          "text": "const [pw, setPw] = useState({ current: '', next: '', again: '' });"
+        },
+        {
+          "line": 34,
+          "text": "const [pwError, setPwError] = useState('');"
+        },
+        {
+          "line": 35,
+          "text": "const [pwBusy, setPwBusy] = useState(false);"
         }
       ]
     },
@@ -136,43 +156,43 @@
           "text": "import { useCallback, useEffect, useReducer, useRef, useState } from 'react';"
         },
         {
-          "line": 16,
+          "line": 17,
           "text": "active: boolean;"
         },
         {
-          "line": 43,
+          "line": 47,
           "text": "const [state, dispatch] = useReducer(chatReducer, initialChatState);"
         },
         {
-          "line": 44,
+          "line": 48,
           "text": "const [text, setText] = useState('');"
         },
         {
-          "line": 45,
+          "line": 49,
           "text": "const [info, setInfo] = useState<SessionInfo | null>(null);"
         },
         {
-          "line": 46,
+          "line": 50,
           "text": "const [menu, setMenu] = useState(false);"
         },
         {
-          "line": 47,
-          "text": "const [dialog, setDialog] = useState<'report' | 'block' | null>(null);"
+          "line": 51,
+          "text": "const [dialog, setDialog] = useState<'report' | 'block' | 'resolve' | null>(null);"
         },
         {
-          "line": 48,
+          "line": 52,
           "text": "const [reason, setReason] = useState('harassment');"
         },
         {
-          "line": 49,
+          "line": 53,
           "text": "const [details, setDetails] = useState('');"
         },
         {
-          "line": 50,
+          "line": 54,
           "text": "const [working, setWorking] = useState(false);"
         },
         {
-          "line": 51,
+          "line": 55,
           "text": "const [dialogError, setDialogError] = useState('');"
         }
       ]
@@ -279,6 +299,15 @@
         {
           "line": 39,
           "text": "const [loading, setLoading] = useState(true);"
+        }
+      ]
+    },
+    {
+      "path": "apps/mobile/src/lib/resolve.ts",
+      "evidence": [
+        {
+          "line": 33,
+          "text": "export function closeAction(s: ResolveState & { active: boolean; blocked?: boolean }): 'answered' | 'withdraw' | null {"
         }
       ]
     },
@@ -2851,28 +2880,32 @@
       "path": "services/api/src/routes/message.ts",
       "evidence": [
         {
-          "line": 23,
+          "line": 24,
           "text": "type SessionRow = { id: number; seekerId: number; solverId: number | null; title: string; active: boolean; updatedAt: Date };"
         },
         {
-          "line": 41,
+          "line": 42,
           "text": "active: s.active,"
         },
         {
-          "line": 61,
+          "line": 73,
           "text": "select: { id: true, tags: { select: { tag: { select: { name: true } } } }, _count: { select: { solverSessions: { where: { active: true } } } } },"
         },
         {
-          "line": 87,
+          "line": 99,
           "text": "where: { solverId: null, active: true, seekerId: { notIn: [userId, ...blocked] } },"
         },
         {
-          "line": 105,
+          "line": 117,
           "text": "const claimed = await prisma.session.updateMany({ where: { id: session.id, solverId: null, active: true }, data: { solverId: userId } });"
         },
         {
-          "line": 132,
+          "line": 145,
           "text": "sessionId: session.id, title: session.title, active: session.active,"
+        },
+        {
+          "line": 168,
+          "text": "const done = await prisma.session.updateMany({ where: { id: session.id, resolvedAt: null }, data: { active: false, resolvedAt: new Date(), helpful } });"
         }
       ]
     },
