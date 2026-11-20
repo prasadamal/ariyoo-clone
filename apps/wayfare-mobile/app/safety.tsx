@@ -8,6 +8,7 @@ import { getDestination } from '../src/content/destinations';
 import { ALTITUDE_GUIDE, EMERGENCY_NUMBERS, MEETUP_SAFETY, TREK_CHECKLIST, emergencyNumbersFor } from '../src/content/safety';
 import { useAuth, useCanConnect } from '../src/context/AuthContext';
 import { useToast } from '../src/context/ToastContext';
+import { journeysOnly } from '../src/lib/everydayMemories';
 import { listTrips } from '../src/lib/localDb';
 import { buildLiveShareUrls } from '../src/lib/liveShare';
 import { getActiveTrackingTripId, getLiveShareState, startLiveSharing, stopLiveSharing } from '../src/lib/locationTask';
@@ -73,7 +74,7 @@ export default function SafetyScreen() {
     setLive(await getLiveShareState());
     setCheckInState(await getCheckIn());
     // Prefer the country of the journey you are on (emergency numbers differ abroad).
-    const trips = await listTrips();
+    const trips = journeysOnly(await listTrips());
     const recording = await getActiveTrackingTripId();
     const current = trips.find(t => t.id === recording) ?? trips.find(t => tripPhase(t.starts_on, t.ends_on) === 'ongoing');
     setTripTitle(current?.title ?? null);

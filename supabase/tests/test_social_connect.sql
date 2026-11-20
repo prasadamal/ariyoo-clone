@@ -442,6 +442,9 @@ select tests.check((select jsonb_array_length(route_preview) from public.posts w
 select tests.check((public.refresh_my_stats() ->> 'tier') = 'hardcore', 'tier from verified stats (4000 m reached)');
 select tests.check((select max_altitude_m from public.profiles where id = auth.uid()) = 4000, 'max altitude');
 select tests.check((select trips_count from public.profiles where id = auth.uid()) = 1, 'trip count');
+-- The private everyday journal syncs as a trip but is not a journey, so it is not counted.
+insert into public.trips (user_id, title, trip_type) values (auth.uid(), 'Everyday journal', 'everyday');
+select tests.check((public.refresh_my_stats() ->> 'trips_count')::int = 1, 'everyday journal is not counted as a trip');
 
 -- ---------------------------------------------------------------------------
 -- Live location + shared trips (anon viewers)

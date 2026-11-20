@@ -6,6 +6,7 @@ import { UserRow } from '../../components/UserRow';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { formatDateRange, tripPhase } from '../../lib/format';
+import { journeysOnly } from '../../lib/everydayMemories';
 import { listTrips, updateTrip, type LocalTrip } from '../../lib/localDb';
 import { placeLabel } from '../../lib/places';
 import { pushTripNow } from '../../lib/sync';
@@ -25,7 +26,7 @@ export function MatchesSection() {
   const [rows, setRows] = useState<Row[] | null>(null);
 
   const load = useCallback(async () => {
-    const trips = (await listTrips()).filter(t => t.status !== 'completed' && tripPhase(t.starts_on, t.ends_on) !== 'past');
+    const trips = journeysOnly(await listTrips()).filter(t => t.status !== 'completed' && tripPhase(t.starts_on, t.ends_on) !== 'past');
     const out: Row[] = [];
     for (const trip of trips) {
       if (!trip.open_to_meet) {

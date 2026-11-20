@@ -449,31 +449,43 @@
           "text": "import { useCallback, useMemo, useState } from 'react';"
         },
         {
-          "line": 33,
+          "line": 34,
           "text": "const [trips, setTrips] = useState<TripRow[]>([]);"
         },
         {
-          "line": 34,
+          "line": 35,
           "text": "const [filter, setFilter] = useState<Filter>('all');"
         },
         {
-          "line": 35,
+          "line": 36,
           "text": "const [recordingTripId, setRecordingTripId] = useState<string | null>(null);"
         },
         {
-          "line": 36,
+          "line": 37,
           "text": "const [loaded, setLoaded] = useState(false);"
         },
         {
-          "line": 77,
+          "line": 38,
+          "text": "const [wroteTodayPage, setWroteTodayPage] = useState(false);"
+        },
+        {
+          "line": 39,
+          "text": "const [memories, setMemories] = useState<MemoryGroup<LocalEntry>[]>([]);"
+        },
+        {
+          "line": 40,
+          "text": "const [journalNames, setJournalNames] = useState<Record<string, { title: string; everyday: boolean }>>({});"
+        },
+        {
+          "line": 87,
           "text": "const phase = tripPhase(t.starts_on, t.ends_on);"
         },
         {
-          "line": 79,
+          "line": 89,
           "text": "return t.status === 'completed' || phase === 'past';"
         },
         {
-          "line": 95,
+          "line": 105,
           "text": "? `${pending} change${pending === 1 ? '' : 's'} waiting to sync`"
         }
       ]
@@ -814,6 +826,23 @@
       ]
     },
     {
+      "path": "apps/wayfare-mobile/app/journal.tsx",
+      "evidence": [
+        {
+          "line": 1,
+          "text": "import { useCallback, useEffect, useState } from 'react';"
+        },
+        {
+          "line": 16,
+          "text": "const [trip, setTrip] = useState<LocalTrip | null>(null);"
+        },
+        {
+          "line": 17,
+          "text": "const [failed, setFailed] = useState(false);"
+        }
+      ]
+    },
+    {
       "path": "apps/wayfare-mobile/app/live/[id].tsx",
       "evidence": [
         {
@@ -1089,47 +1118,47 @@
           "text": "import { useCallback, useMemo, useState } from 'react';"
         },
         {
-          "line": 59,
+          "line": 60,
           "text": "const [contacts, setContacts] = useState<EmergencyContact[]>([]);"
         },
         {
-          "line": 60,
+          "line": 61,
           "text": "const [newName, setNewName] = useState('');"
         },
         {
-          "line": 61,
+          "line": 62,
           "text": "const [newPhone, setNewPhone] = useState('');"
         },
         {
-          "line": 62,
+          "line": 63,
           "text": "const [name, setName] = useState('');"
         },
         {
-          "line": 63,
+          "line": 64,
           "text": "const [live, setLive] = useState<LiveShareState | null>(null);"
         },
         {
-          "line": 64,
+          "line": 65,
           "text": "const [liveHours, setLiveHours] = useState(4);"
         },
         {
-          "line": 65,
+          "line": 66,
           "text": "const [checkIn, setCheckInState] = useState<CheckIn | null>(null);"
         },
         {
-          "line": 66,
+          "line": 67,
           "text": "const [countryCode, setCountryCode] = useState<string | null>(deviceCountry());"
         },
         {
-          "line": 67,
+          "line": 68,
           "text": "const [tripTitle, setTripTitle] = useState<string | null>(null);"
         },
         {
-          "line": 68,
+          "line": 69,
           "text": "const [busy, setBusy] = useState<string | null>(null);"
         },
         {
-          "line": 144,
+          "line": 145,
           "text": "const state = await startLiveSharing(liveHours, tripTitle);"
         }
       ]
@@ -1777,11 +1806,11 @@
           "text": "import { useCallback, useState } from 'react';"
         },
         {
-          "line": 25,
+          "line": 26,
           "text": "const [rows, setRows] = useState<Row[] | null>(null);"
         },
         {
-          "line": 36,
+          "line": 37,
           "text": "if (user && trip.sync_status === 'pending') await pushTripNow(user.id, trip.id);"
         }
       ]
@@ -1963,59 +1992,59 @@
           "text": "import { useCallback, useEffect, useMemo, useRef, useState } from 'react';"
         },
         {
-          "line": 38,
+          "line": 39,
           "text": "const [entries, setEntries] = useState<LocalEntry[]>([]);"
         },
         {
-          "line": 39,
+          "line": 40,
           "text": "const [text, setText] = useState('');"
         },
         {
-          "line": 40,
+          "line": 41,
           "text": "const [place, setPlace] = useState('');"
         },
         {
-          "line": 41,
+          "line": 42,
           "text": "const [mood, setMood] = useState('');"
         },
         {
-          "line": 42,
+          "line": 43,
           "text": "const [attachContext, setAttachContext] = useState(true);"
         },
         {
-          "line": 43,
+          "line": 44,
           "text": "const [photos, setPhotos] = useState<PickedPhoto[]>([]);"
         },
         {
-          "line": 44,
+          "line": 45,
           "text": "const [saving, setSaving] = useState(false);"
         },
         {
-          "line": 46,
+          "line": 47,
           "text": "const [voiceBusy, setVoiceBusy] = useState(false);"
         },
         {
-          "line": 47,
+          "line": 48,
           "text": "const [recording, setRecording] = useState<string | null>(null);"
         },
         {
-          "line": 49,
+          "line": 50,
           "text": "const [menuFor, setMenuFor] = useState<string | null>(null);"
         },
         {
-          "line": 50,
+          "line": 51,
           "text": "const [mediaKey, setMediaKey] = useState(0);"
         },
         {
-          "line": 78,
+          "line": 79,
           "text": "sync_status: 'pending',"
         },
         {
-          "line": 107,
+          "line": 108,
           "text": "sync_status: 'pending',"
         },
         {
-          "line": 291,
+          "line": 299,
           "text": "{e.sync_status === 'pending' ? ' · not synced yet' : ''}"
         }
       ]
@@ -2157,6 +2186,27 @@
         {
           "line": 56,
           "text": "const [titleTouched, setTitleTouched] = useState(!!initial.title);"
+        }
+      ]
+    },
+    {
+      "path": "apps/wayfare-mobile/src/lib/everyday.ts",
+      "evidence": [
+        {
+          "line": 26,
+          "text": "\"UPDATE entries SET trip_id = ?, sync_status = 'pending', updated_at = ? WHERE trip_id = ?\","
+        },
+        {
+          "line": 39,
+          "text": "visibility: 'private',"
+        },
+        {
+          "line": 41,
+          "text": "status: 'active',"
+        },
+        {
+          "line": 50,
+          "text": "sync_status: 'pending',"
         }
       ]
     },
@@ -2601,7 +2651,7 @@
           "text": "import { useCallback, useState } from 'react';"
         },
         {
-          "line": 37,
+          "line": 39,
           "text": "const [stats, setStats] = useState<TravelStats | null>(null);"
         }
       ]

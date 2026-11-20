@@ -346,6 +346,14 @@
       "inventory": "WAYFARE.md"
     },
     {
+      "id": "W44",
+      "flow": "Everyday journal / On this day",
+      "sources": "`src/lib/everyday.ts`, `src/lib/everydayMemories.ts`, `app/journal.tsx`, `app/(tabs)/index.tsx`, `20261120000000_everyday_journal.sql`",
+      "transitions": "absent → creating (single flight, journal lock) → ready; duplicates after sync → lowest id kept, entries moved; today unwritten → written; memories none → shown",
+      "decision": "Stored as a private trip (`trip_type = 'everyday'`) so sync, media and backup are reused; excluded from journey lists, matching, safety trip lookup, travel trip counts and server `trips_count`. Device test of two-phone duplicate merge remains.",
+      "inventory": "WAYFARE.md"
+    },
+    {
       "id": "A01",
       "flow": "Mobile session hydration",
       "sources": "`apps/mobile/src/context/AuthContext.tsx`, `src/storage.ts`, `app/index.tsx`, `app/(tabs)/_layout.tsx`",
