@@ -1,8 +1,11 @@
 import { useMemo } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Linking, Platform, StyleSheet, View } from 'react-native';
 import MapView, { Marker, Polyline } from 'react-native-maps';
-import { Text } from 'react-native-paper';
+import { Button, Text } from 'react-native-paper';
+import { googleMapsApiKey } from '../config';
 import { regionFor, type LatLng } from '../lib/geo';
+import { mapsSupported } from '../lib/mapSupport';
+import { mapsLink } from '../lib/sosMessage';
 import { useAppTheme } from '../theme';
 
 type Pin = LatLng & { id: string; title: string; description?: string };
@@ -23,6 +26,24 @@ export function RouteMap({ points, pins = [], height = 240 }: { points: LatLng[]
 
   const start = points[0];
   const end = points[points.length - 1];
+
+  // Without a Google Maps key an Android build would close the app when a map appears, so show the
+  // route's position and a button that opens the phone's own Maps app instead.
+  if (!mapsSupported(Platform.OS, googleMapsApiKey)) {
+    const last = end ?? start ?? pins[pins.length - 1];
+    return (
+      <View style={[styles.empty, { backgroundColor: colors.surfaceVariant }]}>
+        <Text style={{ color: colors.muted, textAlign: 'center', marginBottom: 8 }}>
+          The map is not available in this version of the app. Your route is still being recorded.
+        </Text>
+        {last ? (
+          <Button mode="outlined" icon="map-search-outline" onPress={() => Linking.openURL(mapsLink(last.latitude, last.longitude))}>
+            Open latest point in Maps
+          </Button>
+        ) : null}
+      </View>
+    );
+  }
 
   return (
     <MapView style={[styles.map, { height }]} initialRegion={region} scrollEnabled zoomEnabled showsCompass toolbarEnabled={false}>
