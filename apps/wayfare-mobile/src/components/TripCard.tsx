@@ -1,4 +1,4 @@
-import { LinearGradient } from 'expo-linear-gradient';
+import { TripCover } from '../ui/TripCover';
 import { router } from 'expo-router';
 import { Pressable, View } from 'react-native';
 import { ProgressBar, Text } from 'react-native-paper';
@@ -35,9 +35,9 @@ export function tripTypeIcon(type: string) {
   return TYPE_ICONS[type] ?? 'map-outline';
 }
 
-type Props = { trip: LocalTrip; synopsis: string; packingRatio: number; tracking?: boolean };
+type Props = { trip: LocalTrip; synopsis: string; packingRatio: number; tracking?: boolean; spent?: string };
 
-export function TripCard({ trip, synopsis, packingRatio, tracking }: Props) {
+export function TripCard({ trip, synopsis, packingRatio, tracking, spent }: Props) {
   const { colors } = useAppTheme();
   const phase = tripPhase(trip.starts_on, trip.ends_on);
   const until = daysUntil(trip.starts_on);
@@ -62,7 +62,7 @@ export function TripCard({ trip, synopsis, packingRatio, tracking }: Props) {
       accessibilityRole="button"
       accessibilityLabel={`${trip.title}, ${phaseLabel}`}
     >
-      <LinearGradient colors={gradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ padding: 16, minHeight: 104 }}>
+      <TripCover uri={trip.cover_uri} gradient={gradient} spent={spent} style={{ padding: 16, minHeight: trip.cover_uri ? 150 : 104 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
           <Icon name={tripTypeIcon(trip.trip_type)} size={18} color="#fff" />
           <Text style={{ color: '#ffffffcc', fontSize: 12, fontWeight: '700', letterSpacing: 0.5, flex: 1 }}>
@@ -78,7 +78,7 @@ export function TripCard({ trip, synopsis, packingRatio, tracking }: Props) {
         <Text style={{ color: '#ffffffd9', marginTop: 2 }} numberOfLines={1}>
           {[dest?.name ?? trip.destination, formatDateRange(trip.starts_on, trip.ends_on)].filter(Boolean).join(' · ') || 'Add a destination and dates'}
         </Text>
-      </LinearGradient>
+      </TripCover>
       <View style={{ padding: 14, paddingTop: 10 }}>
         <Text style={{ color: colors.onSurfaceVariant, fontSize: 13 }} numberOfLines={2}>
           {synopsis}

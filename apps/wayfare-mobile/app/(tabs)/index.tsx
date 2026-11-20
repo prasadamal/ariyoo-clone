@@ -9,14 +9,14 @@ import { daysUntil, timeAgo, tripPhase } from '../../src/lib/format';
 import { journeysOnly } from '../../src/lib/everydayMemories';
 import { listTrips, type LocalTrip } from '../../src/lib/localDb';
 import { getActiveTrackingTripId } from '../../src/lib/locationTask';
-import { buildTripSynopsis, computeTripStats } from '../../src/lib/tripStats';
+import { buildTripSynopsis, computeTripStats, formatSpend } from '../../src/lib/tripStats';
 import { useAppTheme } from '../../src/theme';
 import { EmptyState } from '../../src/ui/EmptyState';
 import { Hero } from '../../src/ui/Hero';
 import { Icon } from '../../src/ui/Icon';
 import { Pill } from '../../src/ui/Pill';
 
-type TripRow = LocalTrip & { synopsis: string; packingRatio: number };
+type TripRow = LocalTrip & { synopsis: string; packingRatio: number; spent: string };
 type Filter = 'all' | 'upcoming' | 'past';
 
 function greeting() {
@@ -45,6 +45,7 @@ export default function JourneysTab() {
           ...t,
           synopsis: buildTripSynopsis(t.title, stats),
           packingRatio: stats.packingTotal ? stats.packingDone / stats.packingTotal : 0,
+          spent: formatSpend(stats.spendByCurrency),
         };
       })
     );
@@ -214,7 +215,7 @@ export default function JourneysTab() {
           ) : null
         }
         renderItem={({ item }) => (
-          <TripCard trip={item} synopsis={item.synopsis} packingRatio={item.packingRatio} tracking={item.id === recordingTripId} />
+          <TripCard trip={item} synopsis={item.synopsis} packingRatio={item.packingRatio} tracking={item.id === recordingTripId} spent={item.spent} />
         )}
       />
       <FAB

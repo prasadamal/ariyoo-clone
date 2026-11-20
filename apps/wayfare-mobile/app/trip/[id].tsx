@@ -1,4 +1,3 @@
-import { LinearGradient } from 'expo-linear-gradient';
 import { router, Stack, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Alert, View } from 'react-native';
@@ -15,7 +14,10 @@ import { PackingTab } from '../../src/features/trip/PackingTab';
 import { PlanTab } from '../../src/features/trip/PlanTab';
 import { RouteTab } from '../../src/features/trip/RouteTab';
 import { daysUntil, formatDateRange, formatKm, tripPhase } from '../../src/lib/format';
-import { deleteTrip, getTrip, updateTrip, type LocalTrip } from '../../src/lib/localDb';
+import { deleteTrip, getTrip, setTripCover, updateTrip, type LocalTrip } from '../../src/lib/localDb';
+import { persistCoverPhoto } from '../../src/lib/media';
+import { pickPhotos } from '../../src/features/trip/photoPicker';
+import { TripCover } from '../../src/ui/TripCover';
 import { getActiveTrackingTripId, stopTripTracking } from '../../src/lib/locationTask';
 import { shareTripLink } from '../../src/lib/shareTrip';
 import { pushTripNow } from '../../src/lib/sync';
@@ -77,6 +79,17 @@ export default function TripDetailScreen() {
   const phase = tripPhase(trip.starts_on, trip.ends_on);
   const until = daysUntil(trip.starts_on);
 
+  const changeCover = async () => {
+    try {
+      const [photo] = await pickPhotos(false);
+      if (!photo) return;
+      await setTripCover(trip.id, await persistCoverPhoto(photo.uri, photo));
+      await load();
+    } catch (e) {
+      toast(e instanceof Error ? e.message : 'Could not change the cover photo');
+    }
+  };
+
   const markComplete = async (done: boolean) => {
     await updateTrip(trip.id, { status: done ? 'completed' : 'active' });
     if (done && (await getActiveTrackingTripId()) === trip.id) await stopTripTracking();
@@ -122,11 +135,11 @@ export default function TripDetailScreen() {
   return (
     <Screen>
       <Stack.Screen options={{ title: trip.title }} />
-      <LinearGradient
-        colors={[colors.heroStart, colors.heroEnd]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={{ borderRadius: 22, padding: 16, paddingRight: 6 }}
+      <TripCover
+        uri={trip.cover_uri}
+        gradient={[colors.heroStart, colors.heroEnd]}
+        spent={stats ? formatSpend(stats.spendByCurrency) : undefined}
+        style={{ borderRadius: 22, padding: 16, paddingRight: 6, paddingBottom: trip.cover_uri ? 52 : 16, minHeight: trip.cover_uri ? 190 : undefined }}
       >
         <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
           <View style={{ flex: 1 }}>
@@ -161,6 +174,7 @@ export default function TripDetailScreen() {
             anchor={<IconButton icon="dots-vertical" iconColor="#fff" onPress={() => setMenu(true)} accessibilityLabel="Journey options" />}
           >
             <Menu.Item leadingIcon="pencil-outline" title="Edit details" onPress={() => { setMenu(false); router.push(`/trip/edit/${trip.id}`); }} />
+            <Menu.Item leadingIcon="image-edit-outline" title={trip.cover_uri ? 'Change cover photo' : 'Add cover photo'} onPress={() => { setMenu(false); void changeCover(); }} />
             {canConnect ? (
               <Menu.Item
                 leadingIcon="share-variant-outline"
@@ -194,7 +208,7 @@ export default function TripDetailScreen() {
             {trip.visibility === 'link' ? <Pill icon="link-variant" label="Shared link" color="#fff" background="#ffffff26" /> : null}
           </View>
         ) : null}
-      </LinearGradient>
+      </TripCover>
 
       {trip.notes ? (
         <Text style={{ color: colors.onSurfaceVariant, fontSize: 13, marginTop: 12, lineHeight: 19 }} numberOfLines={4}>
