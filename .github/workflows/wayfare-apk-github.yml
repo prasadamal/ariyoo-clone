@@ -35,7 +35,7 @@ jobs:
         with:
           distribution: temurin
           java-version: 17
-      - uses: android-actions/setup-android@v3
+      # The runner already includes the Android SDK, so no extra setup step is needed.
       - run: npm ci
       - name: Check the code first
         run: npm run verify
