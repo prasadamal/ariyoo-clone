@@ -1992,59 +1992,63 @@
           "text": "import { useCallback, useEffect, useMemo, useRef, useState } from 'react';"
         },
         {
-          "line": 39,
+          "line": 41,
           "text": "const [entries, setEntries] = useState<LocalEntry[]>([]);"
         },
         {
-          "line": 40,
+          "line": 42,
           "text": "const [text, setText] = useState('');"
         },
         {
-          "line": 41,
+          "line": 43,
           "text": "const [place, setPlace] = useState('');"
         },
         {
-          "line": 42,
+          "line": 44,
           "text": "const [mood, setMood] = useState('');"
         },
         {
-          "line": 43,
+          "line": 45,
           "text": "const [attachContext, setAttachContext] = useState(true);"
         },
         {
-          "line": 44,
+          "line": 46,
           "text": "const [photos, setPhotos] = useState<PickedPhoto[]>([]);"
         },
         {
-          "line": 45,
+          "line": 47,
           "text": "const [saving, setSaving] = useState(false);"
         },
         {
-          "line": 47,
+          "line": 49,
           "text": "const [voiceBusy, setVoiceBusy] = useState(false);"
         },
         {
-          "line": 48,
+          "line": 50,
           "text": "const [recording, setRecording] = useState<string | null>(null);"
         },
         {
-          "line": 50,
+          "line": 52,
           "text": "const [menuFor, setMenuFor] = useState<string | null>(null);"
         },
         {
-          "line": 51,
+          "line": 53,
           "text": "const [mediaKey, setMediaKey] = useState(0);"
         },
         {
-          "line": 79,
+          "line": 55,
+          "text": "const [shownDays, setShownDays] = useState(DAYS_PER_PAGE);"
+        },
+        {
+          "line": 83,
           "text": "sync_status: 'pending',"
         },
         {
-          "line": 108,
+          "line": 112,
           "text": "sync_status: 'pending',"
         },
         {
-          "line": 299,
+          "line": 305,
           "text": "{e.sync_status === 'pending' ? ' · not synced yet' : ''}"
         }
       ]
