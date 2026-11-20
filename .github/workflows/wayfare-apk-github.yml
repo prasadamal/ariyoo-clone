@@ -1,0 +1,53 @@
+name: Wayfare APK (GitHub build, no EAS)
+
+# An alternative to EAS builds. It only builds an APK you can download; it changes nothing else.
+# Runs on a push to the branch claude/wayfare-apk-build, or by hand from the Actions tab.
+on:
+  push:
+    branches: [claude/wayfare-apk-build]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    defaults:
+      run:
+        working-directory: apps/wayfare-mobile
+    env:
+      # Public values (same as the preview profile in eas.json).
+      EXPO_PUBLIC_SUPABASE_URL: https://ujtylwimukufmbungnju.supabase.co
+      EXPO_PUBLIC_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVqdHlsd2ltdWt1Zm1idW5nbmp1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA3MTczMjQsImV4cCI6MjEwNjI5MzMyNH0.CJPE_jPoEHbu0UC9GxYyAlk0IkxPZCSBjem26X3mj1w
+      # Optional: add a repository secret named GOOGLE_MAPS_API_KEY to get maps on Android.
+      EXPO_PUBLIC_GOOGLE_MAPS_API_KEY: ${{ secrets.GOOGLE_MAPS_API_KEY }}
+      CI: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/wayfare-mobile/package-lock.json
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: android-actions/setup-android@v3
+      - run: npm ci
+      - name: Check the code first
+        run: npm run verify
+      - name: Generate the Android project
+        run: npx expo prebuild --platform android --no-install
+      - name: Build the APK
+        working-directory: apps/wayfare-mobile/android
+        run: ./gradlew assembleRelease --no-daemon -Dorg.gradle.jvmargs="-Xmx4g"
+      - name: Name the file
+        run: cp android/app/build/outputs/apk/release/app-release.apk wayfare-${GITHUB_SHA::7}.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wayfare-apk
+          path: apps/wayfare-mobile/wayfare-*.apk
+          retention-days: 14
