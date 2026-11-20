@@ -15,7 +15,7 @@ import { Component, input } from '@angular/core';
   `,
   styles: `
     :host { display: block; }
-    .phone { aspect-ratio: 390 / 844; border-radius: 34px; padding: 9px; background: #0b0f0e; box-shadow: 0 30px 60px -20px rgba(12, 23, 20, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.06) inset; }
+    .phone { aspect-ratio: 390 / 844; border-radius: 34px; padding: 9px; background: #16101f; box-shadow: 0 30px 60px -20px rgba(12, 23, 20, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.06) inset; }
     .screen { position: relative; width: 100%; height: 100%; border-radius: 26px; overflow: hidden; background: #fff; }
     img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: top; opacity: 0; transition: opacity 0.7s ease; }
     img.on { opacity: 1; }

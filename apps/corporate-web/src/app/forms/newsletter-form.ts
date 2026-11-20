@@ -21,8 +21,8 @@ import { ApiService, problemFrom } from '../core/api';
     form { display: flex; gap: 10px; flex-wrap: wrap; }
     input { flex: 1 1 200px; min-width: 0; min-height: 48px; padding: 0 16px; border-radius: 999px; border: 1.5px solid rgba(234, 241, 238, 0.4); background: rgba(255, 255, 255, 0.07); color: #fff; font: inherit; }
     input::placeholder { color: var(--on-deep-soft); }
-    input:focus { outline: none; border-color: var(--green-bright); }
-    .ok { color: var(--green-bright); font-weight: 600; margin: 0; }
+    input:focus { outline: none; border-color: var(--peach); }
+    .ok { color: var(--peach); font-weight: 600; margin: 0; }
     .err { color: #ffb4ab; margin: 8px 0 0; font-size: 0.92rem; }
   `,
 })

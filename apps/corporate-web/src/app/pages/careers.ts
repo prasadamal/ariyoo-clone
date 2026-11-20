@@ -52,7 +52,7 @@ import { PageHero } from '../ui/page-hero';
     .role { display: flex; justify-content: space-between; align-items: center; gap: 24px; flex-wrap: wrap; }
     .meta { color: var(--ink-faint); font-weight: 600; font-size: 0.95rem; }
     .narrow { max-width: 680px; }
-    .link { background: none; border: 0; padding: 0; color: var(--green-strong); font: inherit; text-decoration: underline; cursor: pointer; }
+    .link { background: none; border: 0; padding: 0; color: var(--brand-strong); font: inherit; text-decoration: underline; cursor: pointer; }
   `,
 })
 export class Careers {

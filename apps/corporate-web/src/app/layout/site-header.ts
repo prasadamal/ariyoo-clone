@@ -9,7 +9,7 @@ import { RouterLink, RouterLinkActive } from '@angular/router';
     <header class="bar">
       <div class="wrap inner">
         <a routerLink="/" class="brand" aria-label="Ariyoo home" (click)="open.set(false)">
-          <svg width="30" height="30" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="9" fill="#0e7a5f"/><path d="M16 6.5c-4.1 0-7.2 3-7.2 7 0 5.2 7.2 12 7.2 12s7.2-6.8 7.2-12c0-4-3.1-7-7.2-7Zm0 9.6a2.6 2.6 0 1 1 0-5.2 2.6 2.6 0 0 1 0 5.2Z" fill="#fff"/></svg>
+          <img src="brand/logo-96.png" width="34" height="34" alt="" />
           <span>Ariyoo</span>
         </a>
         <button type="button" class="toggle" [attr.aria-expanded]="open()" aria-controls="primary-nav" (click)="open.set(!open())">
@@ -33,7 +33,7 @@ import { RouterLink, RouterLinkActive } from '@angular/router';
     .brand { display: inline-flex; align-items: center; gap: 10px; text-decoration: none; color: var(--ink); font: 700 1.45rem/1 var(--font-display); letter-spacing: -0.02em; }
     nav { display: flex; align-items: center; gap: clamp(14px, 2vw, 28px); }
     nav a:not(.btn) { color: var(--ink-soft); text-decoration: none; font-weight: 600; font-size: 0.97rem; padding: 8px 2px; border-bottom: 2px solid transparent; }
-    nav a:not(.btn):hover, nav a.active { color: var(--ink); border-bottom-color: var(--green); }
+    nav a:not(.btn):hover, nav a.active { color: var(--ink); border-bottom-color: var(--brand); }
     .cta { min-height: 42px; padding: 0 20px; font-size: 0.95rem; }
     .toggle { display: none; background: none; border: 0; color: var(--ink); padding: 10px; margin-right: -10px; cursor: pointer; }
     @media (max-width: 920px) {

@@ -10,7 +10,7 @@ import { NewsletterForm } from '../forms/newsletter-form';
     <footer>
       <div class="wrap top">
         <div class="about">
-          <p class="brand">Ariyoo</p>
+          <p class="brand"><span class="tile"><img src="brand/logo-96.png" width="28" height="28" alt="" /></span>Ariyoo</p>
           <p class="soft">{{ company.tagline }}</p>
           <address>
             @for (line of company.address; track line) { {{ line }}<br /> }
@@ -47,12 +47,13 @@ import { NewsletterForm } from '../forms/newsletter-form';
   styles: `
     footer { background: var(--deep); color: var(--on-deep); padding-top: clamp(48px, 7vw, 80px); }
     footer a { color: var(--on-deep); text-decoration: none; }
-    footer a:hover { color: var(--green-bright); text-decoration: underline; }
+    footer a:hover { color: var(--peach); text-decoration: underline; }
     .top { display: grid; gap: 40px; grid-template-columns: 1.4fr 1fr 1fr 1.5fr; }
-    .brand { font: 700 1.6rem/1 var(--font-display); margin: 0 0 10px; }
+    .brand { display: flex; align-items: center; gap: 12px; font: 700 1.6rem/1 var(--font-display); margin: 0 0 14px; }
+    .tile { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 12px; background: var(--on-deep); }
     .soft { color: var(--on-deep-soft); }
     address { font-style: normal; color: var(--on-deep-soft); line-height: 1.7; }
-    address a { color: var(--green-bright); }
+    address a { color: var(--peach); }
     h2 { font: 700 0.78rem/1 var(--font-body); letter-spacing: 0.14em; text-transform: uppercase; color: var(--on-deep-soft); margin-bottom: 18px; }
     nav { display: flex; flex-direction: column; gap: 10px; }
     .bottom { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; border-top: 1px solid rgba(255, 255, 255, 0.14); margin-top: 48px; padding-top: 22px; padding-bottom: 32px; color: var(--on-deep-soft); font-size: 0.9rem; }

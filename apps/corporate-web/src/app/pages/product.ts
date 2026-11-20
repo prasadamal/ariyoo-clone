@@ -47,7 +47,7 @@ import { Phone } from '../ui/phone';
     .art .p2 { transform: rotate(5deg) translateX(-24px); }
     .ticks { list-style: none; padding: 0; margin: 18px 0 0; display: grid; gap: 12px; }
     .ticks li { padding-left: 30px; position: relative; }
-    .ticks li::before { content: ''; position: absolute; left: 0; top: 0.5em; width: 14px; height: 8px; border-left: 2.5px solid var(--green); border-bottom: 2.5px solid var(--green); transform: rotate(-45deg) translateY(-3px); }
+    .ticks li::before { content: ''; position: absolute; left: 0; top: 0.5em; width: 14px; height: 8px; border-left: 2.5px solid var(--brand); border-bottom: 2.5px solid var(--brand); transform: rotate(-45deg) translateY(-3px); }
     @media (max-width: 900px) {
       .app { grid-template-columns: 1fr; }
       .app.flip .copy { order: 0; }

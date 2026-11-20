@@ -28,7 +28,7 @@ import { PRODUCTS } from '../core/products';
     @keyframes slide { from { transform: translateX(0); } to { transform: translateX(calc(-50% - 14px)); } }
     @media (prefers-reduced-motion: reduce) { .track { animation: none; } .viewport { overflow-x: auto; } }
     figure { margin: 0; width: 200px; }
-    .frame { aspect-ratio: 390 / 844; border-radius: 26px; padding: 7px; background: #0b0f0e; box-shadow: 0 18px 40px -18px rgba(12, 23, 20, 0.5); }
+    .frame { aspect-ratio: 390 / 844; border-radius: 26px; padding: 7px; background: #16101f; box-shadow: 0 18px 40px -18px rgba(12, 23, 20, 0.5); }
     img { width: 100%; height: 100%; object-fit: cover; object-position: top; border-radius: 20px; display: block; }
     figcaption { display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 12px; font-weight: 700; font-size: 0.9rem; color: var(--ink-soft); }
     .dot { width: 9px; height: 9px; border-radius: 50%; box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.15); }

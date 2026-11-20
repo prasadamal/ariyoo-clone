@@ -62,7 +62,7 @@ import { PageHero } from '../ui/page-hero';
   `,
   styles: `
     .person { text-align: left; }
-    .avatar { width: 64px; height: 64px; border-radius: 50%; background: var(--green-wash); color: var(--green-strong); display: grid; place-items: center; font: 700 1.3rem/1 var(--font-display); margin-bottom: 18px; border: 1px solid #b6dccd; }
+    .avatar { width: 64px; height: 64px; border-radius: 50%; background: var(--brand-wash); color: var(--brand-strong); display: grid; place-items: center; font: 700 1.3rem/1 var(--font-display); margin-bottom: 18px; border: 1px solid var(--brand-line); }
     address { font-style: normal; font-size: 1.15rem; line-height: 1.8; }
   `,
 })

@@ -14,7 +14,7 @@ import { ScreenMarquee } from '../ui/screen-marquee';
       <div class="wrap grid-hero">
         <div class="copy">
           <p class="eyebrow">Ariyoo · Bengaluru</p>
-          <h1>Apps that make everyday life a little easier.</h1>
+          <h1>Apps that make everyday life a little <span class="mark">easier.</span></h1>
           <p class="lede">Ariyoo is the company behind <strong>Ariyoo</strong>, <strong>Wayfare</strong> and <strong>ReelMates</strong>: three apps for local answers, travel and film, designed for safety and privacy from the first screen.</p>
           <div class="btn-row">
             <a routerLink="/product" class="btn btn--primary">Explore our apps</a>
@@ -84,10 +84,11 @@ import { ScreenMarquee } from '../ui/screen-marquee';
     </section>
   `,
   styles: `
-    .hero { padding: clamp(48px, 7vw, 96px) 0 clamp(40px, 6vw, 80px); background: radial-gradient(900px 500px at 85% 20%, rgba(14, 122, 95, 0.12), transparent 70%), var(--paper); overflow: hidden; }
+    .hero { padding: clamp(48px, 7vw, 96px) 0 clamp(40px, 6vw, 80px); background: radial-gradient(900px 500px at 85% 20%, rgba(106, 0, 165, 0.08), transparent 70%), var(--paper); overflow: hidden; }
     .grid-hero { display: grid; grid-template-columns: 1fr 1.05fr; gap: clamp(24px, 4vw, 56px); align-items: center; }
     .hero h1 { font-size: clamp(2.5rem, 5vw, 4.2rem); max-width: 14ch; }
     .hero .lede { color: var(--ink-soft); }
+    .mark { background: linear-gradient(transparent 68%, color-mix(in srgb, var(--peach) 55%, transparent) 68%, color-mix(in srgb, var(--peach) 55%, transparent) 92%, transparent 92%); padding: 0 0.04em; }
     .hero .lede strong { color: var(--ink); }
     .apps { list-style: none; padding: 0; margin: 32px 0 0; display: flex; flex-wrap: wrap; gap: 10px 24px; }
     .apps li { display: inline-flex; align-items: center; gap: 8px; }
@@ -101,7 +102,7 @@ import { ScreenMarquee } from '../ui/screen-marquee';
     .principles p { color: var(--on-deep-soft); }
     .card a { font-weight: 600; }
     .cta-wrap { padding-top: 0; }
-    .cta { background: var(--deep); color: var(--on-deep); border-radius: 28px; padding: clamp(32px, 5vw, 56px); display: flex; justify-content: space-between; align-items: center; gap: 24px; flex-wrap: wrap; background-image: radial-gradient(600px 300px at 90% 0%, rgba(60, 197, 155, 0.22), transparent 70%); }
+    .cta { background: var(--deep); color: var(--on-deep); border-radius: 28px; padding: clamp(32px, 5vw, 56px); display: flex; justify-content: space-between; align-items: center; gap: 24px; flex-wrap: wrap; background-image: radial-gradient(600px 300px at 90% 0%, rgba(106, 0, 165, 0.45), transparent 70%); }
     .cta h2 { margin: 0; max-width: 20ch; }
     @media (max-width: 960px) { .grid-hero { grid-template-columns: 1fr; } }
   `,

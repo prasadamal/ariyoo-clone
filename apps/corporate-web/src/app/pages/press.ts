@@ -42,7 +42,7 @@ import { PageHero } from '../ui/page-hero';
     .list { display: grid; gap: 18px; margin-bottom: 40px; }
     .list h2 { font-size: 1.6rem; }
     .list h2 a { color: var(--ink); text-decoration: none; }
-    .list h2 a:hover { color: var(--green-strong); text-decoration: underline; }
+    .list h2 a:hover { color: var(--brand-strong); text-decoration: underline; }
     .date { color: var(--ink-faint); font-weight: 600; font-size: 0.92rem; margin-bottom: 6px; }
     .media { margin-top: 24px; }
     .media h2 { font-size: 1.4rem; }
