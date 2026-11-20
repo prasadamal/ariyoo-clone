@@ -93,7 +93,23 @@ export default function SessionsTab() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={c.accent} colors={[c.accent]} />}
         stickySectionHeadersEnabled={false}
         contentContainerStyle={{ padding: space.lg, paddingBottom: space.xxxl, flexGrow: 1 }}
-        ListHeaderComponent={error ? <Notice text={error} /> : null}
+        ListHeaderComponent={
+          <>
+            {error ? <Notice text={error} /> : null}
+            <Card onPress={() => router.push('/library')} accessibilityLabel="Your library: search your conversations and saved answers" style={{ marginBottom: space.sm }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.md }}>
+                <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: c.accentSoft, alignItems: 'center', justifyContent: 'center' }}>
+                  <RNText style={{ fontSize: 18 }} accessibilityElementsHidden importantForAccessibility="no">📚</RNText>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <RNText style={[type.bodyStrong, { color: c.text }]}>Your library</RNText>
+                  <RNText style={[type.small, { color: c.textMuted }]}>Search past answers and see what you saved</RNText>
+                </View>
+                <RNText style={[type.heading, { color: c.textFaint }]} accessibilityElementsHidden importantForAccessibility="no">›</RNText>
+              </View>
+            </Card>
+          </>
+        }
         renderSectionHeader={({ section }) => (
           <RNText style={[type.caption, { color: c.textFaint, textTransform: 'uppercase', marginTop: space.md, marginBottom: space.sm }]}>{section.title}</RNText>
         )}

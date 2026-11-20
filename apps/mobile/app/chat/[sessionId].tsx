@@ -13,6 +13,7 @@ import { closeAction, expertRecord, resolvedBanner, type ExpertStats } from '../
 import { photoResizeTarget } from '../../src/lib/validation';
 import { radius, space, type, useTokens } from '../../src/design/tokens';
 import { Avatar, Pill } from '../../src/design/ui';
+import { loadSaved, toggleSaved, useSaved } from '../../src/lib/savedAnswers';
 
 type SessionInfo = {
   title: string;
@@ -60,6 +61,8 @@ function ChatConversation({ sid }: { sid: number }) {
   const busy = useRef(false);
   const mounted = useRef(false);
   const list = useRef<FlatList<ChatMessage>>(null);
+  const saved = useSaved();
+  const [saveError, setSaveError] = useState('');
   const { messages } = state;
   const sending = state.operation !== 'idle';
   const closed = !!info && (!info.active || info.blocked);
@@ -93,6 +96,8 @@ function ChatConversation({ sid }: { sid: number }) {
     }
     void loadMessages();
     void loadInfo();
+    // Which messages here are already saved; a failure just leaves the bookmarks empty.
+    loadSaved(user.userId).catch(() => undefined);
     const socket = io(getApiBaseUrl(), { transports: ['websocket'], auth: { token: user.token } });
     // Rejoin and reconcile missed messages after a socket reconnect.
     socket.on('connect', () => {
@@ -273,6 +278,11 @@ function ChatConversation({ sid }: { sid: number }) {
           Got your answer? Mark it answered
         </Button>
       ) : null}
+      {saveError ? (
+        <View style={{ paddingHorizontal: 12, paddingTop: 8 }}>
+          <Text accessibilityRole="alert" style={{ color: c.danger }}>{saveError}</Text>
+        </View>
+      ) : null}
       {state.error ? (
         <View style={{ padding: 12 }}>
           <Text accessibilityRole="alert" style={{ color: c.danger }}>{state.error}</Text>
@@ -313,9 +323,25 @@ function ChatConversation({ sid }: { sid: number }) {
                   resizeMode="cover"
                 />
               ) : null}
-              <Text style={{ color: mine ? c.onBubbleMine : c.textFaint, opacity: mine ? 0.75 : 1, fontSize: 11, marginTop: 4, alignSelf: 'flex-end' }}>
-                {new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 2, marginTop: 2 }}>
+                {item.id && item.messageText ? (
+                  <IconButton
+                    icon={saved.ids.has(item.id) ? 'bookmark' : 'bookmark-outline'}
+                    size={16}
+                    iconColor={mine ? c.onBubbleMine : saved.ids.has(item.id) ? c.accent : c.textFaint}
+                    disabled={saved.pending.has(item.id)}
+                    onPress={() => {
+                      setSaveError('');
+                      toggleSaved(item.id!).catch(e => setSaveError(errorMessage(e, 'Could not save that message. Try again.')));
+                    }}
+                    accessibilityLabel={saved.ids.has(item.id) ? 'Remove from your saved answers' : 'Save to your library'}
+                    style={{ margin: 0, width: 28, height: 28 }}
+                  />
+                ) : null}
+                <Text style={{ color: mine ? c.onBubbleMine : c.textFaint, opacity: mine ? 0.75 : 1, fontSize: 11 }}>
+                  {new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </Text>
+              </View>
             </View>
           );
         }}

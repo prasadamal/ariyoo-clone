@@ -488,6 +488,14 @@
       "transitions": "configured → checks → bundle → signed build → staging → release",
       "decision": "No backend migration, deployment or store submission. SDK upgrades and signing remain separate from this state refactor.",
       "inventory": "ARIYOO.md"
+    },
+    {
+      "id": "A18",
+      "flow": "Answer library / saved answers",
+      "sources": "`services/api/src/routes/library.ts`, `services/api/src/lib/library.ts`, `apps/mobile/app/library.tsx`, `apps/mobile/src/lib/savedState.ts`, `apps/mobile/src/lib/savedAnswers.ts`, chat bookmark, `20261120130000_saved_messages`",
+      "transitions": "query empty → saved list; query ≥ 2 → searching → results / nothing found / error; message unsaved → saving → saved / reverted on failure; saved → removing → unsaved / reverted",
+      "decision": "Private to each member and limited to their own conversations; blocked peers are hidden as in the chat list; another member's message reads as missing. Saved set is scoped to the signed-in account, the newest request wins, and a synchronous per-message pending set (module state, not React state) blocks double taps. Saves go with the conversation or the account.",
+      "inventory": "ARIYOO.md"
     }
   ]
 }

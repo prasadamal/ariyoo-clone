@@ -28,6 +28,7 @@ function Screens() {
       <Stack.Screen name="register" options={{ title: '' }} />
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen name="chat/[sessionId]" options={{ title: 'Conversation' }} />
+      <Stack.Screen name="library" options={{ title: 'Library' }} />
     </Stack>
   );
 }

@@ -1,3 +1,4 @@
+import { router } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { Linking, ScrollView, Text as RNText, View } from 'react-native';
 import { Button, Chip, Dialog, List, Portal, Switch, Text, TextInput } from 'react-native-paper';
@@ -207,6 +208,14 @@ export default function ProfileTab() {
           </Card>
         </>
       ) : null}
+
+      <SectionLabel>Your library</SectionLabel>
+      <Card style={{ paddingVertical: space.xs }}>
+        <List.Item title="Saved answers and search" description="Everything you asked and answered, and the answers you kept"
+          titleStyle={{ color: c.text, fontWeight: '600' }} descriptionStyle={{ color: c.textMuted }}
+          left={p => <List.Icon {...p} icon="bookshelf" color={c.accent} />} right={p => <List.Icon {...p} icon="chevron-right" color={c.textFaint} />}
+          onPress={() => router.push('/library')} accessibilityRole="button" style={{ paddingHorizontal: 0 }} />
+      </Card>
 
       <SectionLabel>Account and help</SectionLabel>
       <Card style={{ paddingVertical: space.xs }}>
