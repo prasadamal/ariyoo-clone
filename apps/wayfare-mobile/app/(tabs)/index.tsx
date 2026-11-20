@@ -6,8 +6,8 @@ import { TripCard } from '../../src/components/TripCard';
 import { useAuth } from '../../src/context/AuthContext';
 import { useSync } from '../../src/context/SyncContext';
 import { daysUntil, timeAgo, tripPhase } from '../../src/lib/format';
-import { isEverydayTrip, journeysOnly, onThisDay, wroteToday, yearsAgoLabel, type MemoryGroup } from '../../src/lib/everydayMemories';
-import { listAllEntries, listTrips, type LocalEntry, type LocalTrip } from '../../src/lib/localDb';
+import { journeysOnly } from '../../src/lib/everydayMemories';
+import { listTrips, type LocalTrip } from '../../src/lib/localDb';
 import { getActiveTrackingTripId } from '../../src/lib/locationTask';
 import { buildTripSynopsis, computeTripStats } from '../../src/lib/tripStats';
 import { useAppTheme } from '../../src/theme';
@@ -35,18 +35,9 @@ export default function JourneysTab() {
   const [filter, setFilter] = useState<Filter>('all');
   const [recordingTripId, setRecordingTripId] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
-  const [wroteTodayPage, setWroteTodayPage] = useState(false);
-  const [memories, setMemories] = useState<MemoryGroup<LocalEntry>[]>([]);
-  const [journalNames, setJournalNames] = useState<Record<string, { title: string; everyday: boolean }>>({});
 
   const load = useCallback(async () => {
-    const [all, entries] = await Promise.all([listTrips(), listAllEntries()]);
-    const raw = journeysOnly(all);
-    const today = new Date();
-    const everydayIds = new Set(all.filter(isEverydayTrip).map(t => t.id));
-    setWroteTodayPage(wroteToday(entries.filter(e => everydayIds.has(e.trip_id)), today));
-    setMemories(onThisDay(entries, today));
-    setJournalNames(Object.fromEntries(all.map(t => [t.id, { title: isEverydayTrip(t) ? 'Everyday journal' : t.title, everyday: isEverydayTrip(t) }])));
+    const raw = journeysOnly(await listTrips());
     const enriched = await Promise.all(
       raw.map(async t => {
         const stats = await computeTripStats(t.id);
@@ -124,7 +115,15 @@ export default function JourneysTab() {
         {user ? (
           <IconButton icon={syncing ? 'cloud-sync' : 'cloud-sync-outline'} onPress={onRefresh} disabled={syncing} accessibilityLabel="Sync now" />
         ) : null}
+        <IconButton icon="notebook-outline" onPress={() => router.push('/journal')} accessibilityLabel="Everyday journal" />
         <IconButton icon="shield-alert-outline" iconColor={colors.danger} onPress={() => router.push('/safety')} accessibilityLabel="Safety and SOS" />
+      </View>
+
+      {/* One quick-links row, right under the sync line. */}
+      <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
+        <Pill icon="party-popper" label="Year in travel" onPress={() => router.push('/wrapped')} />
+        <Pill icon="medal-outline" label="Badges" onPress={() => router.push('/badges')} />
+        <Pill icon="swap-horizontal" label="Currency" onPress={() => router.push('/tools/currency')} />
       </View>
 
       {recordingTrip ? (
@@ -173,77 +172,6 @@ export default function JourneysTab() {
         </Pressable>
       ) : null}
 
-      <Pressable
-        onPress={() => router.push('/journal')}
-        accessibilityRole="button"
-        accessibilityLabel={wroteTodayPage ? 'Today\'s page is written. Open your everyday journal to add more' : 'Write today\'s page in your everyday journal'}
-        style={({ pressed }) => ({
-          flexDirection: 'row',
-          alignItems: 'center',
-          gap: 12,
-          marginTop: 14,
-          padding: 14,
-          borderRadius: 18,
-          borderWidth: 1,
-          borderColor: colors.border,
-          backgroundColor: pressed ? colors.surfaceVariant : colors.surface,
-        })}
-      >
-        <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: colors.secondaryContainer, alignItems: 'center', justifyContent: 'center' }}>
-          <Icon name={wroteTodayPage ? 'check' : 'feather'} size={22} color={colors.onSecondaryContainer} />
-        </View>
-        <View style={{ flex: 1 }}>
-          <Text style={{ fontWeight: '800', fontSize: 16 }}>{wroteTodayPage ? 'Today\'s page is written' : 'How was today?'}</Text>
-          <Text style={{ color: colors.muted, fontSize: 13, marginTop: 2 }} numberOfLines={2}>
-            {wroteTodayPage ? 'Add another moment, photo or voice note.' : 'A private everyday journal, even when you are not travelling.'}
-          </Text>
-        </View>
-        <Icon name="chevron-right" size={20} color={colors.muted} />
-      </Pressable>
-
-      {memories.length ? (
-        <View style={{ marginTop: 12, padding: 14, borderRadius: 18, backgroundColor: colors.primaryContainer }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-            <Icon name="calendar-heart" size={18} color={colors.onPrimaryContainer} />
-            <Text accessibilityRole="header" style={{ color: colors.onPrimaryContainer, fontWeight: '800', fontSize: 15 }}>
-              On this day
-            </Text>
-          </View>
-          {memories.slice(0, 3).map(group => {
-            const first = group.entries[0];
-            const from = journalNames[first.trip_id];
-            const more = group.entries.length - 1;
-            return (
-              <Pressable
-                key={group.year}
-                onPress={() => router.push(from?.everyday || !from ? '/journal' : `/trip/${first.trip_id}`)}
-                accessibilityRole="button"
-                style={{ marginTop: 10 }}
-              >
-                <Text style={{ color: colors.onPrimaryContainer, fontSize: 12, fontWeight: '700', opacity: 0.85 }} numberOfLines={1}>
-                  {yearsAgoLabel(group.yearsAgo).toUpperCase()} · {from?.title ?? 'Journal'}
-                </Text>
-                <Text style={{ color: colors.onPrimaryContainer, marginTop: 2, lineHeight: 21 }} numberOfLines={3}>
-                  {first.mood ? `${first.mood} ` : ''}
-                  {first.body?.trim() || first.place_name || 'A moment with photos or a voice note'}
-                </Text>
-                {more > 0 ? (
-                  <Text style={{ color: colors.onPrimaryContainer, fontSize: 12, marginTop: 2, opacity: 0.85 }}>
-                    +{more} more moment{more === 1 ? '' : 's'} that day
-                  </Text>
-                ) : null}
-              </Pressable>
-            );
-          })}
-        </View>
-      ) : null}
-
-      <View style={{ flexDirection: 'row', gap: 8, marginTop: 14, flexWrap: 'wrap' }}>
-        <Pill icon="party-popper" label="Year in travel" onPress={() => router.push('/wrapped')} />
-        <Pill icon="medal-outline" label="Badges" onPress={() => router.push('/badges')} />
-        <Pill icon="swap-horizontal" label="Currency" onPress={() => router.push('/tools/currency')} />
-        <Pill icon="shield-check-outline" label="Safety" onPress={() => router.push('/safety')} />
-      </View>
 
       {trips.length ? (
         <SegmentedButtons
