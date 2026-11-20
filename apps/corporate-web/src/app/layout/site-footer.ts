@@ -24,9 +24,11 @@ import { NewsletterForm } from '../forms/newsletter-form';
           <a routerLink="/press">Press</a>
           <a routerLink="/contact">Contact</a>
         </nav>
-        <nav aria-label="Product and trust">
-          <h2>Product</h2>
-          <a routerLink="/product">How Ariyoo works</a>
+        <nav aria-label="Our apps and trust">
+          <h2>Our apps</h2>
+          <a routerLink="/product" fragment="ariyoo">Ariyoo</a>
+          <a routerLink="/product" fragment="wayfare">Wayfare</a>
+          <a routerLink="/product" fragment="reelmates">ReelMates</a>
           <a routerLink="/trust">Trust & Safety</a>
           <a routerLink="/legal">Legal</a>
         </nav>

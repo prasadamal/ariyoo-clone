@@ -48,7 +48,7 @@ import { RouterLink, RouterLinkActive } from '@angular/router';
 export class SiteHeader {
   protected readonly open = signal(false);
   protected readonly links = [
-    { path: '/product', label: 'Product' },
+    { path: '/product', label: 'Our apps' },
     { path: '/about', label: 'Company' },
     { path: '/trust', label: 'Trust & Safety' },
     { path: '/careers', label: 'Careers' },

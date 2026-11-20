@@ -6,7 +6,7 @@ import { PageHero } from '../ui/page-hero';
   selector: 'app-trust',
   imports: [PageHero],
   template: `
-    <app-page-hero eyebrow="Trust &amp; Safety" title="Strangers should be able to help each other safely." lede="Here is what Ariyoo does today to protect the people who use it. We describe what is in the product, and nothing we have not built." />
+    <app-page-hero eyebrow="Trust &amp; Safety" title="Strangers should be able to help each other safely." lede="What our Ariyoo app does today to protect the people who use it. We describe what is in the product, and nothing we have not built. Wayfare and ReelMates also include reporting, blocking and in-app account deletion." />
 
     <section class="section">
       <div class="wrap">

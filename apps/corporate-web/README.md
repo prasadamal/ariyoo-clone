@@ -26,6 +26,8 @@ against forged hosts). Also set the API's `CORS_ORIGINS` to the site's address.
 ## Where things are
 
 - Company facts (address, email, founders, legal links): `src/app/core/company.ts`
+- The three apps (copy, features, brand colour, screenshots): `src/app/core/products.ts`; screenshots in `public/apps/`
+- Moving parts (hero phones, screen strip, tabbed showcase) share one pause control and stay still for visitors who ask for reduced motion: `src/app/core/motion.ts`
 - Design tokens (colours, type, spacing): `src/styles.scss`
 - Pages: `src/app/pages/`, forms: `src/app/forms/`, routes and per-page titles and descriptions: `src/app/app.routes.ts`
 

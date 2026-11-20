@@ -1,66 +1,62 @@
 import { Component } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { PRODUCTS } from '../core/products';
+import { AppShowcase } from '../ui/app-showcase';
+import { HeroPhones } from '../ui/hero-phones';
+import { MotionToggle } from '../ui/motion-toggle';
+import { ScreenMarquee } from '../ui/screen-marquee';
 
 @Component({
   selector: 'app-home',
-  imports: [RouterLink],
+  imports: [RouterLink, HeroPhones, ScreenMarquee, AppShowcase, MotionToggle],
   template: `
     <section class="hero">
-      <div class="wrap">
-        <p class="eyebrow">Ariyoo</p>
-        <h1>Local knowledge, from the people who live it.</h1>
-        <p class="lede">Ariyoo connects people who need a trustworthy answer with local experts who know a place first-hand, in conversations built for safety and privacy.</p>
-        <div class="btn-row">
-          <a routerLink="/contact" class="btn btn--light">Talk to our team</a>
-          <a routerLink="/product" class="btn btn--ghost-light">How Ariyoo works</a>
+      <div class="wrap grid-hero">
+        <div class="copy">
+          <p class="eyebrow">Ariyoo · Bengaluru</p>
+          <h1>Apps that make everyday life a little easier.</h1>
+          <p class="lede">Ariyoo is the company behind <strong>Ariyoo</strong>, <strong>Wayfare</strong> and <strong>ReelMates</strong>: three apps for local answers, travel and film, designed for safety and privacy from the first screen.</p>
+          <div class="btn-row">
+            <a routerLink="/product" class="btn btn--primary">Explore our apps</a>
+            <a routerLink="/contact" class="btn btn--ghost">Talk to our team</a>
+          </div>
+          <ul class="apps" aria-label="Our apps">
+            @for (p of products; track p.id) {
+              <li><span class="dot" [style.background]="p.color"></span><strong>{{ p.name }}</strong> <span class="muted">{{ p.category }}</span></li>
+            }
+          </ul>
         </div>
+        <app-hero-phones />
       </div>
     </section>
 
-    <section class="section">
-      <div class="wrap">
-        <p class="eyebrow">Who Ariyoo is for</p>
-        <h2>One platform, three ways to take part.</h2>
-        <div class="grid grid--3 audience">
-          <article class="card">
-            <h3>People with a question</h3>
-            <p>Where to eat in an unfamiliar city, how a local process really works, what to watch out for. Ask in plain words and get an answer from someone who knows.</p>
-            <a routerLink="/product">See how asking works</a>
-          </article>
-          <article class="card">
-            <h3>Local experts</h3>
-            <p>Share what you know about your area, on your terms. Answer the questions that match your topics and build a record of the people you have helped.</p>
-            <a routerLink="/product">See how experts take part</a>
-          </article>
-          <article class="card">
-            <h3>Partners and investors</h3>
-            <p>A focused product, a safety-first approach and a founding team based in Bengaluru. We are happy to talk about partnerships and the road ahead.</p>
-            <a routerLink="/contact">Get in touch</a>
-          </article>
+    <section class="section live">
+      <div class="wrap head">
+        <div>
+          <p class="eyebrow">See them in action</p>
+          <h2>Real screens from our apps.</h2>
         </div>
+        <app-motion-toggle />
       </div>
+      <app-screen-marquee />
     </section>
 
     <section class="section section--alt">
       <div class="wrap">
-        <p class="eyebrow">How it works</p>
-        <h2>From question to resolved, in three steps.</h2>
-        <ol class="steps">
-          <li><span class="num">1</span><div><h3>Ask</h3><p>Describe what you need and add a topic or a place. Photos can be shared inside the conversation when they help.</p></div></li>
-          <li><span class="num">2</span><div><h3>Get matched</h3><p>Your question goes to a local expert whose topics fit. If none is available, it waits in an open queue where any expert can pick it up.</p></div></li>
-          <li><span class="num">3</span><div><h3>Close the loop</h3><p>Mark the question answered and say whether it helped. Experts build a visible record, and you keep a private library of the answers worth saving.</p></div></li>
-        </ol>
+        <p class="eyebrow">Our apps</p>
+        <h2>Three apps, one standard of care.</h2>
+        <app-showcase />
       </div>
     </section>
 
     <section class="section section--deep">
       <div class="wrap">
-        <p class="eyebrow">Our principles</p>
-        <h2>Built to be trusted from the first conversation.</h2>
+        <p class="eyebrow">How we build</p>
+        <h2>The same commitments in every app.</h2>
         <div class="grid grid--3 principles">
-          <div><h3>Safety by design</h3><p>Reporting and blocking in every conversation, automatic filtering of abusive messages, and a moderation team that can suspend accounts.</p></div>
-          <div><h3>Privacy by default</h3><p>No advertising, no analytics trackers, no location or contacts collected. Photos can be opened only by the two people in the conversation.</p></div>
-          <div><h3>Accountable experts</h3><p>Askers can say whether an answer helped, and that feedback becomes the expert's public record. Reputation is earned, not claimed.</p></div>
+          <div><h3>Safety tools built in</h3><p>Every app lets people report and block. Problems reach a person who can act on them, not a dead inbox.</p></div>
+          <div><h3>Your data stays yours</h3><p>Every app lets you delete your account from inside the app. No hunting through settings pages or sending emails.</p></div>
+          <div><h3>Made for real life</h3><p>Answers from people who live there, a journal that works without signal, film picks that take seconds. Useful first, clever second.</p></div>
         </div>
         <div class="btn-row"><a routerLink="/trust" class="btn btn--ghost">Read about Trust &amp; Safety</a></div>
       </div>
@@ -68,31 +64,48 @@ import { RouterLink } from '@angular/router';
 
     <section class="section">
       <div class="wrap">
-        <div class="cta card">
-          <div>
-            <h2>Let's talk about what Ariyoo can do for you.</h2>
-            <p class="lede">Whether you want to partner, invest, report on us or join the team, we read every message.</p>
-          </div>
-          <a routerLink="/contact" class="btn btn--primary">Contact us</a>
+        <p class="eyebrow">Work with us</p>
+        <h2>For partners, investors and future teammates.</h2>
+        <div class="grid grid--3">
+          <article class="card"><h3>Partners</h3><p>Tourism boards, venues, cinemas, travel companies: if our users would value what you offer, let's talk.</p><a routerLink="/contact">Start a conversation</a></article>
+          <article class="card"><h3>Investors</h3><p>Three focused consumer products from one small team in Bengaluru. We are happy to share where we are and where we are going.</p><a routerLink="/contact">Get in touch</a></article>
+          <article class="card"><h3>Careers</h3><p>We are a small team that ships. If you care about useful, trustworthy software, we would like to meet you.</p><a routerLink="/careers">See careers</a></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section cta-wrap">
+      <div class="wrap">
+        <div class="cta">
+          <h2>Let's build something people rely on.</h2>
+          <a routerLink="/contact" class="btn btn--light">Contact us</a>
         </div>
       </div>
     </section>
   `,
   styles: `
-    .hero { background: var(--deep); color: var(--on-deep); padding: clamp(72px, 12vw, 150px) 0 clamp(64px, 10vw, 128px); background-image: radial-gradient(1000px 460px at 80% -10%, rgba(60, 197, 155, 0.2), transparent 70%), radial-gradient(600px 320px at 0% 100%, rgba(242, 178, 78, 0.1), transparent 70%); }
-    .hero .eyebrow { color: var(--green-bright); }
-    .hero h1 { max-width: 16ch; }
-    .hero .lede { color: var(--on-deep-soft); font-size: clamp(1.15rem, 1.8vw, 1.4rem); }
-    .audience a { font-weight: 600; }
-    .steps { list-style: none; padding: 0; margin: 40px 0 0; display: grid; gap: 28px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
-    .steps li { display: flex; gap: 18px; align-items: flex-start; }
-    .num { flex: none; width: 44px; height: 44px; border-radius: 50%; background: var(--green); color: #fff; display: grid; place-items: center; font: 700 1.15rem/1 var(--font-display); }
+    .hero { padding: clamp(48px, 7vw, 96px) 0 clamp(40px, 6vw, 80px); background: radial-gradient(900px 500px at 85% 20%, rgba(14, 122, 95, 0.12), transparent 70%), var(--paper); overflow: hidden; }
+    .grid-hero { display: grid; grid-template-columns: 1fr 1.05fr; gap: clamp(24px, 4vw, 56px); align-items: center; }
+    .hero h1 { font-size: clamp(2.5rem, 5vw, 4.2rem); max-width: 14ch; }
+    .hero .lede { color: var(--ink-soft); }
+    .hero .lede strong { color: var(--ink); }
+    .apps { list-style: none; padding: 0; margin: 32px 0 0; display: flex; flex-wrap: wrap; gap: 10px 24px; }
+    .apps li { display: inline-flex; align-items: center; gap: 8px; }
+    .dot { width: 10px; height: 10px; border-radius: 50%; box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.18); }
+    .live { padding-bottom: clamp(40px, 6vw, 72px); }
+    .head { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; margin-bottom: 24px; }
+    .head h2 { margin: 0; }
+    .head app-motion-toggle { color: var(--ink-soft); }
     .principles { margin-top: 36px; }
     .principles h3 { color: var(--on-deep); }
     .principles p { color: var(--on-deep-soft); }
-    .cta { display: flex; align-items: center; justify-content: space-between; gap: 28px; flex-wrap: wrap; }
-    .cta h2 { margin-bottom: 0.3em; }
-    .cta p { margin: 0; }
+    .card a { font-weight: 600; }
+    .cta-wrap { padding-top: 0; }
+    .cta { background: var(--deep); color: var(--on-deep); border-radius: 28px; padding: clamp(32px, 5vw, 56px); display: flex; justify-content: space-between; align-items: center; gap: 24px; flex-wrap: wrap; background-image: radial-gradient(600px 300px at 90% 0%, rgba(60, 197, 155, 0.22), transparent 70%); }
+    .cta h2 { margin: 0; max-width: 20ch; }
+    @media (max-width: 960px) { .grid-hero { grid-template-columns: 1fr; } }
   `,
 })
-export class Home {}
+export class Home {
+  protected readonly products = PRODUCTS;
+}

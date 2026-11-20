@@ -7,13 +7,14 @@ import { PageHero } from '../ui/page-hero';
   selector: 'app-about',
   imports: [RouterLink, PageHero],
   template: `
-    <app-page-hero eyebrow="Company" title="Making local knowledge easy to ask for and safe to trust." lede="Ariyoo is a technology company based in Bengaluru, India." />
+    <app-page-hero eyebrow="Company" title="Useful apps, built to be trusted." lede="Ariyoo is a technology company based in Bengaluru, India, and the maker of Ariyoo, Wayfare and ReelMates." />
 
     <section class="section">
       <div class="wrap prose">
         <h2>Why we exist</h2>
         <p>The most useful answers about a place rarely sit on a search results page. They are in the heads of people who live there: which neighbourhood is safe after dark, which clinic is honest, which shortcut is not a shortcut at all.</p>
-        <p>Ariyoo makes those answers available to anyone who asks, and makes it worth the while of the people who give them. We do it with a product that treats safety and privacy as the foundation, because a platform where strangers talk has to earn trust before it can ask for it.</p>
+        <p>That idea became our first app, Ariyoo, which connects people with local experts. The same belief, that everyday tools should be genuinely useful and safe to rely on, shaped the apps that followed: Wayfare, a travel journal that works offline and remembers your days, and ReelMates, which turns your taste in films into something to share.</p>
+        <p>Across all three, safety and privacy are the foundation, because an app people trust with their questions, their memories or their tastes has to earn that trust first.</p>
       </div>
     </section>
 
