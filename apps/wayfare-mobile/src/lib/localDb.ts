@@ -4,7 +4,7 @@ import * as SQLite from 'expo-sqlite';
 import { uuid } from './id';
 
 /** Bump when adding a migration step in `migrate()`. */
-const SCHEMA_VERSION = 2;
+const SCHEMA_VERSION = 3;
 
 export type LocalTrip = {
   id: string;
@@ -26,6 +26,8 @@ export type LocalTrip = {
   dest_lng: number | null;
   sync_status: string;
   updated_at: string;
+  /** Cover photo, kept on this phone only (never overwritten by a sync). */
+  cover_uri?: string | null;
 };
 
 export type LocalEntry = {
@@ -55,6 +57,8 @@ export type LocalExpense = {
   paid_by: string | null;
   /** JSON array of participant names sharing the cost ("Me" included); "[]" = personal. */
   split_with: string;
+  /** The journal moment this was spent at (a meal, a ticket...), or null for a plain expense. */
+  entry_id?: string | null;
   sync_status: string;
   updated_at: string;
 };
@@ -260,6 +264,11 @@ async function migrate(database: SQLite.SQLiteDatabase) {
     await database.runAsync("UPDATE packing_items SET id = ?, sync_status = 'pending' WHERE id = ?", [uuid(), p.id]);
   }
 
+  // v3: money on a moment, and a cover photo for each journey (kept on this phone).
+  await addColumnIfMissing(database, 'expenses', 'entry_id', 'TEXT');
+  await addColumnIfMissing(database, 'trips', 'cover_uri', 'TEXT');
+  await database.execAsync('CREATE INDEX IF NOT EXISTS expenses_entry_idx ON expenses (entry_id)');
+
   await database.execAsync(`PRAGMA user_version = ${SCHEMA_VERSION}`);
 }
 
@@ -408,6 +417,12 @@ export async function upsertEntry(entry: LocalEntry) {
 export async function deleteEntry(id: string) {
   const database = await getDb();
   const media = await database.getAllAsync<LocalEntryMedia>('SELECT * FROM entry_media WHERE entry_id = ?', [id]);
+  // The money stays (it was still spent) but loses the link, locally and on the next sync, so the
+  // cloud never receives an expense pointing at a moment that no longer exists.
+  await database.runAsync(
+    "UPDATE expenses SET entry_id = NULL, sync_status = 'pending', updated_at = ? WHERE entry_id = ?",
+    [new Date().toISOString(), id]
+  );
   await tombstone('entries', id);
   for (const m of media) {
     if (m.storage_path) await tombstone('entry_media', m.id, m.storage_path);
@@ -436,11 +451,11 @@ export async function listAllExpenses() {
 export async function upsertExpense(expense: LocalExpense) {
   const database = await getDb();
   await database.runAsync(
-    `INSERT INTO expenses (id, trip_id, category, amount, currency, note, spent_on, paid_by, split_with, sync_status, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `INSERT INTO expenses (id, trip_id, category, amount, currency, note, spent_on, paid_by, split_with, entry_id, sync_status, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
      ON CONFLICT(id) DO UPDATE SET category=excluded.category, amount=excluded.amount, currency=excluded.currency,
        note=excluded.note, spent_on=excluded.spent_on, paid_by=excluded.paid_by, split_with=excluded.split_with,
-       sync_status=excluded.sync_status, updated_at=excluded.updated_at`,
+       entry_id=excluded.entry_id, sync_status=excluded.sync_status, updated_at=excluded.updated_at`,
     [
       expense.id,
       expense.trip_id,
@@ -451,10 +466,17 @@ export async function upsertExpense(expense: LocalExpense) {
       expense.spent_on,
       expense.paid_by ?? null,
       expense.split_with || '[]',
+      expense.entry_id ?? null,
       expense.sync_status,
       expense.updated_at,
     ]
   );
+}
+
+/** Sets or clears a journey's cover photo. Separate from upsertTrip so a sync can never erase it. */
+export async function setTripCover(tripId: string, uri: string | null) {
+  const database = await getDb();
+  await database.runAsync('UPDATE trips SET cover_uri = ? WHERE id = ?', [uri, tripId]);
 }
 
 export async function deleteExpense(id: string) {
