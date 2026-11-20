@@ -101,8 +101,21 @@ model Message {
   imageUrl   String?
   createdAt  DateTime @default(now())
   session    Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  saves      SavedMessage[]
 
   @@index([sessionId])
+}
+
+/// A message a member kept for later, from a conversation they took part in. Private to them.
+/// Goes when the message or its conversation is deleted.
+model SavedMessage {
+  userId    Int
+  messageId Int
+  createdAt DateTime @default(now())
+  message   Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@id([userId, messageId])
+  @@index([userId, createdAt])
 }
 
 model Newsletter {

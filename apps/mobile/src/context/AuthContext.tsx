@@ -3,6 +3,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { AuthUser, Profile, fetchProfile, login as apiLogin, register as apiRegister, setSessionEndedHandler } from '../api/client';
 import { registerForPush, unregisterPush } from '../notifications';
 import { deleteItem, getItem, setItem } from '../storage';
+import { setSavedOwner } from '../lib/savedAnswers';
 
 type SignUp = { email: string; password: string; flname: string; isSeeker: boolean; isSolver: boolean; acceptedTerms: true };
 
@@ -71,6 +72,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     })();
     return () => { cancelled = true; };
   }, [applyProfile]);
+
+  // Saved answers belong to whoever is signed in; switching accounts starts from an empty set.
+  useEffect(() => {
+    setSavedOwner(user?.userId ?? null);
+  }, [user?.userId]);
 
   useEffect(() => {
     setSessionEndedHandler(() => { if (current.current) void clear(); });

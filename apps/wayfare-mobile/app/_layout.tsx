@@ -100,6 +100,7 @@ function RootStack() {
       <Stack.Screen name="board/new" options={{ title: 'Post to the board', presentation: 'modal' }} />
       <Stack.Screen name="board/[id]" options={{ title: 'Board' }} />
       <Stack.Screen name="place/[key]" options={{ title: '' }} />
+      <Stack.Screen name="journal" options={{ title: 'Journal' }} />
       <Stack.Screen name="safety" options={{ title: 'Safety' }} />
       <Stack.Screen name="live/[id]" options={{ title: 'Live location' }} />
       <Stack.Screen name="wrapped" options={{ headerShown: false, presentation: 'fullScreenModal' }} />

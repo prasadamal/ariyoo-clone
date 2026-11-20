@@ -84,7 +84,9 @@ export async function deleteAccount(userId: number): Promise<{ sessions: number;
     ? await prisma.message.findMany({ where: { sessionId: { in: sessionIds }, imageUrl: { not: null } }, select: { imageUrl: true } })
     : [];
   const names = images.map(({ imageUrl }) => path.basename(imageUrl || '')).filter(name => /^[a-f0-9-]+\.(jpg|png|webp)$/.test(name));
-  const [, , , , , , removed] = await prisma.$transaction([
+  const [, , , , , , , removed] = await prisma.$transaction([
+    // What this member saved goes with them; other members' saved copies go with the conversations below.
+    prisma.savedMessage.deleteMany({ where: { userId } }),
     prisma.message.deleteMany({ where: { sessionId: { in: sessionIds } } }),
     prisma.session.deleteMany({ where: { id: { in: sessionIds } } }),
     prisma.block.deleteMany({ where: { OR: [{ blockerId: userId }, { blockedId: userId }] } }),

@@ -46,75 +46,75 @@
       "path": "apps/mobile/app/(tabs)/profile.tsx",
       "evidence": [
         {
-          "line": 1,
+          "line": 2,
           "text": "import { useCallback, useEffect, useState } from 'react';"
         },
         {
-          "line": 22,
+          "line": 23,
           "text": "const [userName, setUserName] = useState('');"
         },
         {
-          "line": 23,
+          "line": 24,
           "text": "const [isSolver, setIsSolver] = useState(false);"
         },
         {
-          "line": 24,
+          "line": 25,
           "text": "const [saving, setSaving] = useState(false);"
         },
         {
-          "line": 25,
+          "line": 26,
           "text": "const [notice, setNotice] = useState<{ ok: boolean; text: string } | null>(null);"
         },
         {
-          "line": 26,
+          "line": 27,
           "text": "const [topics, setTopics] = useState<Topic[]>([]);"
         },
         {
-          "line": 27,
+          "line": 28,
           "text": "const [newTopic, setNewTopic] = useState('');"
         },
         {
-          "line": 28,
+          "line": 29,
           "text": "const [topicBusy, setTopicBusy] = useState(false);"
         },
         {
-          "line": 29,
+          "line": 30,
           "text": "const [blocked, setBlocked] = useState<Blocked[]>([]);"
         },
         {
-          "line": 30,
+          "line": 31,
           "text": "const [deleting, setDeleting] = useState(false);"
         },
         {
-          "line": 31,
+          "line": 32,
           "text": "const [password, setPassword] = useState('');"
         },
         {
-          "line": 32,
+          "line": 33,
           "text": "const [deleteError, setDeleteError] = useState('');"
         },
         {
-          "line": 33,
+          "line": 34,
           "text": "const [deleteBusy, setDeleteBusy] = useState(false);"
         },
         {
-          "line": 34,
+          "line": 35,
           "text": "const [stats, setStats] = useState<Stats | null>(null);"
         },
         {
-          "line": 35,
+          "line": 36,
           "text": "const [changing, setChanging] = useState(false);"
         },
         {
-          "line": 36,
+          "line": 37,
           "text": "const [pw, setPw] = useState({ current: '', next: '', again: '' });"
         },
         {
-          "line": 37,
+          "line": 38,
           "text": "const [pwError, setPwError] = useState('');"
         },
         {
-          "line": 38,
+          "line": 39,
           "text": "const [pwBusy, setPwBusy] = useState(false);"
         }
       ]
@@ -160,44 +160,81 @@
           "text": "import { useCallback, useEffect, useReducer, useRef, useState } from 'react';"
         },
         {
-          "line": 19,
+          "line": 20,
           "text": "active: boolean;"
         },
         {
-          "line": 50,
+          "line": 51,
           "text": "const [state, dispatch] = useReducer(chatReducer, initialChatState);"
         },
         {
-          "line": 51,
+          "line": 52,
           "text": "const [text, setText] = useState('');"
         },
         {
-          "line": 52,
+          "line": 53,
           "text": "const [info, setInfo] = useState<SessionInfo | null>(null);"
         },
         {
-          "line": 53,
+          "line": 54,
           "text": "const [menu, setMenu] = useState(false);"
         },
         {
-          "line": 54,
+          "line": 55,
           "text": "const [dialog, setDialog] = useState<'report' | 'block' | 'resolve' | null>(null);"
         },
         {
-          "line": 55,
+          "line": 56,
           "text": "const [reason, setReason] = useState('harassment');"
         },
         {
-          "line": 56,
+          "line": 57,
           "text": "const [details, setDetails] = useState('');"
         },
         {
-          "line": 57,
+          "line": 58,
           "text": "const [working, setWorking] = useState(false);"
         },
         {
-          "line": 58,
+          "line": 59,
           "text": "const [dialogError, setDialogError] = useState('');"
+        },
+        {
+          "line": 65,
+          "text": "const [saveError, setSaveError] = useState('');"
+        }
+      ]
+    },
+    {
+      "path": "apps/mobile/app/library.tsx",
+      "evidence": [
+        {
+          "line": 2,
+          "text": "import { useCallback, useEffect, useRef, useState } from 'react';"
+        },
+        {
+          "line": 19,
+          "text": "const [query, setQuery] = useState('');"
+        },
+        {
+          "line": 20,
+          "text": "const [list, setList] = useState<SavedAnswer[] | null>(null);"
+        },
+        {
+          "line": 21,
+          "text": "const [results, setResults] = useState<LibraryResults | null>(null);"
+        },
+        {
+          "line": 22,
+          "text": "const [searching, setSearching] = useState(false);"
+        },
+        {
+          "line": 23,
+          "text": "const [error, setError] = useState('');"
+        },
+        {
+          "line": 48,
+          "text": "const timer = setTimeout(async () => {"
         }
       ]
     },
@@ -301,11 +338,11 @@
           "text": "import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';"
         },
         {
-          "line": 38,
+          "line": 39,
           "text": "const [user, setUser] = useState<AuthUser | null>(null);"
         },
         {
-          "line": 39,
+          "line": 40,
           "text": "const [loading, setLoading] = useState(true);"
         }
       ]
@@ -325,6 +362,52 @@
         {
           "line": 33,
           "text": "export function closeAction(s: ResolveState & { active: boolean; blocked?: boolean }): 'answered' | 'withdraw' | null {"
+        }
+      ]
+    },
+    {
+      "path": "apps/mobile/src/lib/savedAnswers.ts",
+      "evidence": [
+        {
+          "line": 22,
+          "text": "let state: SavedState = initialSaved(null);"
+        },
+        {
+          "line": 25,
+          "text": "state = next;"
+        }
+      ]
+    },
+    {
+      "path": "apps/mobile/src/lib/savedState.ts",
+      "evidence": [
+        {
+          "line": 5,
+          "text": "export type SavedState = { owner: number | null; ids: Set<number>; pending: Set<number> };"
+        },
+        {
+          "line": 7,
+          "text": "export const initialSaved = (owner: number | null): SavedState => ({ owner, ids: new Set(), pending: new Set() });"
+        },
+        {
+          "line": 10,
+          "text": "export function startToggle(state: SavedState, id: number): { next: SavedState; saving: boolean } | null {"
+        },
+        {
+          "line": 16,
+          "text": "return { next: { ...state, ids, pending: new Set(state.pending).add(id) }, saving };"
+        },
+        {
+          "line": 20,
+          "text": "export function settleToggle(state: SavedState, owner: number, id: number, saving: boolean, ok: boolean): SavedState {"
+        },
+        {
+          "line": 22,
+          "text": "const pending = new Set(state.pending);"
+        },
+        {
+          "line": 33,
+          "text": "export function replaceSaved(state: SavedState, owner: number, ids: number[]): SavedState {"
         }
       ]
     },
@@ -449,31 +532,43 @@
           "text": "import { useCallback, useMemo, useState } from 'react';"
         },
         {
-          "line": 33,
+          "line": 34,
           "text": "const [trips, setTrips] = useState<TripRow[]>([]);"
         },
         {
-          "line": 34,
+          "line": 35,
           "text": "const [filter, setFilter] = useState<Filter>('all');"
         },
         {
-          "line": 35,
+          "line": 36,
           "text": "const [recordingTripId, setRecordingTripId] = useState<string | null>(null);"
         },
         {
-          "line": 36,
+          "line": 37,
           "text": "const [loaded, setLoaded] = useState(false);"
         },
         {
-          "line": 77,
+          "line": 38,
+          "text": "const [wroteTodayPage, setWroteTodayPage] = useState(false);"
+        },
+        {
+          "line": 39,
+          "text": "const [memories, setMemories] = useState<MemoryGroup<LocalEntry>[]>([]);"
+        },
+        {
+          "line": 40,
+          "text": "const [journalNames, setJournalNames] = useState<Record<string, { title: string; everyday: boolean }>>({});"
+        },
+        {
+          "line": 87,
           "text": "const phase = tripPhase(t.starts_on, t.ends_on);"
         },
         {
-          "line": 79,
+          "line": 89,
           "text": "return t.status === 'completed' || phase === 'past';"
         },
         {
-          "line": 95,
+          "line": 105,
           "text": "? `${pending} change${pending === 1 ? '' : 's'} waiting to sync`"
         }
       ]
@@ -814,6 +909,23 @@
       ]
     },
     {
+      "path": "apps/wayfare-mobile/app/journal.tsx",
+      "evidence": [
+        {
+          "line": 1,
+          "text": "import { useCallback, useEffect, useState } from 'react';"
+        },
+        {
+          "line": 16,
+          "text": "const [trip, setTrip] = useState<LocalTrip | null>(null);"
+        },
+        {
+          "line": 17,
+          "text": "const [failed, setFailed] = useState(false);"
+        }
+      ]
+    },
+    {
       "path": "apps/wayfare-mobile/app/live/[id].tsx",
       "evidence": [
         {
@@ -1089,47 +1201,47 @@
           "text": "import { useCallback, useMemo, useState } from 'react';"
         },
         {
-          "line": 59,
+          "line": 60,
           "text": "const [contacts, setContacts] = useState<EmergencyContact[]>([]);"
         },
         {
-          "line": 60,
+          "line": 61,
           "text": "const [newName, setNewName] = useState('');"
         },
         {
-          "line": 61,
+          "line": 62,
           "text": "const [newPhone, setNewPhone] = useState('');"
         },
         {
-          "line": 62,
+          "line": 63,
           "text": "const [name, setName] = useState('');"
         },
         {
-          "line": 63,
+          "line": 64,
           "text": "const [live, setLive] = useState<LiveShareState | null>(null);"
         },
         {
-          "line": 64,
+          "line": 65,
           "text": "const [liveHours, setLiveHours] = useState(4);"
         },
         {
-          "line": 65,
+          "line": 66,
           "text": "const [checkIn, setCheckInState] = useState<CheckIn | null>(null);"
         },
         {
-          "line": 66,
+          "line": 67,
           "text": "const [countryCode, setCountryCode] = useState<string | null>(deviceCountry());"
         },
         {
-          "line": 67,
+          "line": 68,
           "text": "const [tripTitle, setTripTitle] = useState<string | null>(null);"
         },
         {
-          "line": 68,
+          "line": 69,
           "text": "const [busy, setBusy] = useState<string | null>(null);"
         },
         {
-          "line": 144,
+          "line": 145,
           "text": "const state = await startLiveSharing(liveHours, tripTitle);"
         }
       ]
@@ -1777,11 +1889,11 @@
           "text": "import { useCallback, useState } from 'react';"
         },
         {
-          "line": 25,
+          "line": 26,
           "text": "const [rows, setRows] = useState<Row[] | null>(null);"
         },
         {
-          "line": 36,
+          "line": 37,
           "text": "if (user && trip.sync_status === 'pending') await pushTripNow(user.id, trip.id);"
         }
       ]
@@ -1963,59 +2075,63 @@
           "text": "import { useCallback, useEffect, useMemo, useRef, useState } from 'react';"
         },
         {
-          "line": 38,
+          "line": 41,
           "text": "const [entries, setEntries] = useState<LocalEntry[]>([]);"
         },
         {
-          "line": 39,
+          "line": 42,
           "text": "const [text, setText] = useState('');"
         },
         {
-          "line": 40,
+          "line": 43,
           "text": "const [place, setPlace] = useState('');"
         },
         {
-          "line": 41,
+          "line": 44,
           "text": "const [mood, setMood] = useState('');"
         },
         {
-          "line": 42,
+          "line": 45,
           "text": "const [attachContext, setAttachContext] = useState(true);"
         },
         {
-          "line": 43,
+          "line": 46,
           "text": "const [photos, setPhotos] = useState<PickedPhoto[]>([]);"
         },
         {
-          "line": 44,
+          "line": 47,
           "text": "const [saving, setSaving] = useState(false);"
         },
         {
-          "line": 46,
+          "line": 49,
           "text": "const [voiceBusy, setVoiceBusy] = useState(false);"
         },
         {
-          "line": 47,
+          "line": 50,
           "text": "const [recording, setRecording] = useState<string | null>(null);"
         },
         {
-          "line": 49,
+          "line": 52,
           "text": "const [menuFor, setMenuFor] = useState<string | null>(null);"
         },
         {
-          "line": 50,
+          "line": 53,
           "text": "const [mediaKey, setMediaKey] = useState(0);"
         },
         {
-          "line": 78,
+          "line": 55,
+          "text": "const [shownDays, setShownDays] = useState(DAYS_PER_PAGE);"
+        },
+        {
+          "line": 83,
           "text": "sync_status: 'pending',"
         },
         {
-          "line": 107,
+          "line": 112,
           "text": "sync_status: 'pending',"
         },
         {
-          "line": 291,
+          "line": 305,
           "text": "{e.sync_status === 'pending' ? ' · not synced yet' : ''}"
         }
       ]
@@ -2157,6 +2273,27 @@
         {
           "line": 56,
           "text": "const [titleTouched, setTitleTouched] = useState(!!initial.title);"
+        }
+      ]
+    },
+    {
+      "path": "apps/wayfare-mobile/src/lib/everyday.ts",
+      "evidence": [
+        {
+          "line": 26,
+          "text": "\"UPDATE entries SET trip_id = ?, sync_status = 'pending', updated_at = ? WHERE trip_id = ?\","
+        },
+        {
+          "line": 39,
+          "text": "visibility: 'private',"
+        },
+        {
+          "line": 41,
+          "text": "status: 'active',"
+        },
+        {
+          "line": 50,
+          "text": "sync_status: 'pending',"
         }
       ]
     },
@@ -2601,7 +2738,7 @@
           "text": "import { useCallback, useState } from 'react';"
         },
         {
-          "line": 37,
+          "line": 39,
           "text": "const [stats, setStats] = useState<TravelStats | null>(null);"
         }
       ]

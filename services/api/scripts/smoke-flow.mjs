@@ -185,6 +185,32 @@ async function main() {
   assert.equal(withdrawn.json.helpful, null);
   assert.ok(!(await call('GET', '/api/Message/openQuestions', { token: other.token })).json.some(q => q.sessionId === lonely.json.sessionId));
 
+  // Personal answer library: search your own conversations (any case), save answers; private to each member.
+  const found = await call('GET', `/api/library/search?q=${encodeURIComponent('BEACH shacks')}`, { token: seeker.token });
+  assert.equal(found.status, 200);
+  const hit = found.json.messages.find(m => m.sessionId === openId);
+  assert.ok(hit && hit.fromMe === false && hit.saved === false && hit.snippet.includes('beach shacks'), 'search finds the answer');
+  const byTitle = (await call('GET', '/api/library/search?q=open%20question', { token: seeker.token })).json;
+  assert.ok(byTitle.questions.some(q => q.sessionId === openId));
+  // The opening message only repeats a question that is already listed, so it is not shown twice.
+  assert.ok(!byTitle.messages.some(m => m.sessionId === openId), 'question not repeated as a message');
+  assert.deepEqual((await call('GET', '/api/library/search?q=beach%20shacks', { token: outsider.token })).json.messages, []);
+  for (const q of ['', 'a', '%25', '%25%25', '_']) assert.equal((await call('GET', `/api/library/search?q=${q}`, { token: seeker.token })).status, 400, `query ${q}`);
+  assert.equal((await call('GET', '/api/library/search?q=beach')).status, 401);
+  assert.equal((await call('PUT', `/api/library/saved/${hit.messageId}`, { token: outsider.token })).status, 404);
+  assert.equal((await call('PUT', '/api/library/saved/abc', { token: seeker.token })).status, 400);
+  for (let i = 0; i < 2; i++) assert.deepEqual((await call('PUT', `/api/library/saved/${hit.messageId}`, { token: seeker.token })).json, { messageId: hit.messageId, saved: true });
+  const savedList = (await call('GET', '/api/library/saved', { token: seeker.token })).json.saved;
+  assert.equal(savedList.length, 1); assert.equal(savedList[0].text, 'Try the beach shacks'); assert.equal(savedList[0].sessionId, openId);
+  assert.equal((await call('GET', `/api/library/search?q=beach%20shacks`, { token: seeker.token })).json.messages.find(m => m.messageId === hit.messageId).saved, true);
+  assert.deepEqual((await call('GET', '/api/library/saved', { token: outsider.token })).json.saved, []);
+  // The expert can keep their own answer too, independently.
+  assert.equal((await call('PUT', `/api/library/saved/${hit.messageId}`, { token: claimer.token })).status, 200);
+  assert.deepEqual((await call('DELETE', `/api/library/saved/${hit.messageId}`, { token: seeker.token })).json, { messageId: hit.messageId, saved: false });
+  assert.equal((await call('DELETE', `/api/library/saved/${hit.messageId}`, { token: seeker.token })).status, 200);
+  assert.deepEqual((await call('GET', '/api/library/saved', { token: seeker.token })).json.saved, []);
+  assert.equal((await call('GET', '/api/library/saved', { token: claimer.token })).json.saved.length, 1);
+
   // Account deletion: needs the password, removes the conversations for both sides, kills the token.
   assert.equal((await call('DELETE', '/api/user', { token: seeker.token, body: { password: 'wrong' } })).status, 401);
   assert.equal((await call('DELETE', '/api/user', { token: seeker.token, body: { password } })).status, 200);
@@ -194,6 +220,8 @@ async function main() {
   assert.ok(!(await call('GET', `/api/Message/getallsessionssolver/${expert.userId}`, { token: expert.token })).json.some(s => s.sessionId === sid));
   // The photo went with the conversation, for the other participant too.
   assert.equal((await call('GET', photoUrl, { token: claimer.token })).status, 404);
+  // So did the expert's saved copy of the answer.
+  assert.deepEqual((await call('GET', '/api/library/saved', { token: claimer.token })).json.saved, []);
 
   for (const u of [expert, other, outsider]) {
     assert.equal((await call('DELETE', '/api/user', { token: u.token, body: { password } })).status, 200);

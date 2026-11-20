@@ -1,5 +1,6 @@
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
+import { journeysOnly } from './everydayMemories';
 import { getDb, listAllEntries, listAllExpenses, listAllTrackPoints, listTrips } from './localDb';
 import type { StatsInput } from './travelStats';
 import { computeTravelStats, type TravelStats } from './travelStats';
@@ -22,7 +23,8 @@ export async function loadStatsInput(): Promise<{ input: StatsInput; media: Date
   const media = mediaRows.map(m => ({ at: m.updated_at, audio: (m.mime_type ?? '').startsWith('audio') }));
   return {
     input: {
-      trips,
+      // Everyday pages count as entries, streaks and photos, but the everyday journal is not a trip.
+      trips: journeysOnly(trips),
       entries,
       expenses,
       trackPointsByTrip,

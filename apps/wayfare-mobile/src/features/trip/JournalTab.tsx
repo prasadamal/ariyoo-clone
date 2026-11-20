@@ -21,7 +21,10 @@ import { EmptyState } from '../../ui/EmptyState';
 import { Icon } from '../../ui/Icon';
 import { pickPhotos, type PickedPhoto } from './photoPicker';
 
-type Props = { trip: LocalTrip; onChanged: () => void };
+/** `everyday` is the private journal for ordinary days: no "Day n" counter, a daily prompt. */
+const DAYS_PER_PAGE = 30;
+
+type Props = { trip: LocalTrip; onChanged: () => void; everyday?: boolean };
 
 async function currentFix() {
   const { status } = await Location.requestForegroundPermissionsAsync();
@@ -31,7 +34,7 @@ async function currentFix() {
   return pos.coords;
 }
 
-export function JournalTab({ trip, onChanged }: Props) {
+export function JournalTab({ trip, onChanged, everyday = false }: Props) {
   const { colors } = useAppTheme();
   const toast = useToast();
   const canConnect = useCanConnect();
@@ -48,6 +51,8 @@ export function JournalTab({ trip, onChanged }: Props) {
   const recorder = useAudioRecorder(VOICE_NOTE_PRESET);
   const [menuFor, setMenuFor] = useState<string | null>(null);
   const [mediaKey, setMediaKey] = useState(0);
+  // Years of daily pages would render all at once; show recent days and load older ones on request.
+  const [shownDays, setShownDays] = useState(DAYS_PER_PAGE);
 
   const load = useCallback(async () => {
     setEntries(await listEntries(trip.id));
@@ -207,19 +212,21 @@ export function JournalTab({ trip, onChanged }: Props) {
       const day = toDayString(new Date(e.recorded_at));
       byDay.set(day, [...(byDay.get(day) ?? []), e]);
     }
-    const start = trip.starts_on ? new Date(`${trip.starts_on}T00:00:00`) : entries[0] ? new Date(toDayString(new Date(entries[0].recorded_at)) + 'T00:00:00') : null;
+    const start = everyday ? null : trip.starts_on ? new Date(`${trip.starts_on}T00:00:00`) : entries[0] ? new Date(toDayString(new Date(entries[0].recorded_at)) + 'T00:00:00') : null;
     return [...byDay.entries()].map(([day, list]) => {
       const n = start ? Math.round((new Date(`${day}T00:00:00`).getTime() - start.getTime()) / 86400000) + 1 : null;
-      return { day, label: `${n && n > 0 ? `Day ${n} · ` : ''}${formatDay(day, { weekday: true })}`, list };
+      // A journal that spans years needs the year on older pages, or two "20 Nov" pages look alike.
+      const year = day.slice(0, 4) !== String(new Date().getFullYear());
+      return { day, label: `${n && n > 0 ? `Day ${n} · ` : ''}${formatDay(day, { weekday: true, year })}`, list };
     });
-  }, [entries, trip.starts_on]);
+  }, [entries, trip.starts_on, everyday]);
 
   return (
     <View>
       <View style={{ backgroundColor: colors.surface, borderRadius: 18, borderWidth: 1, borderColor: colors.border, padding: 12, marginBottom: 16 }}>
         <TextInput
           mode="flat"
-          placeholder="What happened? Sights, people, feelings…"
+          placeholder={everyday ? 'How was today? Little things count…' : 'What happened? Sights, people, feelings…'}
           value={text}
           onChangeText={setText}
           multiline
@@ -274,10 +281,17 @@ export function JournalTab({ trip, onChanged }: Props) {
       </View>
 
       {!groups.length ? (
-        <EmptyState compact icon="feather" title="Your first moment" body="Write a line, add a photo or record a voice note. It all works offline." />
+        <EmptyState
+          compact
+          icon="feather"
+          title={everyday ? 'Your first page' : 'Your first moment'}
+          body={everyday
+            ? 'One line a day is enough. Only you can see this journal, it works offline, and a year from now it comes back to you under "On this day".'
+            : 'Write a line, add a photo or record a voice note. It all works offline.'}
+        />
       ) : null}
 
-      {groups.map(g => (
+      {groups.slice(0, shownDays).map(g => (
         <View key={g.day}>
           <Text style={{ color: colors.secondary, fontWeight: '800', fontSize: 12, letterSpacing: 0.6, marginBottom: 8, marginTop: 4 }}>
             {g.label.toUpperCase()}
@@ -332,6 +346,11 @@ export function JournalTab({ trip, onChanged }: Props) {
           ))}
         </View>
       ))}
+      {groups.length > shownDays ? (
+        <Button mode="outlined" onPress={() => setShownDays(n => n + DAYS_PER_PAGE)} style={{ alignSelf: 'center', marginTop: 4 }}>
+          Show earlier days ({groups.length - shownDays} more)
+        </Button>
+      ) : null}
     </View>
   );
 }
