@@ -108,7 +108,7 @@ export function TripForm({ initial, submitLabel, busy, onSubmit }: Props) {
       <ChipSelect scroll options={POPULAR_CURRENCIES.map(c => ({ value: c, label: c }))} value={v.currency} onChange={c => set({ currency: c })} />
       <TextInput
         mode="outlined"
-        label={`Budget (${v.currency}, optional)`}
+        label={`Expected budget (${v.currency}, optional)`}
         value={v.budget}
         onChangeText={t => set({ budget: t.replace(/[^0-9.]/g, '') })}
         keyboardType="decimal-pad"

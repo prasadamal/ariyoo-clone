@@ -128,10 +128,13 @@ export function BudgetTab({ trip, onChanged }: Props) {
             <ProgressBar progress={Math.min(1, used)} color={used > 1 ? colors.danger : used > 0.85 ? colors.warning : colors.secondary} style={{ height: 8, borderRadius: 4, marginTop: 10 }} />
             <Text style={{ color: used > 1 ? colors.danger : colors.muted, marginTop: 6, fontSize: 13 }}>
               {used > 1
-                ? `${formatMoney(total.total - budget, tripCurrency)} over your ${formatMoney(budget, tripCurrency)} budget`
-                : `${formatMoney(budget - total.total, tripCurrency)} left of ${formatMoney(budget, tripCurrency)}`}
+                ? `${formatMoney(total.total - budget, tripCurrency)} over your ${formatMoney(budget, tripCurrency)} expected budget`
+                : `${formatMoney(budget - total.total, tripCurrency)} left of your ${formatMoney(budget, tripCurrency)} expected budget`}
             </Text>
           </>
+        ) : null}
+        {budget <= 0 ? (
+          <Text style={{ color: colors.muted, marginTop: 8, fontSize: 13 }}>No expected budget set. Add one under Edit to track what is left.</Text>
         ) : null}
         {total.unconverted.length ? (
           <Notice tone="warning" text={`${total.unconverted.join(', ')} not included — connect once to download exchange rates.`} />
@@ -155,22 +158,6 @@ export function BudgetTab({ trip, onChanged }: Props) {
           </View>
         ) : null}
       </View>
-
-      {settlements.length ? (
-        <>
-          <SectionHeader title="Settle up" subtitle="Fewest payments to square everyone up" />
-          {settlements.map(s =>
-            s.transfers.map(t => (
-              <View key={`${s.currency}-${t.from}-${t.to}`} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: colors.border }}>
-                <Text style={{ fontWeight: '700' }}>{t.from}</Text>
-                <Icon name="arrow-right" size={16} color={colors.muted} />
-                <Text style={{ fontWeight: '700', flex: 1 }}>{t.to}</Text>
-                <Text style={{ fontWeight: '800', color: colors.secondary }}>{formatMoney(t.amount, s.currency)}</Text>
-              </View>
-            ))
-          )}
-        </>
-      ) : null}
 
       <SectionHeader title="Add expense" />
       <View style={{ flexDirection: 'row', gap: 8 }}>
@@ -201,6 +188,26 @@ export function BudgetTab({ trip, onChanged }: Props) {
           Add {amount ? formatMoney(Number(amount) || 0, currency) : 'expense'}
         </Button>
       </View>
+
+      {settlements.length ? (
+        <View style={{ backgroundColor: colors.surface, borderRadius: 18, borderWidth: 1, borderColor: colors.border, padding: 16, marginTop: 20 }}>
+          <Text style={{ fontWeight: '800', fontSize: 16 }}>Settle up</Text>
+          <Text style={{ color: colors.muted, fontSize: 12, marginBottom: 6 }}>Fewest payments to square everyone up</Text>
+          {settlements.map(s =>
+            s.transfers.map((t, i, arr) => (
+              <View
+                key={`${s.currency}-${t.from}-${t.to}`}
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 8, borderBottomWidth: i === arr.length - 1 ? 0 : 1, borderBottomColor: colors.border }}
+              >
+                <Text style={{ fontWeight: '700' }}>{t.from}</Text>
+                <Icon name="arrow-right" size={16} color={colors.muted} />
+                <Text style={{ fontWeight: '700', flex: 1 }}>{t.to}</Text>
+                <Text style={{ fontWeight: '800', color: colors.secondary }}>{formatMoney(t.amount, s.currency)}</Text>
+              </View>
+            ))
+          )}
+        </View>
+      ) : null}
 
       {expenses.length ? <SectionHeader title="Expenses" subtitle="Long-press to delete" /> : null}
       {expenses.map(e => {
