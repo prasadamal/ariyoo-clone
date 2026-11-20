@@ -4,9 +4,9 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Contact | Ariyoo</title>
-  <meta name="description" content="Contact Ariyoo about partnerships, investment, press, support or careers.">
+  <meta name="description" content="Contact Ariyoo about partnerships, investment, press, careers or our apps.">
   <meta property="og:title" content="Contact | Ariyoo">
-  <meta property="og:description" content="Contact Ariyoo about partnerships, investment, press, support or careers.">
+  <meta property="og:description" content="Contact Ariyoo about partnerships, investment, press, careers or our apps.">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Ariyoo">
   <meta name="theme-color" content="#6a00a5">
@@ -17,7 +17,6 @@
   <link rel="stylesheet" href="css/layout.css">
   <link rel="stylesheet" href="css/contact.css">
   <script type="module" src="js/site.js"></script>
-  <script type="module" src="js/contact.js"></script>
 </head>
 <body>
   <a class="skip" href="#main">Skip to content</a>
@@ -43,60 +42,51 @@
       <div class="wrap">
         <p class="eyebrow">Contact</p>
         <h1>Let's talk.</h1>
-        <p class="lede">Partnerships, investment, press, support or just a question about our apps: write to us and a person will reply.</p>
+        <p class="lede">Partnerships, investment, press, careers or a question about our apps: write to us and a person will reply.</p>
       </div>
     </section>
 
     <section class="section">
       <div class="wrap contact-layout">
-        <div class="card">
-          <div id="contact-thanks" class="notice notice--ok" role="status" tabindex="-1" hidden>Thank you. We have your message and will reply to <span data-email></span> as soon as we can.</div>
-          <form id="contact-form">
-            <div class="notice notice--bad" role="alert" data-form-error hidden></div>
-          <div class="field">
-            <label for="c-name">Your name</label>
-            <input id="c-name" name="name" type="text" autocomplete="name">
-            <span class="field-error" hidden></span>
-          </div>
-          <div class="field">
-            <label for="c-email">Work email</label>
-            <input id="c-email" name="email" type="email" autocomplete="email">
-            <span class="field-error" hidden></span>
-          </div>
-          <div class="field">
-            <label for="c-org">Organisation (optional)</label>
-            <input id="c-org" name="organisation" type="text" autocomplete="organization">
-            <span class="field-error" hidden></span>
-          </div>
-            <div class="field">
-              <label for="c-topic">What is this about?</label>
-              <select id="c-topic" name="topic">
-              <option value="general">General enquiry</option>
-              <option value="partnership">Partnerships</option>
-              <option value="investor">Investors</option>
-              <option value="press">Press and media</option>
-              <option value="support">Support</option>
-              <option value="careers">Careers</option>
-              </select>
-              <span class="field-error" hidden></span>
-            </div>
-          <div class="field">
-            <label for="c-message">Message</label>
-            <textarea id="c-message" name="message"></textarea>
-            <span class="field-error" hidden></span>
-          </div>
-            <div class="hp" aria-hidden="true"><label for="c-website">Leave this empty</label><input id="c-website" name="website" tabindex="-1" autocomplete="off"></div>
-            <button type="submit" class="btn btn--primary">Send message</button>
-            <p class="muted small">We use your details only to reply to you. See our <a href="legal.html">privacy information</a>.</p>
-          </form>
+        <div class="grid grid--2 topics">
+          <article class="card">
+            <h2>Partnerships</h2>
+            <p>Tourism boards, venues, cinemas, travel companies and others who could work with our apps.</p>
+            <a class="btn btn--ghost" href="mailto:Ariyoo@test.com?subject=Partnership">Email us</a>
+          </article>
+          <article class="card">
+            <h2>Investors</h2>
+            <p>Where we are, where we are going, and how to be part of it.</p>
+            <a class="btn btn--ghost" href="mailto:Ariyoo@test.com?subject=Investor%20enquiry">Email us</a>
+          </article>
+          <article class="card">
+            <h2>Press and media</h2>
+            <p>Interviews, background, screenshots and the logo.</p>
+            <a class="btn btn--ghost" href="mailto:Ariyoo@test.com?subject=Media%20enquiry">Email us</a>
+          </article>
+          <article class="card">
+            <h2>Careers</h2>
+            <p>Tell us about yourself and what you would like to work on.</p>
+            <a class="btn btn--ghost" href="mailto:Ariyoo@test.com?subject=Careers%20at%20Ariyoo">Email us</a>
+          </article>
+          <article class="card">
+            <h2>Help with our apps</h2>
+            <p>Questions about Ariyoo, Wayfare or ReelMates.</p>
+            <a class="btn btn--ghost" href="mailto:Ariyoo@test.com?subject=App%20support">Email us</a>
+          </article>
+          <article class="card">
+            <h2>Anything else</h2>
+            <p>Ideas, feedback or just hello.</p>
+            <a class="btn btn--ghost" href="mailto:Ariyoo@test.com?subject=Hello%20Ariyoo">Email us</a>
+          </article>
         </div>
         <aside>
+          <h2>Email</h2>
+          <p><a href="mailto:Ariyoo@test.com">Ariyoo@test.com</a></p>
           <h2>Our office</h2>
           <address>
             Benninganahalli 11th Cross<br>Nagavarapalaya<br>Bengaluru
           </address>
-          <h2>Email</h2>
-          <p><a href="mailto:Ariyoo@test.com">Ariyoo@test.com</a></p>
           <h2>In our apps</h2>
           <p class="muted">To report a person or a conversation, use the report option inside the app, so moderators can see exactly what happened.</p>
         </aside>
@@ -130,16 +120,10 @@
           <a href="trust.html">Trust &amp; Safety</a>
           <a href="legal.html">Legal</a>
       </nav>
-      <div class="news newsletter">
-        <h2>Stay in the loop</h2>
-        <p class="soft">News from Ariyoo, a few times a year.</p>
-        <form>
-          <label for="nl-email" class="sr-only">Email address</label>
-          <input id="nl-email" name="email" type="email" placeholder="you@company.com" autocomplete="email">
-          <button type="submit" class="btn btn--light">Subscribe</button>
-        </form>
-        <p class="err" role="alert" hidden></p>
-        <p class="ok" role="status" hidden>Thank you. You're on the list.</p>
+      <div class="news">
+        <h2>Get in touch</h2>
+        <p class="soft">Partnerships, investment, press or careers: we read every message.</p>
+        <a href="contact.html" class="btn btn--light">Contact us</a>
       </div>
     </div>
     <div class="wrap bottom">

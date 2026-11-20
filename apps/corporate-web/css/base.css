@@ -1,4 +1,4 @@
-/* Reset, typography, buttons, forms and small utilities shared by every page. */
+/* Reset, typography, buttons and small utilities shared by every page. */
 *, *::before, *::after { box-sizing: border-box; }
 html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
 @media (prefers-reduced-motion: reduce) {
@@ -52,21 +52,6 @@ address { font-style: normal; }
 .btn--light:hover { background: #fff; color: var(--deep); }
 .btn[disabled] { opacity: 0.55; cursor: not-allowed; }
 .btn-row { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 28px; }
-.link-button { background: none; border: 0; padding: 0; color: var(--brand); font: inherit; text-decoration: underline; cursor: pointer; }
-
-/* Forms */
-.field { display: grid; gap: 6px; margin-bottom: 18px; }
-.field label { font-weight: 600; font-size: 0.95rem; }
-.field input, .field select, .field textarea { width: 100%; padding: 13px 14px; font: inherit; color: var(--ink); background: #fff; border: 1.5px solid #bcb3c4; border-radius: 10px; }
-.field textarea { min-height: 150px; resize: vertical; }
-.field input:focus, .field select:focus, .field textarea:focus { outline: none; border-color: var(--brand); box-shadow: 0 0 0 3px rgba(106, 0, 165, 0.18); }
-.field.has-error input, .field.has-error select, .field.has-error textarea { border-color: var(--danger); }
-.field-error { color: var(--danger); font-size: 0.9rem; font-weight: 600; }
-.notice { border-radius: 12px; padding: 16px 18px; font-weight: 600; margin-bottom: 18px; }
-.notice--ok { background: var(--brand-wash); color: #3f0063; border: 1px solid var(--brand-line); }
-.notice--bad { background: #fbe6e7; color: #8c1a24; border: 1px solid #efc2c5; }
-/* Decoy field for bots: out of sight and out of the tab order. */
-.hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
 
 /* Checklist */
 .ticks { list-style: none; padding: 0; margin: 18px 0 0; display: grid; gap: 12px; }

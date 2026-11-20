@@ -4,9 +4,9 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Press | Ariyoo</title>
-  <meta name="description" content="Announcements and news from Ariyoo, with a media contact for journalists and anyone writing about the company.">
+  <meta name="description" content="News from Ariyoo, and a media contact for journalists and anyone writing about the company and its apps.">
   <meta property="og:title" content="Press | Ariyoo">
-  <meta property="og:description" content="Announcements and news from Ariyoo, with a media contact for journalists and anyone writing about the company.">
+  <meta property="og:description" content="News from Ariyoo, and a media contact for journalists and anyone writing about the company and its apps.">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Ariyoo">
   <meta name="theme-color" content="#6a00a5">
@@ -17,7 +17,6 @@
   <link rel="stylesheet" href="css/layout.css">
   <link rel="stylesheet" href="css/press.css">
   <script type="module" src="js/site.js"></script>
-  <script type="module" src="js/press.js"></script>
 </head>
 <body>
   <a class="skip" href="#main">Skip to content</a>
@@ -43,19 +42,24 @@
       <div class="wrap">
         <p class="eyebrow">Press</p>
         <h1>News from Ariyoo.</h1>
-        <p class="lede">Announcements, and how to reach us if you are writing about Ariyoo.</p>
+        <p class="lede">Company news, and how to reach us if you are writing about Ariyoo, Wayfare or ReelMates.</p>
       </div>
     </section>
 
     <section class="section">
       <div class="wrap">
-        <p id="press-status" class="muted" role="status">Loading…</p>
-        <div id="press-list" class="press-list" hidden></div>
-        <p id="press-empty" class="lede" hidden>There are no announcements yet. We will publish news here as it happens.</p>
-        <div class="card media-card">
-          <h2>Media enquiries</h2>
-          <p>For interviews, background or assets, write to <a href="mailto:Ariyoo@test.com?subject=Media%20enquiry">Ariyoo@test.com</a>.</p>
+        <div class="grid grid--2">
+          <article class="card">
+            <h2>About Ariyoo</h2>
+            <p>Ariyoo is a technology company based in Bengaluru, India. It makes three apps: Ariyoo, for asking local experts about a place; Wayfare, a travel journal that works offline; and ReelMates, for sharing your taste in films.</p>
+          </article>
+          <article class="card">
+            <h2>Media enquiries</h2>
+            <p>For interviews, background, screenshots or the logo, write to us and we will reply.</p>
+            <a class="btn btn--primary" href="mailto:Ariyoo@test.com?subject=Media%20enquiry">Email the press team</a>
+          </article>
         </div>
+        <p class="lede" style="margin-top: 40px">There are no announcements yet. We will publish news here as it happens.</p>
       </div>
     </section>
   </main>
@@ -86,16 +90,10 @@
           <a href="trust.html">Trust &amp; Safety</a>
           <a href="legal.html">Legal</a>
       </nav>
-      <div class="news newsletter">
-        <h2>Stay in the loop</h2>
-        <p class="soft">News from Ariyoo, a few times a year.</p>
-        <form>
-          <label for="nl-email" class="sr-only">Email address</label>
-          <input id="nl-email" name="email" type="email" placeholder="you@company.com" autocomplete="email">
-          <button type="submit" class="btn btn--light">Subscribe</button>
-        </form>
-        <p class="err" role="alert" hidden></p>
-        <p class="ok" role="status" hidden>Thank you. You're on the list.</p>
+      <div class="news">
+        <h2>Get in touch</h2>
+        <p class="soft">Partnerships, investment, press or careers: we read every message.</p>
+        <a href="contact.html" class="btn btn--light">Contact us</a>
       </div>
     </div>
     <div class="wrap bottom">

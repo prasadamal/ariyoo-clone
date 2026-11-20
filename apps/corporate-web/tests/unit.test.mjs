@@ -1,37 +1,7 @@
-// Unit tests for the site's pure JavaScript. Run: node --test tests/unit.test.mjs
+// Unit tests for the site's pure JavaScript (animation timing). Run: node --test tests/unit.test.mjs
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { isEmail, validateApplication, validateContact } from '../js/lib/validate.js';
-import { problemFrom } from '../js/lib/problem.js';
 import { heroStep, showcaseTick } from '../js/lib/rotation.js';
-
-test('contact form: every missing or bad field gets its own message', () => {
-  const e = validateContact({ name: ' ', email: 'nope', topic: 'spam', message: 'short' });
-  assert.deepEqual(Object.keys(e).sort(), ['email', 'message', 'name', 'topic']);
-  assert.deepEqual(validateContact({ name: 'Priya', email: 'priya@example.com', topic: 'investor', organisation: '', message: 'Hello, we would like to talk.' }), {});
-  assert.ok(validateContact({ name: 'x'.repeat(121), email: 'a@b.co', topic: 'general', message: 'long enough text' }).name);
-  assert.ok(validateContact({ name: 'P', email: 'a@b.co', topic: 'general', message: 'x'.repeat(4001) }).message);
-});
-
-test('applications: links must be http(s), and a short note is refused', () => {
-  const ok = { name: 'Ravi', email: 'ravi@example.com', profileUrl: '', message: 'Six years building payment systems.' };
-  assert.deepEqual(validateApplication(ok), {});
-  assert.ok(validateApplication({ ...ok, profileUrl: 'javascript:alert(1)' }).profileUrl);
-  assert.deepEqual(validateApplication({ ...ok, profileUrl: 'https://linkedin.com/in/ravi' }), {});
-  assert.ok(validateApplication({ ...ok, message: 'too short' }).message);
-});
-
-test('email check', () => {
-  for (const good of ['a@b.co', ' priya@example.com ']) assert.equal(isEmail(good), true, good);
-  for (const bad of ['', 'a@b', 'no at sign', 'a @b.co', undefined]) assert.equal(isEmail(bad), false, String(bad));
-});
-
-test('failed requests become sentences a visitor can act on', () => {
-  assert.match(problemFrom(0).message, /could not reach/);
-  assert.match(problemFrom(429).message, /wait a minute/);
-  assert.deepEqual(problemFrom(400, { message: 'Please check the highlighted fields.', fields: { email: 'Bad' } }), { message: 'Please check the highlighted fields.', fields: { email: 'Bad' } });
-  assert.match(problemFrom(500, null).message, /Something went wrong/);
-});
 
 test('hero phones change one at a time: middle, right, left, and wrap around', () => {
   let s = [0, 0, 0];

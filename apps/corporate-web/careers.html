@@ -4,9 +4,9 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Careers | Ariyoo</title>
-  <meta name="description" content="Join Ariyoo in Bengaluru. See open roles across our apps or send an open application.">
+  <meta name="description" content="Join Ariyoo in Bengaluru. We build Ariyoo, Wayfare and ReelMates, and we are always glad to hear from capable people.">
   <meta property="og:title" content="Careers | Ariyoo">
-  <meta property="og:description" content="Join Ariyoo in Bengaluru. See open roles across our apps or send an open application.">
+  <meta property="og:description" content="Join Ariyoo in Bengaluru. We build Ariyoo, Wayfare and ReelMates, and we are always glad to hear from capable people.">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Ariyoo">
   <meta name="theme-color" content="#6a00a5">
@@ -15,9 +15,7 @@
   <link rel="stylesheet" href="css/tokens.css">
   <link rel="stylesheet" href="css/base.css">
   <link rel="stylesheet" href="css/layout.css">
-  <link rel="stylesheet" href="css/careers.css">
   <script type="module" src="js/site.js"></script>
-  <script type="module" src="js/careers.js"></script>
 </head>
 <body>
   <a class="skip" href="#main">Skip to content</a>
@@ -49,43 +47,20 @@
 
     <section class="section">
       <div class="wrap">
-        <h2>Open roles</h2>
-        <p id="roles-status" class="muted" role="status">Loading roles…</p>
-        <div id="roles" class="roles" hidden></div>
-        <p id="roles-empty" class="lede" hidden>We have no open roles listed right now, but we are always glad to hear from capable people. Tell us what you would like to work on.</p>
+        <div class="grid grid--3">
+          <div class="card"><h3>Small team, real ownership</h3><p>Three products and a handful of people: what you build reaches users quickly, and you see what it changes.</p></div>
+          <div class="card"><h3>Useful over clever</h3><p>We measure work by whether it helps someone ask, remember or decide, not by how impressive it looks.</p></div>
+          <div class="card"><h3>Trust is part of the job</h3><p>Safety, privacy and accessibility are part of every feature we ship, from the first sketch.</p></div>
+        </div>
       </div>
     </section>
 
-    <section class="section section--alt" id="apply">
-      <div class="wrap narrow">
-        <h2 id="apply-heading">Open application</h2>
-        <p id="apply-general" hidden><button type="button" class="link-button">Apply without a specific role instead</button></p>
-        <div id="apply-thanks" class="notice notice--ok" role="status" tabindex="-1" hidden>Thank you for applying. Our team reads every application and will be in touch.</div>
-        <form id="apply-form">
-          <div class="notice notice--bad" role="alert" data-form-error hidden></div>
-          <div class="field">
-            <label for="a-name">Full name</label>
-            <input id="a-name" name="name" type="text" autocomplete="name">
-            <span class="field-error" hidden></span>
-          </div>
-          <div class="field">
-            <label for="a-email">Email</label>
-            <input id="a-email" name="email" type="email" autocomplete="email">
-            <span class="field-error" hidden></span>
-          </div>
-          <div class="field">
-            <label for="a-link">Link to your work or profile (optional)</label>
-            <input id="a-link" name="profileUrl" type="url" placeholder="https://">
-            <span class="field-error" hidden></span>
-          </div>
-          <div class="field">
-            <label for="a-message">Tell us about yourself</label>
-            <textarea id="a-message" name="message"></textarea>
-            <span class="field-error" hidden></span>
-          </div>
-          <div class="hp" aria-hidden="true"><label for="a-website">Leave this empty</label><input id="a-website" name="website" tabindex="-1" autocomplete="off"></div>
-          <button type="submit" class="btn btn--primary">Send application</button>
-        </form>
+    <section class="section section--alt">
+      <div class="wrap prose">
+        <h2>Open roles</h2>
+        <p class="lede">We have no open roles listed right now, but we are always glad to hear from engineers, designers and people who know how to grow a product.</p>
+        <p>Write to us with a few lines about yourself, what you would like to work on, and a link to your work or profile.</p>
+        <div class="btn-row"><a class="btn btn--primary" href="mailto:Ariyoo@test.com?subject=Careers%20at%20Ariyoo">Email us about a role</a></div>
       </div>
     </section>
   </main>
@@ -116,16 +91,10 @@
           <a href="trust.html">Trust &amp; Safety</a>
           <a href="legal.html">Legal</a>
       </nav>
-      <div class="news newsletter">
-        <h2>Stay in the loop</h2>
-        <p class="soft">News from Ariyoo, a few times a year.</p>
-        <form>
-          <label for="nl-email" class="sr-only">Email address</label>
-          <input id="nl-email" name="email" type="email" placeholder="you@company.com" autocomplete="email">
-          <button type="submit" class="btn btn--light">Subscribe</button>
-        </form>
-        <p class="err" role="alert" hidden></p>
-        <p class="ok" role="status" hidden>Thank you. You're on the list.</p>
+      <div class="news">
+        <h2>Get in touch</h2>
+        <p class="soft">Partnerships, investment, press or careers: we read every message.</p>
+        <a href="contact.html" class="btn btn--light">Contact us</a>
       </div>
     </div>
     <div class="wrap bottom">

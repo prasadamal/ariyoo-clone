@@ -1,6 +1,10 @@
 /* Contact page only. */
-.contact-layout { display: grid; gap: clamp(28px, 5vw, 64px); grid-template-columns: 1.4fr 1fr; align-items: start; }
+.contact-layout { display: grid; gap: clamp(28px, 5vw, 64px); grid-template-columns: 1.6fr 1fr; align-items: start; }
+.contact-layout .topics { grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr)); gap: 18px; }
+.contact-layout .topics h2 { font-size: 1.3rem; }
+.contact-layout .topics .card { display: flex; flex-direction: column; }
+.contact-layout .topics .btn { margin-top: auto; align-self: flex-start; }
 .contact-layout aside h2 { font: 700 1.15rem/1.3 var(--font-body); letter-spacing: 0; margin: 28px 0 8px; }
 .contact-layout aside h2:first-child { margin-top: 0; }
 .contact-layout address { line-height: 1.8; }
-@media (max-width: 860px) { .contact-layout { grid-template-columns: 1fr; } }
+@media (max-width: 960px) { .contact-layout { grid-template-columns: 1fr; } }
