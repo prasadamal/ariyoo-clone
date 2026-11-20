@@ -1,0 +1,49 @@
+/* Header, navigation, page hero and footer. The same on every page. */
+.skip { position: absolute; left: -999px; top: 8px; background: #fff; color: var(--ink); padding: 10px 16px; border-radius: 8px; z-index: 100; }
+.skip:focus { left: 8px; }
+
+.site-header { position: sticky; top: 0; z-index: 50; background: rgba(248, 245, 240, 0.94); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-bottom: 1px solid var(--line); }
+.site-header .inner { display: flex; align-items: center; justify-content: space-between; min-height: var(--header-h); gap: 16px; }
+.brand { display: inline-flex; align-items: center; gap: 10px; text-decoration: none; color: var(--ink); font: 700 1.45rem/1 var(--font-display); letter-spacing: -0.02em; }
+.brand:hover { color: var(--ink); }
+.nav { display: flex; align-items: center; gap: clamp(14px, 2vw, 28px); }
+.nav a:not(.btn) { color: var(--ink-soft); text-decoration: none; font-weight: 600; font-size: 0.97rem; padding: 8px 2px; border-bottom: 2px solid transparent; }
+.nav a:not(.btn):hover, .nav a[aria-current='page'] { color: var(--ink); border-bottom-color: var(--brand); }
+.nav .btn { min-height: 42px; padding: 0 20px; font-size: 0.95rem; }
+.menu-toggle { display: none; background: none; border: 0; color: var(--ink); padding: 10px; margin-right: -10px; cursor: pointer; }
+@media (max-width: 920px) {
+  .menu-toggle { display: inline-flex; }
+  .nav { display: none; position: absolute; top: var(--header-h); left: 0; right: 0; flex-direction: column; align-items: stretch; gap: 0; background: var(--paper); border-bottom: 1px solid var(--line); padding: 8px var(--gutter) 20px; }
+  .nav.open { display: flex; }
+  .nav a:not(.btn) { padding: 14px 0; border-bottom: 1px solid var(--line); font-size: 1.05rem; }
+  .nav .btn { margin-top: 16px; }
+}
+
+main { display: block; min-height: 60vh; }
+main:focus { outline: none; }
+
+.page-hero { background: var(--deep); color: var(--on-deep); padding: clamp(64px, 10vw, 120px) 0 clamp(52px, 8vw, 96px); background-image: radial-gradient(900px 380px at 85% -10%, rgba(106, 0, 165, 0.35), transparent 70%); }
+.page-hero .eyebrow { color: var(--peach); }
+.page-hero h1 { max-width: 20ch; }
+.page-hero .lede { color: var(--on-deep-soft); }
+
+.site-footer { background: var(--deep); color: var(--on-deep); padding-top: clamp(48px, 7vw, 80px); }
+.site-footer a { color: var(--on-deep); text-decoration: none; }
+.site-footer a:hover { color: var(--peach); text-decoration: underline; }
+.site-footer .top { display: grid; gap: 40px; grid-template-columns: 1.4fr 1fr 1fr 1.5fr; }
+.site-footer .brand-line { display: flex; align-items: center; gap: 12px; font: 700 1.6rem/1 var(--font-display); margin: 0 0 14px; }
+.site-footer .tile { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 12px; background: var(--on-deep); }
+.site-footer .soft, .site-footer address { color: var(--on-deep-soft); line-height: 1.7; }
+.site-footer address a { color: var(--peach); }
+.site-footer h2 { font: 700 0.78rem/1 var(--font-body); letter-spacing: 0.14em; text-transform: uppercase; color: var(--on-deep-soft); margin-bottom: 18px; }
+.site-footer nav { display: flex; flex-direction: column; gap: 10px; }
+.site-footer .bottom { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; border-top: 1px solid rgba(255, 255, 255, 0.14); margin-top: 48px; padding-top: 22px; padding-bottom: 32px; color: var(--on-deep-soft); font-size: 0.9rem; }
+.site-footer .bottom p { margin: 0; }
+@media (max-width: 900px) { .site-footer .top { grid-template-columns: 1fr 1fr; } .site-footer .about, .site-footer .news { grid-column: 1 / -1; } }
+
+.newsletter form { display: flex; gap: 10px; flex-wrap: wrap; }
+.newsletter input { flex: 1 1 200px; min-width: 0; min-height: 48px; padding: 0 16px; border-radius: 999px; border: 1.5px solid rgba(244, 239, 249, 0.4); background: rgba(255, 255, 255, 0.07); color: #fff; font: inherit; }
+.newsletter input::placeholder { color: var(--on-deep-soft); }
+.newsletter input:focus { outline: none; border-color: var(--peach); }
+.newsletter .ok { color: var(--peach); font-weight: 600; margin: 0; }
+.newsletter .err { color: #ffb4ab; margin: 8px 0 0; font-size: 0.92rem; }

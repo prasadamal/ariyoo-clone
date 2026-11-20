@@ -158,7 +158,7 @@ class ApiFlowTest {
     @Test
     void onlyTheWebsiteMayCallFromABrowser() throws Exception {
         mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options("/api/contact")
-                        .header("Origin", "http://localhost:4200").header("Access-Control-Request-Method", "POST"))
+                        .header("Origin", "http://localhost:4000").header("Access-Control-Request-Method", "POST"))
                 .andExpect(status().isOk());
         mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options("/api/contact")
                         .header("Origin", "https://evil.example").header("Access-Control-Request-Method", "POST"))

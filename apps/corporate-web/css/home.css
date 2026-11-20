@@ -1,0 +1,36 @@
+/* Home page only. */
+.home-hero { padding: clamp(48px, 7vw, 96px) 0 clamp(40px, 6vw, 80px); background: radial-gradient(900px 500px at 85% 20%, rgba(106, 0, 165, 0.08), transparent 70%), var(--paper); overflow: hidden; }
+.home-hero .grid-hero { display: grid; grid-template-columns: 1fr 1.05fr; gap: clamp(24px, 4vw, 56px); align-items: center; }
+.home-hero h1 { font-size: clamp(2.5rem, 5vw, 4.2rem); max-width: 14ch; }
+.home-hero .lede strong { color: var(--ink); }
+.mark { background: linear-gradient(transparent 68%, rgba(252, 151, 69, 0.55) 68%, rgba(252, 151, 69, 0.55) 92%, transparent 92%); padding: 0 0.04em; }
+.app-list { list-style: none; padding: 0; margin: 32px 0 0; display: flex; flex-wrap: wrap; gap: 10px 24px; }
+.app-list li { display: inline-flex; align-items: center; gap: 8px; }
+@media (max-width: 960px) { .home-hero .grid-hero { grid-template-columns: 1fr; } }
+
+.hero-phones { position: relative; height: 560px; }
+.hero-phones .slot { position: absolute; margin: 0; top: 0; }
+.hero-phones .slot::before { content: ''; position: absolute; inset: 15% -12% auto; height: 70%; background: radial-gradient(closest-side, var(--glow), transparent); filter: blur(8px); z-index: -1; }
+.hero-phones .slot-0 { left: 0; top: 70px; transform: rotate(-7deg); --glow: rgba(14, 122, 95, 0.4); }
+.hero-phones .slot-1 { left: 50%; transform: translateX(-50%); z-index: 2; --glow: rgba(194, 65, 12, 0.4); }
+.hero-phones .slot-2 { right: 0; top: 70px; transform: rotate(7deg); --glow: rgba(212, 255, 63, 0.45); }
+.hero-phones .slot-0 .phone, .hero-phones .slot-2 .phone { width: 210px; }
+.hero-phones .slot-1 .phone { width: 250px; }
+.hero-phones figcaption { text-align: center; margin-top: 14px; }
+.chip { display: inline-block; background: rgba(255, 255, 255, 0.92); color: var(--ink); border-radius: 999px; padding: 6px 14px; font: 700 0.85rem/1 var(--font-body); box-shadow: 0 6px 18px -8px rgba(0, 0, 0, 0.4); }
+@media (max-width: 1100px) { .hero-phones { height: 500px; } }
+@media (max-width: 560px) {
+  .hero-phones { height: 440px; }
+  .hero-phones .slot-0 { left: -4%; top: 60px; } .hero-phones .slot-2 { right: -4%; top: 60px; }
+  .hero-phones .slot-0 .phone, .hero-phones .slot-2 .phone { width: 150px; }
+  .hero-phones .slot-1 .phone { width: 200px; }
+}
+
+.live { padding-bottom: clamp(40px, 6vw, 72px); }
+.live .head { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; margin-bottom: 24px; }
+.live .head h2 { margin: 0; }
+.principles { margin-top: 36px; }
+.principles p { color: var(--on-deep-soft); }
+.cta-wrap { padding-top: 0; }
+.cta { background: var(--deep); color: var(--on-deep); border-radius: 28px; padding: clamp(32px, 5vw, 56px); display: flex; justify-content: space-between; align-items: center; gap: 24px; flex-wrap: wrap; background-image: radial-gradient(600px 300px at 90% 0%, rgba(106, 0, 165, 0.45), transparent 70%); }
+.cta h2 { margin: 0; max-width: 20ch; }

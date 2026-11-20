@@ -1,0 +1,32 @@
+/*
+ * Ariyoo design tokens. Brand colours are sampled from the company logo: purple carries actions and
+ * links, peach is a sparing accent. Every text/background pair is WCAG AA or better (lowest 5.05:1).
+ */
+:root {
+  --brand: #6a00a5;
+  --brand-strong: #52007f;
+  --brand-wash: #f2e8fa;
+  --brand-line: #d9c2ee;
+  --peach: #fc9745;
+
+  --paper: #f8f5f0;
+  --paper-alt: #f1ece5;
+  --surface: #ffffff;
+  --line: #e2dbd2;
+  --ink: #1c1526;
+  --ink-soft: #524a5c;
+  --ink-faint: #69616f;
+  --deep: #170a26;
+  --on-deep: #f4eff9;
+  --on-deep-soft: #bfb3cd;
+  --danger: #b4232f;
+  --phone: #16101f;
+
+  --radius: 14px;
+  --radius-lg: 22px;
+  --max: 1160px;
+  --gutter: clamp(20px, 5vw, 48px);
+  --header-h: 72px;
+  --font-body: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-display: ui-serif, 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, 'Times New Roman', serif;
+}
