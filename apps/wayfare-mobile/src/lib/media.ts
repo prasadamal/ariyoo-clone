@@ -1,4 +1,5 @@
 import { isSupabaseConfigured } from '../config';
+import { uuid } from './id';
 import { persistFile, prepareImage, signedUrl, uploadFile } from './upload';
 
 export const ENTRY_MEDIA_BUCKET = 'entry-media';
@@ -25,6 +26,12 @@ export async function persistJournalPhoto(uri: string, mediaId: string, size?: {
   const prepared = await prepareImage(uri, 1600, 0.72, size);
   const stored = await persistFile(prepared.uri, 'journal', `${mediaId}.jpg`);
   return { uri: stored, mimeType: prepared.mimeType, width: prepared.width, height: prepared.height };
+}
+
+/** A journey's cover photo, resized and kept in the app's own storage (on this phone only). */
+export async function persistCoverPhoto(uri: string, size?: { width?: number; height?: number }) {
+  const prepared = await prepareImage(uri, 1400, 0.75, size);
+  return persistFile(prepared.uri, 'covers', `${uuid()}.jpg`);
 }
 
 /** Moves a voice recording out of the cache directory. */

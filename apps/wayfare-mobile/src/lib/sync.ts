@@ -155,6 +155,7 @@ const expenseToRemote = (e: LocalExpense, userId: string) => {
     spent_on: e.spent_on,
     paid_by: e.paid_by,
     split_with: split,
+    entry_id: e.entry_id ?? null,
     updated_at: e.updated_at,
   };
 };
@@ -169,6 +170,7 @@ const expenseFromRemote = (r: Record<string, any>): LocalExpense => ({
   spent_on: r.spent_on,
   paid_by: r.paid_by ?? null,
   split_with: JSON.stringify(Array.isArray(r.split_with) ? r.split_with : []),
+  entry_id: r.entry_id ?? null,
   sync_status: 'synced',
   updated_at: r.updated_at ?? r.created_at,
 });

@@ -14,6 +14,7 @@ import { suggestedTravellers } from '../../src/social/profiles';
 import type { FeedMode, TravellerSummary } from '../../src/social/types';
 import { useFeed } from '../../src/social/useFeed';
 import { useAppTheme } from '../../src/theme';
+import { BlurredEmpty } from '../../src/ui/BlurredEmpty';
 import { EmptyState } from '../../src/ui/EmptyState';
 import { Notice } from '../../src/ui/Notice';
 import { Pill } from '../../src/ui/Pill';
@@ -77,18 +78,11 @@ function Feed() {
         }
         ListEmptyComponent={
           feed.refreshing ? null : (
-            <EmptyState
-              icon={mode === 'following' ? 'account-heart-outline' : 'compass-outline'}
-              title={mode === 'following' ? 'Your feed is quiet' : 'No posts yet'}
-              body={
-                mode === 'following'
-                  ? 'Follow travellers to see their moments and GPS-verified journeys here — or share your own.'
-                  : 'Be the first to share a moment from the road.'
-              }
-              action="Share a moment"
-              onAction={() => router.push('/post/new')}
-              secondary={mode === 'following' ? 'See trending' : undefined}
-              onSecondary={mode === 'following' ? () => setMode('trending') : undefined}
+            <BlurredEmpty
+              message="No posts yet"
+              hint={mode === 'following' ? 'Follow travellers, or share your own moment.' : 'Be the first to share a moment from the road.'}
+              addLabel="Share a moment"
+              onAdd={() => router.push('/post/new')}
             />
           )
         }

@@ -1,7 +1,9 @@
 import { useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { Linking, View } from 'react-native';
+import { Linking, Platform, View } from 'react-native';
 import MapView, { Circle, Marker } from 'react-native-maps';
+import { googleMapsApiKey } from '../../src/config';
+import { mapsSupported } from '../../src/lib/mapSupport';
 import { ActivityIndicator, Button, Text } from 'react-native-paper';
 import { timeAgo } from '../../src/lib/format';
 import { fetchLiveShare, type LiveShareView } from '../../src/lib/liveShare';
@@ -43,14 +45,14 @@ export default function LiveViewerScreen() {
       ) : (
         <Notice tone="warning" text={`Sharing ended. Last position from ${timeAgo(data.updated_at)} ago.`} />
       )}
-      {region ? (
+      {region && mapsSupported(Platform.OS, googleMapsApiKey) ? (
         <View style={{ height: 360, borderRadius: 18, overflow: 'hidden', marginTop: 8 }}>
           <MapView style={{ flex: 1 }} region={region}>
             <Marker coordinate={region} title={data.display_name} pinColor={colors.primary} />
             {data.accuracy_m ? <Circle center={region} radius={data.accuracy_m} fillColor="#c2410c22" strokeColor="#c2410c66" /> : null}
           </MapView>
         </View>
-      ) : (
+      ) : region ? null : (
         <Text style={{ color: colors.muted, marginTop: 12 }}>Waiting for the first position…</Text>
       )}
       {hasFix ? (

@@ -27,7 +27,9 @@ export function Screen({ children, scroll = true, padded = true, refreshing, onR
   return (
     <KeyboardAvoidingView
       style={{ flex: 1, backgroundColor: colors.background }}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      // Android draws edge to edge, so it no longer resizes the window by itself: pad it like iOS so the
+      // box you are typing in stays above the keyboard.
+      behavior="padding"
       keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
     >
       {scroll ? (
@@ -35,6 +37,8 @@ export function Screen({ children, scroll = true, padded = true, refreshing, onR
           style={{ flex: 1 }}
           contentContainerStyle={[pad, contentStyle]}
           keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+          automaticallyAdjustKeyboardInsets
           refreshControl={
             onRefresh ? (
               <RefreshControl refreshing={!!refreshing} onRefresh={onRefresh} tintColor={colors.primary} colors={[colors.primary]} />

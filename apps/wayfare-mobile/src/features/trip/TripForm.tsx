@@ -8,7 +8,8 @@ import { POPULAR_CURRENCIES } from '../../lib/currencyMath';
 import { matchDestination } from '../../lib/places';
 import { useAppTheme } from '../../theme';
 import { ChipSelect } from '../../ui/ChipSelect';
-import { DateField } from '../../ui/DateField';
+import { DateRangeField } from '../../ui/DateRangeField';
+import { CoverPicker } from './CoverPicker';
 import { PlaceField } from '../../ui/PlaceField';
 
 export type TripFormValues = {
@@ -23,6 +24,8 @@ export type TripFormValues = {
   budget: string;
   notes: string;
   openToMeet: boolean;
+  /** Cover photo kept on this phone (a stored file), or null. */
+  coverUri: string | null;
 };
 
 export function emptyTripForm(partial: Partial<TripFormValues> = {}): TripFormValues {
@@ -38,6 +41,7 @@ export function emptyTripForm(partial: Partial<TripFormValues> = {}): TripFormVa
     budget: '',
     notes: '',
     openToMeet: false,
+    coverUri: null,
     ...partial,
   };
 }
@@ -87,21 +91,10 @@ export function TripForm({ initial, submitLabel, busy, onSubmit }: Props) {
         }}
         maxLength={120}
       />
+      <CoverPicker value={v.coverUri} onChange={uri => set({ coverUri: uri })} />
       <Text style={{ fontWeight: '600', marginTop: 4 }}>Type of journey</Text>
       <ChipSelect options={TRIP_TYPES} value={v.tripType} onChange={t => set({ tripType: t })} />
-      <View style={{ flexDirection: 'row', gap: 10 }}>
-        <View style={{ flex: 1 }}>
-          <DateField label="Start" value={v.startsOn} onChange={d => set({ startsOn: d })} />
-        </View>
-        <View style={{ flex: 1 }}>
-          <DateField
-            label="End"
-            value={v.endsOn}
-            onChange={d => set({ endsOn: d })}
-            minimumDate={v.startsOn ? new Date(`${v.startsOn}T00:00:00`) : undefined}
-          />
-        </View>
-      </View>
+      <DateRangeField startsOn={v.startsOn} endsOn={v.endsOn} onChange={r => set(r)} />
       {datesInvalid ? <HelperText type="error">The end date is before the start date.</HelperText> : null}
       <TextInput
         mode="outlined"
@@ -115,7 +108,7 @@ export function TripForm({ initial, submitLabel, busy, onSubmit }: Props) {
       <ChipSelect scroll options={POPULAR_CURRENCIES.map(c => ({ value: c, label: c }))} value={v.currency} onChange={c => set({ currency: c })} />
       <TextInput
         mode="outlined"
-        label={`Budget (${v.currency}, optional)`}
+        label={`Expected budget (${v.currency}, optional)`}
         value={v.budget}
         onChangeText={t => set({ budget: t.replace(/[^0-9.]/g, '') })}
         keyboardType="decimal-pad"

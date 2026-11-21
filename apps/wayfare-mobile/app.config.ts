@@ -32,7 +32,8 @@ export default ({ config }: ConfigContext): ExpoConfig =>
     slug: 'wayfare',
     owner: 'prasadaamals-team',
     version: '2.0.0',
-    platforms: ['ios', 'android'],
+    // 'web' is for the local browser preview only (npm run web); the app itself ships to ios and android.
+    platforms: ['ios', 'android', 'web'],
     orientation: 'portrait',
     scheme: 'wayfare',
     userInterfaceStyle: 'automatic',

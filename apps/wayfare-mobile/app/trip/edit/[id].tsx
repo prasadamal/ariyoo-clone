@@ -4,7 +4,7 @@ import { ActivityIndicator } from 'react-native';
 import { useAuth } from '../../../src/context/AuthContext';
 import { useToast } from '../../../src/context/ToastContext';
 import { TripForm, emptyTripForm, type TripFormValues } from '../../../src/features/trip/TripForm';
-import { getTrip, updateTrip } from '../../../src/lib/localDb';
+import { getTrip, setTripCover, updateTrip } from '../../../src/lib/localDb';
 import { matchDestination, placeKeyFor } from '../../../src/lib/places';
 import { pushTripNow } from '../../../src/lib/sync';
 import { Screen } from '../../../src/ui/Screen';
@@ -33,6 +33,7 @@ export default function EditTripScreen() {
           budget: t.budget_total ? String(t.budget_total) : '',
           notes: t.notes ?? '',
           openToMeet: t.open_to_meet === 1,
+          coverUri: t.cover_uri ?? null,
         })
       );
     });
@@ -57,6 +58,7 @@ export default function EditTripScreen() {
         dest_lat: d?.lat ?? null,
         dest_lng: d?.lng ?? null,
       });
+      await setTripCover(tripId, v.coverUri);
       if (user) await pushTripNow(user.id, tripId).catch(() => undefined);
       router.back();
     } catch (e) {

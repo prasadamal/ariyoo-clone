@@ -4,21 +4,21 @@ import * as Location from 'expo-location';
 import { router } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, View } from 'react-native';
-import { Button, Chip, IconButton, Menu, Text, TextInput } from 'react-native-paper';
+import { Button, Text } from 'react-native-paper';
 import { uuid } from '../../lib/id';
-import { EntryMediaStrip } from '../../components/EntryMediaStrip';
-import { EntryVoiceNotes } from '../../components/EntryVoiceNotes';
-import { MoodChips } from '../../components/MoodChips';
 import { useCanConnect } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { formatDay, toDayString } from '../../lib/format';
-import { deleteEntry, listEntries, upsertEntry, upsertEntryMedia, type LocalEntry, type LocalTrip } from '../../lib/localDb';
+import { deleteEntry, listEntries, listExpenses, upsertEntry, upsertEntryMedia, upsertExpense, type LocalEntry, type LocalExpense, type LocalTrip } from '../../lib/localDb';
+import { currencySymbol } from '../../lib/currencyMath';
+import { totalsByMoment } from '../../lib/momentMoney';
 import { persistJournalPhoto } from '../../lib/media';
 import { VOICE_NOTE_PRESET, cancelVoiceRecording, startVoiceRecording, stopVoiceRecordingAndSave } from '../../lib/voiceNote';
 import { fetchWeatherSummary } from '../../lib/weather';
 import { useAppTheme } from '../../theme';
 import { EmptyState } from '../../ui/EmptyState';
-import { Icon } from '../../ui/Icon';
+import { MomentCard } from './MomentCard';
+import { MomentComposer, type MomentMoney } from './MomentComposer';
 import { pickPhotos, type PickedPhoto } from './photoPicker';
 
 /** `everyday` is the private journal for ordinary days: no "Day n" counter, a daily prompt. */
@@ -40,22 +40,24 @@ export function JournalTab({ trip, onChanged, everyday = false }: Props) {
   const canConnect = useCanConnect();
   const [entries, setEntries] = useState<LocalEntry[]>([]);
   const [text, setText] = useState('');
-  const [place, setPlace] = useState('');
   const [mood, setMood] = useState('');
-  const [attachContext, setAttachContext] = useState(true);
+  // Location and weather are added only when the person taps the location icon.
+  const [attachContext, setAttachContext] = useState(false);
+  const [money, setMoney] = useState<MomentMoney | null>(null);
+  const [expenses, setExpenses] = useState<LocalExpense[]>([]);
   const [photos, setPhotos] = useState<PickedPhoto[]>([]);
   const [saving, setSaving] = useState(false);
   const voiceLock = useRef(false);
   const [voiceBusy, setVoiceBusy] = useState(false);
   const [recording, setRecording] = useState<string | null>(null);
   const recorder = useAudioRecorder(VOICE_NOTE_PRESET);
-  const [menuFor, setMenuFor] = useState<string | null>(null);
   const [mediaKey, setMediaKey] = useState(0);
   // Years of daily pages would render all at once; show recent days and load older ones on request.
   const [shownDays, setShownDays] = useState(DAYS_PER_PAGE);
 
   const load = useCallback(async () => {
     setEntries(await listEntries(trip.id));
+    setExpenses(await listExpenses(trip.id));
   }, [trip.id]);
 
   useEffect(() => {
@@ -86,7 +88,27 @@ export function JournalTab({ trip, onChanged, everyday = false }: Props) {
     }
   };
 
-  const createEntry = async (body: string) => {
+  /** The money typed into the composer becomes an expense tied to this moment. */
+  const attachMoney = async (entryId: string) => {
+    if (!money) return;
+    const when = new Date().toISOString();
+    await upsertExpense({
+      id: uuid(),
+      trip_id: trip.id,
+      category: money.category,
+      amount: money.amount,
+      currency: trip.currency || 'INR',
+      note: null,
+      spent_on: when.slice(0, 10),
+      paid_by: null,
+      split_with: '[]',
+      entry_id: entryId,
+      sync_status: 'pending',
+      updated_at: when,
+    });
+  };
+
+  const createEntry = async (body: string, withMoney = true) => {
     const now = new Date().toISOString();
     let weather: string | null = null;
     let coords: Location.LocationObjectCoords | null = null;
@@ -104,7 +126,7 @@ export function JournalTab({ trip, onChanged, everyday = false }: Props) {
       recorded_at: now,
       body,
       mood: mood || null,
-      place_name: place.trim() || null,
+      place_name: null,
       weather,
       latitude: coords?.latitude ?? null,
       longitude: coords?.longitude ?? null,
@@ -113,20 +135,22 @@ export function JournalTab({ trip, onChanged, everyday = false }: Props) {
       updated_at: now,
     };
     await upsertEntry(entry);
+    if (withMoney) await attachMoney(entry.id);
     return entry;
   };
 
   const save = async () => {
-    if (!text.trim() && !photos.length) return;
+    if (!text.trim() && !photos.length && !money) return;
     setSaving(true);
     try {
-      const entry = await createEntry(text.trim() || '📷');
+      const entry = await createEntry(text.trim() || (photos.length ? '📷' : '💰'));
       if (photos.length) await attachPhotos(entry.id, photos);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => undefined);
       setText('');
-      setPlace('');
       setMood('');
       setPhotos([]);
+      setMoney(null);
+      setAttachContext(false);
       await load();
       onChanged();
     } catch (e) {
@@ -165,7 +189,8 @@ export function JournalTab({ trip, onChanged, everyday = false }: Props) {
     let createdNew = false;
     try {
       if (!entryId) {
-        const entry = await createEntry(text.trim() || '🎙 Voice note');
+        // Money waits in the box for the next normal save; a failed recording must not leave it behind.
+        const entry = await createEntry(text.trim() || '🎙 Voice note', false);
         entryId = entry.id;
         createdNew = true;
         await startVoiceRecording(recorder);
@@ -221,64 +246,32 @@ export function JournalTab({ trip, onChanged, everyday = false }: Props) {
     });
   }, [entries, trip.starts_on, everyday]);
 
+  const moneyByMoment = useMemo(() => totalsByMoment(expenses), [expenses]);
+  const symbol = currencySymbol(trip.currency || 'INR');
+
   return (
     <View>
-      <View style={{ backgroundColor: colors.surface, borderRadius: 18, borderWidth: 1, borderColor: colors.border, padding: 12, marginBottom: 16 }}>
-        <TextInput
-          mode="flat"
-          placeholder={everyday ? 'How was today? Little things count…' : 'What happened? Sights, people, feelings…'}
-          value={text}
-          onChangeText={setText}
-          multiline
-          style={{ backgroundColor: 'transparent', minHeight: 70 }}
-          underlineColor="transparent"
-        />
-        <TextInput
-          mode="flat"
-          placeholder="Place (optional)"
-          value={place}
-          onChangeText={setPlace}
-          dense
-          left={<TextInput.Icon icon="map-marker-outline" />}
-          style={{ backgroundColor: 'transparent' }}
-          underlineColor="transparent"
-        />
-        <MoodChips value={mood} onChange={setMood} />
-        {photos.length ? (
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
-            {photos.map((p, i) => (
-              <Chip key={p.uri + i} icon="image" onClose={() => setPhotos(photos.filter((_, j) => j !== i))} compact>
-                Photo {i + 1}
-              </Chip>
-            ))}
-          </View>
-        ) : null}
-        <Chip
-          selected={attachContext}
-          onPress={() => setAttachContext(!attachContext)}
-          icon={attachContext ? 'map-marker-check' : 'map-marker-off'}
-          compact
-          style={{ alignSelf: 'flex-start', marginTop: 8 }}
-        >
-          {attachContext ? 'Add location, altitude & weather' : 'No location'}
-        </Chip>
-        <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 10, gap: 4 }}>
-          <IconButton icon="camera-plus-outline" onPress={addPhotosToDraft} accessibilityLabel="Add photos" disabled={!!recording} />
-          <IconButton
-            icon={recording ? 'stop-circle' : 'microphone-outline'}
-            iconColor={recording ? colors.danger : undefined}
-            onPress={toggleVoice}
-            disabled={voiceBusy}
-            loading={voiceBusy}
-            accessibilityLabel={recording ? 'Stop and save voice note' : 'Record a voice note'}
-          />
-          {recording ? <Text style={{ color: colors.danger, fontWeight: '700' }}>● Recording…</Text> : null}
-          <View style={{ flex: 1 }} />
-          <Button mode="contained" onPress={save} loading={saving} disabled={saving || !!recording || (!text.trim() && !photos.length)}>
-            Save moment
-          </Button>
-        </View>
-      </View>
+      <MomentComposer
+        placeholder={everyday ? 'How was today? Little things count…' : 'What happened? Sights, people, feelings…'}
+        text={text}
+        onText={setText}
+        mood={mood}
+        onMood={setMood}
+        photos={photos}
+        onPhotos={setPhotos}
+        onAddPhotos={addPhotosToDraft}
+        location={attachContext}
+        onLocation={setAttachContext}
+        money={money}
+        onMoney={setMoney}
+        currencySymbol={symbol}
+        recording={!!recording}
+        voiceBusy={voiceBusy}
+        onToggleVoice={toggleVoice}
+        saving={saving}
+        canSave={Boolean(text.trim() || photos.length || money)}
+        onSave={save}
+      />
 
       {!groups.length ? (
         <EmptyState
@@ -286,7 +279,7 @@ export function JournalTab({ trip, onChanged, everyday = false }: Props) {
           icon="feather"
           title={everyday ? 'Your first page' : 'Your first moment'}
           body={everyday
-            ? 'One line a day is enough. Only you can see this journal, it works offline, and a year from now it comes back to you under "On this day".'
+            ? 'One line a day is enough. Only you can see this journal, and it works offline.'
             : 'Write a line, add a photo or record a voice note. It all works offline.'}
         />
       ) : null}
@@ -297,52 +290,18 @@ export function JournalTab({ trip, onChanged, everyday = false }: Props) {
             {g.label.toUpperCase()}
           </Text>
           {g.list.map(e => (
-            <View key={e.id} style={{ backgroundColor: colors.surface, borderRadius: 16, borderWidth: 1, borderColor: colors.border, padding: 14, marginBottom: 12 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <View style={{ flex: 1 }}>
-                  <Text style={{ color: colors.muted, fontSize: 12 }}>
-                    {new Date(e.recorded_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
-                    {e.sync_status === 'pending' ? ' · not synced yet' : ''}
-                  </Text>
-                  {e.place_name ? <Text style={{ color: colors.secondary, fontWeight: '700' }}>{e.place_name}</Text> : null}
-                </View>
-                <Menu
-                  visible={menuFor === e.id}
-                  onDismiss={() => setMenuFor(null)}
-                  anchor={<IconButton icon="dots-vertical" size={18} onPress={() => setMenuFor(e.id)} accessibilityLabel="Moment options" />}
-                >
-                  <Menu.Item leadingIcon="pencil-outline" title="Edit" onPress={() => { setMenuFor(null); router.push(`/entry/${e.id}`); }} />
-                  <Menu.Item leadingIcon="image-plus" title="Add photos" onPress={() => { setMenuFor(null); addPhotosToEntry(e.id); }} />
-                  {canConnect ? (
-                    <Menu.Item
-                      leadingIcon="share-variant-outline"
-                      title="Share to feed"
-                      onPress={() => {
-                        setMenuFor(null);
-                        router.push({ pathname: '/post/new', params: { entryId: e.id, tripId: trip.id } });
-                      }}
-                    />
-                  ) : null}
-                  <Menu.Item leadingIcon="delete-outline" title="Delete" onPress={() => { setMenuFor(null); remove(e); }} />
-                </Menu>
-              </View>
-              {e.body ? <Text style={{ marginTop: 6, lineHeight: 22 }}>{e.body}</Text> : null}
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 8 }}>
-                {e.mood ? <Text style={{ color: colors.onSurfaceVariant }}>{e.mood}</Text> : null}
-                {e.weather ? (
-                  <Text style={{ color: colors.muted, fontSize: 12 }}>
-                    <Icon name="weather-partly-cloudy" size={12} color={colors.muted} /> {e.weather}
-                  </Text>
-                ) : null}
-                {e.altitude_m != null ? (
-                  <Text style={{ color: colors.muted, fontSize: 12 }}>
-                    <Icon name="image-filter-hdr" size={12} color={colors.muted} /> {Math.round(e.altitude_m).toLocaleString('en-IN')} m
-                  </Text>
-                ) : null}
-              </View>
-              <EntryMediaStrip entryId={e.id} refreshKey={mediaKey} onChanged={onChanged} />
-              <EntryVoiceNotes entryId={e.id} refreshKey={mediaKey} />
-            </View>
+            <MomentCard
+              key={e.id}
+              entry={e}
+              money={moneyByMoment.get(e.id)}
+              currencySymbol={symbol}
+              mediaKey={mediaKey}
+              canShare={canConnect}
+              tripId={trip.id}
+              onChanged={onChanged}
+              onAddPhotos={() => addPhotosToEntry(e.id)}
+              onDelete={() => remove(e)}
+            />
           ))}
         </View>
       ))}

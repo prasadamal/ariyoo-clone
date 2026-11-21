@@ -7,7 +7,7 @@ import { useAuth } from '../../src/context/AuthContext';
 import { useToast } from '../../src/context/ToastContext';
 import { TripForm, emptyTripForm, type TripFormValues } from '../../src/features/trip/TripForm';
 import { parseDay } from '../../src/lib/format';
-import { seedPackingTemplate, upsertTrip } from '../../src/lib/localDb';
+import { seedPackingTemplate, setTripCover, upsertTrip } from '../../src/lib/localDb';
 import { placeKeyFor } from '../../src/lib/places';
 import { pushTripNow } from '../../src/lib/sync';
 import { Screen } from '../../src/ui/Screen';
@@ -60,6 +60,7 @@ export default function NewTripScreen() {
         sync_status: 'pending',
         updated_at: new Date().toISOString(),
       });
+      if (v.coverUri) await setTripCover(id, v.coverUri);
       const start = parseDay(v.startsOn);
       await seedPackingTemplate(
         id,

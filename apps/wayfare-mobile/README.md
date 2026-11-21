@@ -37,6 +37,19 @@ React Native Paper and Supabase.
 - Community guidelines gate, report + block on every kind of content, on-device text filter,
   server auto-hide after 3 reports, in-app account deletion, biometric app lock, guest mode
 
+## Preview in a browser (for UI work)
+
+```bash
+npm install
+npm run web        # opens http://localhost:8081
+```
+
+Changes you save appear in the browser straight away. The preview runs as a guest, so the offline
+journal, planning, budget, packing and settings all work, and entries are kept in the browser. Not available in
+the browser: the route map (a placeholder is shown), background location, voice notes, notifications and
+cloud features, which need the phone app. To try cloud features, copy `.env.example` to `.env.local`
+and fill in the Supabase values.
+
 ## Architecture
 
 ```
