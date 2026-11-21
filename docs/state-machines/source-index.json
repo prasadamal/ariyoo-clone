@@ -565,7 +565,7 @@
       "path": "apps/wayfare-mobile/app/badges.tsx",
       "evidence": [
         {
-          "line": 31,
+          "line": 32,
           "text": "const active = t === tier;"
         }
       ]
@@ -1614,27 +1614,27 @@
       "path": "apps/wayfare-mobile/src/components/TripCard.tsx",
       "evidence": [
         {
-          "line": 42,
+          "line": 43,
           "text": "const phase = tripPhase(trip.starts_on, trip.ends_on);"
         },
         {
-          "line": 47,
+          "line": 48,
           "text": "trip.status === 'completed'"
         },
         {
-          "line": 49,
+          "line": 50,
           "text": ": phase === 'upcoming' && until != null"
         },
         {
-          "line": 53,
+          "line": 54,
           "text": ": phase === 'ongoing'"
         },
         {
-          "line": 55,
+          "line": 56,
           "text": ": phase === 'past'"
         },
         {
-          "line": 73,
+          "line": 74,
           "text": "{trip.sync_status === 'pending' ? <Icon name=\"cloud-upload-outline\" size={16} color=\"#ffffffaa\" /> : null}"
         }
       ]
@@ -2010,39 +2010,39 @@
           "text": "import { useCallback, useEffect, useMemo, useState } from 'react';"
         },
         {
-          "line": 37,
+          "line": 38,
           "text": "const [expenses, setExpenses] = useState<LocalExpense[]>([]);"
         },
         {
-          "line": 38,
+          "line": 39,
           "text": "const [rates, setRates] = useState<RatesSnapshot | null>(null);"
         },
         {
-          "line": 39,
+          "line": 40,
           "text": "const [amount, setAmount] = useState('');"
         },
         {
-          "line": 40,
+          "line": 41,
           "text": "const [currency, setCurrency] = useState(tripCurrency);"
         },
         {
-          "line": 41,
+          "line": 42,
           "text": "const [category, setCategory] = useState('food');"
         },
         {
-          "line": 42,
+          "line": 43,
           "text": "const [note, setNote] = useState('');"
         },
         {
-          "line": 43,
+          "line": 44,
           "text": "const [paidBy, setPaidBy] = useState(ME);"
         },
         {
-          "line": 44,
+          "line": 45,
           "text": "const [splitWith, setSplitWith] = useState<string[]>(people);"
         },
         {
-          "line": 93,
+          "line": 94,
           "text": "sync_status: 'pending',"
         }
       ]
@@ -2208,43 +2208,43 @@
           "text": "import { useCallback, useEffect, useRef, useState } from 'react';"
         },
         {
-          "line": 20,
+          "line": 21,
           "text": "const [items, setItems] = useState<LocalPackingItem[]>([]);"
         },
         {
-          "line": 21,
+          "line": 22,
           "text": "const [label, setLabel] = useState('');"
         },
         {
-          "line": 22,
+          "line": 23,
           "text": "const [sources, setSources] = useState<{ id: string; title: string; items: number }[]>([]);"
         },
         {
-          "line": 23,
+          "line": 24,
           "text": "const [picking, setPicking] = useState(false);"
         },
         {
-          "line": 24,
+          "line": 25,
           "text": "const [copying, setCopying] = useState(false);"
         },
         {
-          "line": 25,
+          "line": 26,
           "text": "// A ref, not state: two fast taps must not both copy before the first re-render."
         },
         {
-          "line": 27,
+          "line": 28,
           "text": "const [notice, setNotice] = useState('');"
         },
         {
-          "line": 40,
+          "line": 41,
           "text": "await upsertPackingItem({ ...item, packed: item.packed ? 0 : 1, sync_status: 'pending', updated_at: new Date().toISOString() });"
         },
         {
-          "line": 86,
+          "line": 87,
           "text": "for (const i of items.filter(x => x.packed)) await upsertPackingItem({ ...i, packed: 0, sync_status: 'pending', updated_at: now });"
         },
         {
-          "line": 114,
+          "line": 115,
           "text": "<Checkbox.Android status={item.packed ? 'checked' : 'unchecked'} onPress={() => toggle(item)} />"
         }
       ]
@@ -2950,7 +2950,7 @@
           "text": "import { useState } from 'react';"
         },
         {
-          "line": 23,
+          "line": 24,
           "text": "const [open, setOpen] = useState(false);"
         }
       ]

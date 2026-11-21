@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { View } from 'react-native';
-import { ProgressBar, Text } from 'react-native-paper';
+import { Text } from 'react-native-paper';
 import { useAuth } from '../src/context/AuthContext';
 import { computeBadges, sortBadges } from '../src/lib/badges';
 import { formatAltitude, formatKm } from '../src/lib/format';
@@ -10,6 +10,7 @@ import { useAppTheme } from '../src/theme';
 import { Icon } from '../src/ui/Icon';
 import { Screen } from '../src/ui/Screen';
 import { SectionHeader } from '../src/ui/SectionHeader';
+import { Meter } from '../src/ui/Meter';
 
 export default function BadgesScreen() {
   const { colors } = useAppTheme();
@@ -57,7 +58,7 @@ export default function BadgesScreen() {
       </View>
       {progress.next ? (
         <View style={{ marginTop: 12 }}>
-          <ProgressBar progress={progress.progress} color={tierColor(progress.next)} style={{ height: 8, borderRadius: 4 }} />
+          <Meter progress={progress.progress} color={tierColor(progress.next)} height={8} />
           <Text style={{ color: colors.muted, marginTop: 6 }}>
             {progress.hint} · now {formatKm(km)} and {formatAltitude(alt || null)} (needs {TIER_RULES[progress.next].km} km or {TIER_RULES[progress.next].altitudeM.toLocaleString('en-IN')} m)
           </Text>
@@ -79,7 +80,7 @@ export default function BadgesScreen() {
             <Text style={{ color: colors.muted, fontSize: 12, marginTop: 2 }}>{b.description}</Text>
             {!b.earned ? (
               <>
-                <ProgressBar progress={b.progress} color={b.color} style={{ height: 5, borderRadius: 3, marginTop: 8 }} />
+                <Meter progress={b.progress} color={b.color} height={5} style={{ marginTop: 8 }} />
                 <Text style={{ fontSize: 11, color: colors.muted, marginTop: 4 }}>
                   {Math.floor(b.value).toLocaleString('en-IN')} / {b.target.toLocaleString('en-IN')} {b.unit ?? ''}
                 </Text>

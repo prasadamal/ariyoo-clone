@@ -4,6 +4,7 @@ import { Button, TextInput } from 'react-native-paper';
 import { DatePickerModal, en, registerTranslation } from 'react-native-paper-dates';
 import { formatDateRange, parseDay, toDayString } from '../lib/format';
 import { useAppTheme } from '../theme';
+import { Icon } from './Icon';
 
 registerTranslation('en', en);
 
@@ -33,8 +34,11 @@ export function DateRangeField({ startsOn, endsOn, onChange, label = 'Dates' }: 
             placeholder="Choose start and end"
             value={text}
             editable={false}
-            right={<TextInput.Icon icon="calendar-range" />}
           />
+          {/* A plain icon, not TextInput.Icon: that one is a button, and this whole field is already one. */}
+          <View style={{ position: 'absolute', right: 14, top: 0, bottom: 0, justifyContent: 'center' }}>
+            <Icon name="calendar-range" size={22} color={colors.onSurfaceVariant} />
+          </View>
         </View>
       </Pressable>
       {text ? (
