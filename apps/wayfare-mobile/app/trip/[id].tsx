@@ -200,7 +200,7 @@ export default function TripDetailScreen() {
         </View>
         {stats ? (
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 12, paddingRight: 10 }}>
-            <Pill icon="feather" label={`${stats.entryCount} moments`} color="#fff" background="#ffffff26" />
+            <Pill icon="feather" label={`${stats.entryCount} ${stats.entryCount === 1 ? 'moment' : 'moments'}`} color="#fff" background="#ffffff26" />
             {stats.photoCount ? <Pill icon="camera-outline" label={`${stats.photoCount}`} color="#fff" background="#ffffff26" /> : null}
             {stats.distanceKm >= 0.1 ? <Pill icon="map-marker-path" label={formatKm(stats.distanceKm)} color="#fff" background="#ffffff26" /> : null}
             {formatSpend(stats.spendByCurrency) ? <Pill icon="wallet-outline" label={formatSpend(stats.spendByCurrency)} color="#fff" background="#ffffff26" /> : null}

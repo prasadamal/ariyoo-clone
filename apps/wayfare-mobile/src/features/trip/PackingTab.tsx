@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, Pressable, View } from 'react-native';
-import { Button, Checkbox, IconButton, Menu, ProgressBar, Text, TextInput } from 'react-native-paper';
+import { Button, Checkbox, IconButton, Menu, Text, TextInput } from 'react-native-paper';
 import {
   addPackingItem,
   copyPackingFrom,
@@ -12,6 +12,7 @@ import {
   type LocalTrip,
 } from '../../lib/localDb';
 import { useAppTheme } from '../../theme';
+import { Meter } from '../../ui/Meter';
 
 type Props = { trip: LocalTrip; onChanged: () => void };
 
@@ -94,7 +95,7 @@ export function PackingTab({ trip, onChanged }: Props) {
   return (
     <View>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-        <ProgressBar progress={progress} color={colors.secondary} style={{ height: 8, borderRadius: 4, flex: 1 }} />
+        <Meter progress={progress} color={colors.secondary} height={8} style={{ flex: 1 }} />
         <Text style={{ fontWeight: '700' }}>
           {packed}/{items.length}
         </Text>

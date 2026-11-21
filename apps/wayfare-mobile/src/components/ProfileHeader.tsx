@@ -1,7 +1,7 @@
 import { router } from 'expo-router';
 import type { ReactNode } from 'react';
 import { Pressable, View } from 'react-native';
-import { ProgressBar, Text } from 'react-native-paper';
+import { Text } from 'react-native-paper';
 import { compactNumber, formatAltitude, formatKm } from '../lib/format';
 import { nextTierProgress, normalizeTier, TIER_META } from '../lib/tiers';
 import { styleLabel } from '../social/types';
@@ -9,6 +9,7 @@ import { useAppTheme } from '../theme';
 import { Avatar } from '../ui/Avatar';
 import { Pill } from '../ui/Pill';
 import { TierBadge } from '../ui/TierBadge';
+import { Meter } from '../ui/Meter';
 
 type Props = {
   id: string;
@@ -92,7 +93,7 @@ export function ProfileHeader(p: Props) {
             <Text style={{ fontSize: 12, color: colors.muted }}>Next: {TIER_META[progress.next].label}</Text>
             <Text style={{ fontSize: 12, color: colors.muted }}>{Math.round(progress.progress * 100)}%</Text>
           </View>
-          <ProgressBar progress={progress.progress} color={tierColor} style={{ height: 6, borderRadius: 3 }} />
+          <Meter progress={progress.progress} color={tierColor} height={6} />
           <Text style={{ fontSize: 12, color: colors.muted, marginTop: 4 }}>{progress.hint}</Text>
         </View>
       ) : null}

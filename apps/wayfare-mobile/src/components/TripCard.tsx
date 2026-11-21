@@ -1,13 +1,14 @@
 import { TripCover } from '../ui/TripCover';
 import { router } from 'expo-router';
 import { Pressable, View } from 'react-native';
-import { ProgressBar, Text } from 'react-native-paper';
+import { Text } from 'react-native-paper';
 import { getDestination } from '../content/destinations';
 import { daysUntil, formatDateRange, tripPhase } from '../lib/format';
 import type { LocalTrip } from '../lib/localDb';
 import { useAppTheme } from '../theme';
 import { Icon } from '../ui/Icon';
 import { Pill } from '../ui/Pill';
+import { Meter } from '../ui/Meter';
 
 const TYPE_ICONS: Record<string, string> = {
   trek: 'hiking',
@@ -86,7 +87,7 @@ export function TripCard({ trip, synopsis, packingRatio, tracking, spent }: Prop
         {packingRatio > 0 && trip.status !== 'completed' ? (
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 10 }}>
             <Icon name="bag-checked" size={16} color={colors.secondary} />
-            <ProgressBar progress={packingRatio} color={colors.secondary} style={{ height: 6, borderRadius: 3, flex: 1 }} />
+            <Meter progress={packingRatio} color={colors.secondary} height={6} style={{ flex: 1 }} />
             <Text style={{ fontSize: 12, color: colors.muted }}>{Math.round(packingRatio * 100)}%</Text>
           </View>
         ) : null}
