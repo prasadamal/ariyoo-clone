@@ -10,7 +10,9 @@ Per-app files with the full detail:
 - ReelMates (film game + taste match): github.com/prasadamal/letterboxd-dating-app  PROMPT_ME.txt
 - Forward (save & sort anything):     github.com/prasadamal/Forward  PROMPT_ME.txt
 - Parked/archived: MalayaliFinder, projectX, WindowsStorageSense, simple-ios-movie-player
-  (CinePlayer) — each has its own PROMPT_ME.txt.
+  (CinePlayer) — each has its own PROMPT_ME.txt. CinePlayer's copy is kept here at
+  docs/other-projects/CINEPLAYER_PROMPT_ME.txt (its repo, amalpras/simple-ios-movie-player,
+  can't be written to from the agent until the Claude GitHub App is installed on that account).
 
 
 1. THE COMPANY
