@@ -1865,11 +1865,11 @@
           "text": "return () => { active = false; };"
         },
         {
-          "line": 164,
+          "line": 188,
           "text": "setOwnership({ userId: null, phase: 'ready' });"
         },
         {
-          "line": 197,
+          "line": 221,
           "text": "setOwnership({ userId: null, phase: 'ready' });"
         }
       ]
@@ -3525,6 +3525,15 @@
         {
           "line": 168,
           "text": "return new Response('bad request', { status: 400 });"
+        }
+      ]
+    },
+    {
+      "path": "supabase/functions/signup/index.ts",
+      "evidence": [
+        {
+          "line": 18,
+          "text": "const json = (status: number, body: Record<string, unknown>) =>"
         }
       ]
     },
