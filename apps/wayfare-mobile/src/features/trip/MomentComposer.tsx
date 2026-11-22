@@ -189,7 +189,7 @@ export function MomentComposer(p: Props) {
               mode="outlined"
               label="Amount"
               value={amountText}
-              onChangeText={setAmountText}
+              onChangeText={t => setAmountText(t.replace(/[^0-9.]/g, ''))}
               keyboardType="decimal-pad"
               left={<TextInput.Affix text={p.currencySymbol} />}
               autoFocus

@@ -336,10 +336,12 @@ export default function JourneysTab() {
             tracking={item.id === recordingTripId}
             spentAmount={item.spentAmount}
             coverUri={item.cover}
+            showUpload={Boolean(user)}
           />
         )}
       />
-      {/* New journey: a brand-coloured glass button floating above the tab bar. */}
+      {/* New journey: a brand-coloured glass button floating above the tab bar (the empty screen has its own button). */}
+      {loaded && !all.length ? null : (
       <Pressable
         onPress={() => router.push('/trip/new')}
         accessibilityRole="button"
@@ -356,6 +358,7 @@ export default function JourneysTab() {
           {all.length ? null : <Text style={{ color: colors.onPrimary, fontWeight: '800', fontSize: 16 }}>New journey</Text>}
         </Glass>
       </Pressable>
+      )}
     </View>
   );
 }

@@ -2,57 +2,67 @@ import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { Button, IconButton, Text } from 'react-native-paper';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth, useCanConnect } from '../../src/context/AuthContext';
 import { computeBadges, sortBadges } from '../../src/lib/badges';
 import { getRates } from '../../src/lib/currency';
 import { formatMoney, sumInCurrency } from '../../src/lib/currencyMath';
-import { compactNumber, displayName, formatAltitude, formatKm } from '../../src/lib/format';
+import { displayName, formatKm } from '../../src/lib/format';
 import { fillMissingPlaces } from '../../src/lib/reverseGeocode';
 import { computeTravelStats, countryName, flagEmoji, spendInYear, type TravelStats } from '../../src/lib/travelStats';
 import { loadStatsInput } from '../../src/lib/useTravelStats';
-import { normalizeTier, TIER_META } from '../../src/lib/tiers';
 import { useAppTheme } from '../../src/theme';
 import { Avatar } from '../../src/ui/Avatar';
 import { Icon } from '../../src/ui/Icon';
 import { Screen } from '../../src/ui/Screen';
 import { TAB_BAR_SPACE } from '../../src/ui/GlassTabBar';
-import { SectionHeader } from '../../src/ui/SectionHeader';
 
 const HOME_CURRENCY = 'INR';
+/** Places beyond this many fold into "+N more". */
+const PLACES_SHOWN = 8;
 
-function Row({ icon, label, onPress }: { icon: string; label: string; onPress: () => void }) {
+/** A small heading with an optional link on the right. */
+function Heading({ title, action, onAction }: { title: string; action?: string; onAction?: () => void }) {
   const { colors } = useAppTheme();
   return (
-    <Pressable
-      onPress={onPress}
-      style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 14, opacity: pressed ? 0.7 : 1, borderBottomWidth: 1, borderBottomColor: colors.border })}
-      accessibilityRole="button"
-    >
-      <Icon name={icon} size={22} color={colors.onSurface} />
-      <Text style={{ flex: 1, fontWeight: '600' }}>{label}</Text>
-      <Icon name="chevron-right" size={20} color={colors.subtle} />
-    </Pressable>
+    <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 24, marginBottom: 10 }}>
+      <Text style={{ flex: 1, fontSize: 17, fontWeight: '800' }} accessibilityRole="header">
+        {title}
+      </Text>
+      {action ? (
+        <Pressable onPress={onAction} hitSlop={8} accessibilityRole="button">
+          <Text style={{ color: colors.primary, fontWeight: '700' }}>{action}</Text>
+        </Pressable>
+      ) : null}
+    </View>
   );
 }
 
-/** One number on the black-and-white stats grid. */
+/** One number in the stats row. */
 function Stat({ value, label }: { value: string; label: string }) {
   const { colors } = useAppTheme();
   return (
-    <View style={{ width: '31.5%', paddingVertical: 14, borderRadius: 16, backgroundColor: colors.surfaceVariant, alignItems: 'center' }} accessible accessibilityLabel={`${value} ${label}`}>
-      <Text style={{ fontSize: 22, fontWeight: '900', letterSpacing: -0.5 }}>{value}</Text>
+    <View style={{ flex: 1, paddingVertical: 14, borderRadius: 16, backgroundColor: colors.surfaceVariant, alignItems: 'center' }} accessible accessibilityLabel={`${value} ${label}`}>
+      <Text style={{ fontSize: 22, fontWeight: '900', letterSpacing: -0.5 }} numberOfLines={1} adjustsFontSizeToFit>
+        {value}
+      </Text>
       <Text style={{ color: colors.muted, fontSize: 12, marginTop: 2 }}>{label}</Text>
     </View>
   );
 }
 
-/** You: a simple, black-and-white profile in the style of a social profile page, without the social parts. */
+/**
+ * You: who you are and where you've been, kept short. Settings sit behind the gear; safety and the
+ * currency converter live on the Journeys screen, so they aren't repeated here.
+ */
 export default function ProfileTab() {
   const { colors } = useAppTheme();
+  const insets = useSafeAreaInsets();
   const { profile, refreshProfile } = useAuth();
   const signedIn = useCanConnect() && Boolean(profile);
   const [stats, setStats] = useState<TravelStats | null>(null);
   const [spentThisYear, setSpentThisYear] = useState(0);
+  const [allPlaces, setAllPlaces] = useState(false);
   const year = new Date().getFullYear();
 
   const load = useCallback(async () => {
@@ -74,118 +84,109 @@ export default function ProfileTab() {
   );
 
   const badges = useMemo(() => (stats ? sortBadges(computeBadges(stats)) : []), [stats]);
-  const earned = badges.filter(b => b.earned);
-  const tier = signedIn ? TIER_META[normalizeTier(profile!.tier)].label : null;
+  const earned = badges.filter(b => b.earned).length;
   const km = Math.max(stats?.km ?? 0, profile?.verified_km ?? 0);
-  const peak = Math.max(stats?.maxAltitudeM ?? 0, profile?.max_altitude_m ?? 0);
+  const places = [
+    ...(stats?.countryCodes ?? []).map(c => ({ key: `c-${c}`, label: countryName(c), flag: flagEmoji(c) })),
+    ...(stats?.states ?? []).map(s => ({ key: `s-${s}`, label: s, flag: null as string | null })),
+  ];
+  const shownPlaces = allPlaces ? places : places.slice(0, PLACES_SHOWN);
+  const home = signedIn ? [profile!.home_region, profile!.home_country].filter(Boolean).join(', ') : '';
 
   return (
     <Screen refreshing={false} onRefresh={() => { refreshProfile(); load(); }} padded={false} bottomSpace={TAB_BAR_SPACE}>
-      {/* The photo sits top left with the buttons beside it; no banner. */}
-      <View style={{ paddingHorizontal: 16, paddingTop: 16 }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-          <View style={{ borderRadius: 48, borderWidth: 4, borderColor: colors.background, backgroundColor: colors.background }}>
-            {signedIn ? (
-              <Avatar id={profile!.id} name={displayName(profile)} path={profile!.avatar_path} size={84} />
-            ) : (
-              <View style={{ width: 84, height: 84, borderRadius: 42, backgroundColor: colors.surfaceVariant, alignItems: 'center', justifyContent: 'center' }}>
-                <Icon name="account-outline" size={40} color={colors.muted} />
-              </View>
-            )}
-          </View>
-          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
-            <IconButton icon="cog-outline" mode="outlined" size={18} onPress={() => router.push('/settings')} accessibilityLabel="Settings" />
-            {signedIn ? (
-              <Button mode="outlined" textColor={colors.onSurface} style={{ borderColor: colors.outline }} onPress={() => router.push('/profile/edit')}>
-                Edit profile
-              </Button>
-            ) : (
-              <Button mode="contained" buttonColor={colors.onSurface} textColor={colors.background} onPress={() => router.push('/register')}>
-                Create account
-              </Button>
-            )}
-          </View>
-        </View>
-
-        <Text variant="headlineSmall" style={{ fontWeight: '900', marginTop: 10 }} numberOfLines={2}>
-          {signedIn ? displayName(profile) : 'Your travels'}
-        </Text>
-        {signedIn && profile!.username ? <Text style={{ color: colors.muted, fontSize: 15 }}>@{profile!.username}</Text> : null}
-        {signedIn && profile!.bio ? <Text style={{ marginTop: 10, lineHeight: 21 }}>{profile!.bio}</Text> : null}
-        {!signedIn ? (
-          <Text style={{ color: colors.muted, marginTop: 6, lineHeight: 20 }}>Create a free account to back up your journal and pick a username.</Text>
-        ) : null}
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', columnGap: 14, rowGap: 4, marginTop: 10 }}>
-          {signedIn && (profile!.home_region || profile!.home_country) ? (
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-              <Icon name="map-marker-outline" size={15} color={colors.muted} />
-              <Text style={{ color: colors.muted }}>{[profile!.home_region, profile!.home_country].filter(Boolean).join(', ')}</Text>
+      <View style={{ paddingHorizontal: 16, paddingTop: insets.top + 12 }}>
+        {/* Who you are */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+          {signedIn ? (
+            <Avatar id={profile!.id} name={displayName(profile)} path={profile!.avatar_path} size={72} />
+          ) : (
+            <View style={{ width: 72, height: 72, borderRadius: 36, backgroundColor: colors.surfaceVariant, alignItems: 'center', justifyContent: 'center' }}>
+              <Icon name="account-outline" size={36} color={colors.muted} />
             </View>
-          ) : null}
-          {tier ? (
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-              <Icon name="shield-star-outline" size={15} color={colors.muted} />
-              <Text style={{ color: colors.muted }}>{tier}</Text>
-            </View>
-          ) : null}
-        </View>
-
-        {/* The numbers, all from your journal (no "on this device" split). */}
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 16 }}>
-          <Stat value={String(stats?.trips ?? 0)} label="Journeys" />
-          <Stat value={compactNumber(stats?.entries ?? 0)} label="Moments" />
-          <Stat value={formatKm(km)} label="Travelled" />
-          <Stat value={String(stats?.countryCodes.length ?? 0)} label="Countries" />
-          <Stat value={String(stats?.states.length ?? 0)} label="States" />
-          <Stat value={peak ? formatAltitude(peak) : '—'} label="Highest" />
-        </View>
-
-        <View
-          style={{ marginTop: 14, padding: 16, borderRadius: 16, backgroundColor: colors.surfaceVariant }}
-          accessible
-          accessibilityLabel={`${formatMoney(spentThisYear, HOME_CURRENCY)} spent on travel in ${year}`}
-        >
-          <Text style={{ color: colors.muted, fontSize: 12, fontWeight: '700', letterSpacing: 0.6 }}>SPENT ON TRAVEL IN {year}</Text>
-          <Text style={{ color: colors.onSurface, fontSize: 28, fontWeight: '900', marginTop: 2 }}>{formatMoney(spentThisYear, HOME_CURRENCY)}</Text>
-        </View>
-
-        <SectionHeader title="Places you've been" subtitle={stats && (stats.countryCodes.length || stats.states.length) ? `${stats.countryCodes.length} ${stats.countryCodes.length === 1 ? 'country' : 'countries'} · ${stats.states.length} ${stats.states.length === 1 ? 'state' : 'states'}` : undefined} />
-        {stats && (stats.countryCodes.length || stats.states.length) ? (
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-            {stats.countryCodes.map(c => (
-              <View key={c} style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999, backgroundColor: colors.surfaceVariant }}>
-                <Text>{flagEmoji(c)}</Text>
-                <Text style={{ fontWeight: '700' }}>{countryName(c)}</Text>
+          )}
+          <View style={{ flex: 1 }}>
+            <Text variant="titleLarge" style={{ fontWeight: '900' }} numberOfLines={1}>
+              {signedIn ? displayName(profile) : 'Your travels'}
+            </Text>
+            {signedIn && profile!.username ? (
+              <Text style={{ color: colors.muted }} numberOfLines={1}>
+                @{profile!.username}
+              </Text>
+            ) : null}
+            {home ? (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 }}>
+                <Icon name="map-marker-outline" size={14} color={colors.muted} />
+                <Text style={{ color: colors.muted, fontSize: 13, flexShrink: 1 }} numberOfLines={1}>
+                  {home}
+                </Text>
               </View>
-            ))}
-            {stats.states.map(s => (
-              <View key={s} style={{ paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999, backgroundColor: colors.surfaceVariant }}>
-                <Text style={{ fontSize: 13 }}>{s}</Text>
-              </View>
-            ))}
+            ) : null}
           </View>
+          <IconButton icon="cog-outline" onPress={() => router.push('/settings')} accessibilityLabel="Settings" style={{ margin: 0, alignSelf: 'flex-start' }} />
+        </View>
+
+        {signedIn && profile!.bio ? <Text style={{ marginTop: 12, lineHeight: 21 }}>{profile!.bio}</Text> : null}
+        {signedIn ? (
+          <Button mode="outlined" onPress={() => router.push('/profile/edit')} style={{ marginTop: 14 }}>
+            Edit profile
+          </Button>
         ) : (
-          <Text style={{ color: colors.muted, lineHeight: 20 }}>
-            Add your location to a moment (the pin in the moment box) and the states and countries you visit collect here.
-          </Text>
+          <>
+            <Text style={{ color: colors.muted, marginTop: 12, lineHeight: 20 }}>Create a free account to back up your journal and pick a username.</Text>
+            <Button mode="contained" onPress={() => router.push('/register')} style={{ marginTop: 12 }}>
+              Create account
+            </Button>
+          </>
         )}
 
-        <Pressable onPress={() => router.push('/wrapped')} accessibilityRole="button" style={{ marginTop: 18 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16, borderRadius: 16, backgroundColor: colors.surfaceVariant }}>
-            <Icon name="party-popper" size={26} color={colors.onSurface} />
+        {/* The three numbers that matter */}
+        <View style={{ flexDirection: 'row', gap: 8, marginTop: 20 }}>
+          <Stat value={String(stats?.trips ?? 0)} label={(stats?.trips ?? 0) === 1 ? 'Journey' : 'Journeys'} />
+          <Stat value={String(stats?.countryCodes.length ?? 0)} label={(stats?.countryCodes.length ?? 0) === 1 ? 'Country' : 'Countries'} />
+          <Stat value={formatKm(km)} label="Travelled" />
+        </View>
+
+        {/* This year: spending, and the way into the year in travel */}
+        <Pressable onPress={() => router.push('/wrapped')} accessibilityRole="button" accessibilityLabel={`${formatMoney(spentThisYear, HOME_CURRENCY)} spent on travel in ${year}. Open your year in travel`}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8, padding: 16, borderRadius: 16, backgroundColor: colors.surfaceVariant }}>
             <View style={{ flex: 1 }}>
-              <Text style={{ fontWeight: '900', fontSize: 17 }}>Your {year} in travel</Text>
-              <Text style={{ color: colors.muted }}>Kilometres, peaks, moods and your traveller persona</Text>
+              <Text style={{ color: colors.muted, fontSize: 12, fontWeight: '700', letterSpacing: 0.6 }}>YOUR {year}</Text>
+              <Text style={{ fontSize: 22, fontWeight: '900', marginTop: 2 }}>{formatMoney(spentThisYear, HOME_CURRENCY)}</Text>
+              <Text style={{ color: colors.muted, fontSize: 13 }}>spent on travel · see your year in travel</Text>
             </View>
             <Icon name="chevron-right" size={22} color={colors.subtle} />
           </View>
         </Pressable>
 
-        <SectionHeader title="Badges" subtitle={`${earned.length} of ${badges.length} earned`} action="See all" onAction={() => router.push('/badges')} />
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
-          {badges.slice(0, 8).map(b => (
-            <View key={b.id} style={{ width: '22%', alignItems: 'center', opacity: b.earned ? 1 : 0.4 }} accessibilityLabel={`${b.title}${b.earned ? ', earned' : ''}`}>
-              <View style={{ width: 52, height: 52, borderRadius: 18, backgroundColor: b.earned ? b.color : colors.surface, alignItems: 'center', justifyContent: 'center' }}>
+        {/* Places */}
+        <Heading title="Places you've been" />
+        {places.length ? (
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+            {shownPlaces.map(p => (
+              <View key={p.key} style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999, backgroundColor: colors.surfaceVariant, maxWidth: '100%' }}>
+                {p.flag ? <Text>{p.flag}</Text> : null}
+                <Text style={{ fontWeight: p.flag ? '700' : '500', flexShrink: 1 }} numberOfLines={1}>
+                  {p.label}
+                </Text>
+              </View>
+            ))}
+            {places.length > PLACES_SHOWN ? (
+              <Pressable onPress={() => setAllPlaces(v => !v)} accessibilityRole="button" style={{ paddingHorizontal: 12, paddingVertical: 6 }}>
+                <Text style={{ color: colors.primary, fontWeight: '700' }}>{allPlaces ? 'Show less' : `+${places.length - PLACES_SHOWN} more`}</Text>
+              </Pressable>
+            ) : null}
+          </View>
+        ) : (
+          <Text style={{ color: colors.muted, lineHeight: 20 }}>Turn on the location pin when you add a moment, and the places you visit collect here.</Text>
+        )}
+
+        {/* Badges */}
+        <Heading title={`Badges · ${earned} of ${badges.length}`} action="See all" onAction={() => router.push('/badges')} />
+        <View style={{ flexDirection: 'row', gap: 10 }}>
+          {badges.slice(0, 4).map(b => (
+            <View key={b.id} style={{ flex: 1, alignItems: 'center', opacity: b.earned ? 1 : 0.45 }} accessible accessibilityLabel={`${b.title}${b.earned ? ', earned' : ''}`}>
+              <View style={{ width: 52, height: 52, borderRadius: 18, backgroundColor: b.earned ? b.color : colors.surfaceVariant, alignItems: 'center', justifyContent: 'center' }}>
                 <Icon name={b.icon} size={26} color={b.earned ? '#fff' : colors.muted} />
               </View>
               <Text style={{ fontSize: 11, textAlign: 'center', marginTop: 4 }} numberOfLines={2}>
@@ -194,12 +195,7 @@ export default function ProfileTab() {
             </View>
           ))}
         </View>
-
-        <SectionHeader title="Tools" />
-        <Row icon="shield-alert-outline" label="Safety center & SOS" onPress={() => router.push('/safety')} />
-        <Row icon="swap-horizontal" label="Currency converter" onPress={() => router.push('/tools/currency')} />
-        <Row icon="cog-outline" label="Settings & privacy" onPress={() => router.push('/settings')} />
-        <View style={{ height: 24 }} />
+        <View style={{ height: 16 }} />
       </View>
     </Screen>
   );

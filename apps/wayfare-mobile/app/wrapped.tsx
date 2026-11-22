@@ -60,7 +60,7 @@ export default function WrappedScreen() {
       }
     } catch {
       await Share.share({
-        message: `My ${year} in travel 🌏 ${summary.stats.trips} journeys · ${formatKm(summary.stats.km)} · ${summary.persona.title} — via Wayfare`,
+        message: `My ${year} in travel 🌏 ${summary.stats.trips} ${summary.stats.trips === 1 ? 'journey' : 'journeys'} · ${formatKm(summary.stats.km)} · ${summary.persona.title} — via Wayfare`,
       });
     } finally {
       setSharing(false);
@@ -97,12 +97,12 @@ export default function WrappedScreen() {
                   </View>
                 </View>
                 <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginTop: 12 }}>
-                  <BigStat value={String(summary.stats.trips)} label="journeys" />
+                  <BigStat value={String(summary.stats.trips)} label={summary.stats.trips === 1 ? 'journey' : 'journeys'} />
                   <BigStat value={formatKm(summary.stats.km)} label="on recorded routes" />
-                  <BigStat value={String(summary.stats.entries)} label="moments written" />
+                  <BigStat value={String(summary.stats.entries)} label={summary.stats.entries === 1 ? 'moment written' : 'moments written'} />
                   <BigStat value={summary.stats.maxAltitudeM ? `${summary.stats.maxAltitudeM.toLocaleString('en-IN')} m` : '—'} label="highest point" />
-                  <BigStat value={String(summary.stats.photos)} label="photos" />
-                  <BigStat value={String(summary.stats.destinations)} label="destinations" />
+                  <BigStat value={String(summary.stats.photos)} label={summary.stats.photos === 1 ? 'photo' : 'photos'} />
+                  <BigStat value={String(summary.stats.destinations)} label={summary.stats.destinations === 1 ? 'destination' : 'destinations'} />
                 </View>
                 {summary.destinations.length ? (
                   <Text style={{ color: '#fff', marginTop: 10, lineHeight: 21 }}>

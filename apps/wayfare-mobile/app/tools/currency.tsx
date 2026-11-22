@@ -62,6 +62,9 @@ export default function CurrencyScreen() {
         <Text style={{ color: colors.onSecondaryContainer, fontSize: 34, fontWeight: '900' }} adjustsFontSizeToFit numberOfLines={1}>
           {result == null ? '—' : formatMoney(result, to)}
         </Text>
+        {result == null ? (
+          <Text style={{ color: colors.onSecondaryContainer, fontSize: 12 }}>Go online once to download exchange rates; they're then saved for offline use.</Text>
+        ) : null}
         {unit != null ? (
           <Text style={{ color: colors.onSecondaryContainer, fontSize: 12 }}>
             1 {from} = {unit < 0.01 ? unit.toPrecision(3) : unit.toFixed(unit < 1 ? 4 : 2)} {to}

@@ -1,0 +1,90 @@
+ARIYOO (THE APP) — PROMPT ME
+=============================
+Read this first. It is the full story of the Ariyoo app so a new developer or AI agent can
+continue without the founder having to explain anything again. Last updated: 23 November 2026.
+For the company, its website and the other apps, see ../../PROMPT_ME.txt (repo root).
+
+Founder: Amal Prasad (non-technical). Co-founders: Akshay K Vijayan, Arif K.
+Repo: github.com/prasadamal/ariyoo-clone. App code: apps/mobile (Expo), apps/web (Angular web
+client), services/api (Node/Express server).
+
+
+1. THE IDEA
+-----------
+"Ariyo? Ask someone who knows." (Ariyo = "do you know?" in Malayalam.)
+An expert Q&A app for travel and local life: a traveller asks a question ("best sadya in Kochi?",
+"Vypin ferry timings?"), it goes to a local expert with matching topics (#kochi, #kerala food),
+and they answer in a chat. Experts are locals: homestay owners, trek leaders, guides, bloggers,
+long-time residents who already answer DMs for free.
+It is a two-sided marketplace: hardest shape of all the founder's apps (needs experts before
+askers). Analysis advice was "park it"; the founder chose a SMALL launch to grow slowly.
+
+
+2. THE END PRODUCT
+------------------
+A trusted "ask a local" app, starting in two places (Kerala and Goa), with fast answers
+(target: median first answer under 60 minutes), public expert profiles experts share on their
+own channels, and a growing searchable library of answers that is useful even without asking.
+
+
+3. FEATURES THAT EXIST TODAY
+----------------------------
+- Sign-up/sign-in with 18+ and Terms/Privacy acceptance; Ask / Ask-and-answer roles.
+- Ask a question (tappable example questions); matching to the least-busy expert with the
+  topic, else an open queue any expert can pick up (bug where a question went to the asker or
+  one expert got everything — fixed).
+- Chat with photos; "Mark as answered" + "did it help?" thank-you; expert record
+  ("12 answers · 9 found helpful").
+- Experts add/remove their topics in the app.
+- Personal answer library: search everything you asked/answered; save (bookmark) answers.
+- Report and block from any conversation; blocked list; account deletion (with password);
+  change password; notifications for new questions/replies (no message text).
+- Moderation: admin console at https://ariyoo-api-cboa.onrender.com/admin-console (reports with
+  the reported messages, resolve/dismiss, suspend/delete, find member by email); unlock with
+  ADMIN_API_KEY from Render → Environment. services/api/MODERATION.md has the commands.
+  Reports must be handled within 24 hours (store rule).
+- Redesign (19 Nov): identity "a trusted local friend" — warm paper, deep ink, Kerala-green
+  accent, saffron only for experts; light and dark; WCAG AA contrast.
+- Upgraded from Expo 51 to 57 (Play would not accept 51).
+
+
+4. ON HOLD / NOT BUILT
+----------------------
+- Password reset (needs an email provider + domain; support handles resets by hand for now).
+- Photo storage: Render free has no disk, photos are stored in the Neon database for now; move
+  to file storage once the database passes ~500 MB.
+- Ideas: searchable public answer library by place, trip collections of saved answers, trip
+  planner from answers, place notes for experts, offline saved answers, pre-trip checklist,
+  payments for experts, founding-expert badge and shareable expert profile link.
+- Web client (apps/web) only got the terms checkbox, not report/block/deletion (mobile-first).
+
+
+5. TECHNICAL MAP
+----------------
+- API: Node/Express in services/api, live on Render free tier: https://ariyoo-api-cboa.onrender.com
+  (sleeps after 15 min idle). Database: Neon free Postgres (never pauses, 1 GB).
+  Migrations applied live include 20261117000000_launch_safety and the saved-answers table.
+- Mobile: Expo SDK 57 in apps/mobile; `npm run preflight` blocks a store build without the real
+  server address. Expo account prasadaamals-team, project "ariyoo".
+- Tests: server unit tests + a full end-to-end flow on a real Postgres; app unit tests + typecheck.
+- Store paperwork: apps/mobile/store/ (privacy, terms, deletion pages, form answers,
+  SUBMISSION_CHECKLIST.md, EAS_SECRETS.md).
+
+
+6. FOUNDER ACTIONS STILL OPEN
+-----------------------------
+- Recruit the first 30-50 experts in Kerala and Goa before opening to askers (list 100 people
+  who answer travel questions publicly; message each personally; offer a founding-expert badge).
+- Google Play account; Apple later. Domain + real support email (apps use the founder's Gmail).
+- Render Starter ($7/mo) once the API is busy all day.
+
+
+7. MARKETING (from the 19 Nov plan)
+-----------------------------------
+- To experts: "You already answer travel questions in your DMs. Do it in one place, get a public
+  profile, and build a following."  To askers: "Skip 40 blog tabs. Ask someone who lives there."
+- Cold start: experts first; seed 3-5 good questions per topic; then open to askers via r/Kerala,
+  r/goa and trip-planning threads; homestay/hostel QR cards "Ask a local about this place".
+- Launch: weeks 1-8 recruit experts (closed testing), week 9 open in Kerala and Goa only, add a
+  new place only when the first two answer 80% of questions within an hour.
+- Targets (90 days): 50 active experts, 300 questions answered, 40% of askers ask again in 30 days.

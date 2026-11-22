@@ -670,12 +670,16 @@
           "text": "import { useCallback, useMemo, useState } from 'react';"
         },
         {
-          "line": 54,
+          "line": 63,
           "text": "const [stats, setStats] = useState<TravelStats | null>(null);"
         },
         {
-          "line": 55,
+          "line": 64,
           "text": "const [spentThisYear, setSpentThisYear] = useState(0);"
+        },
+        {
+          "line": 65,
+          "text": "const [allPlaces, setAllPlaces] = useState(false);"
         }
       ]
     },
@@ -1752,7 +1756,7 @@
         },
         {
           "line": 74,
-          "text": "{trip.sync_status === 'pending' ? <Icon name=\"cloud-upload-outline\" size={16} color=\"#ffffffaa\" /> : null}"
+          "text": "{showUpload && trip.sync_status === 'pending' ? <Icon name=\"cloud-upload-outline\" size={16} color=\"#ffffffaa\" /> : null}"
         }
       ]
     },
