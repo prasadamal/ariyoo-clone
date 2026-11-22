@@ -89,7 +89,6 @@ export function MomentCard({ entry: e, money, currencySymbol, mediaKey, canShare
           ) : null}
           <Text style={{ color: colors.muted, fontSize: 13 }}>
             {when}
-            {e.sync_status === 'pending' ? ' · not synced' : ''}
           </Text>
         </View>
         {canEdit ? (

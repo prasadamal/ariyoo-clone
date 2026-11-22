@@ -86,14 +86,16 @@ export default function JourneysTab() {
     return upcoming[0] ?? null;
   }, [trips]);
 
+  // The journey shown up top (on the road / next up) isn't listed again below.
   const visible = useMemo(() => {
-    if (filter === 'all') return trips;
-    return trips.filter(t => {
+    const rest = nextUp ? trips.filter(t => t.id !== nextUp.id) : trips;
+    if (filter === 'all') return rest;
+    return rest.filter(t => {
       const phase = tripPhase(t.starts_on, t.ends_on);
       if (filter === 'upcoming') return t.status !== 'completed' && phase !== 'past';
       return t.status === 'completed' || phase === 'past';
     });
-  }, [trips, filter]);
+  }, [trips, filter, nextUp]);
 
   const recordingTrip = trips.find(t => t.id === recordingTripId);
   const firstName = (profile?.display_name ?? '').split(' ')[0];
@@ -212,7 +214,7 @@ export default function JourneysTab() {
         ListEmptyComponent={
           loaded ? (
             trips.length ? (
-              <EmptyState compact icon="filter-outline" title="Nothing here" body="No journeys match this filter." />
+              nextUp && filter === 'all' ? null : <EmptyState compact icon="filter-outline" title="Nothing here" body="No journeys match this filter." />
             ) : (
               <EmptyState
                 icon="map-marker-path"

@@ -3,7 +3,7 @@ import { Alert, Pressable, View } from 'react-native';
 import { Button, Text, TextInput } from 'react-native-paper';
 import { uuid } from '../../lib/id';
 import { getRates, type RatesSnapshot } from '../../lib/currency';
-import { POPULAR_CURRENCIES, formatMoney, sumInCurrency } from '../../lib/currencyMath';
+import { formatMoney, sumInCurrency } from '../../lib/currencyMath';
 import { timeAgo } from '../../lib/format';
 import { deleteExpense, listExpenses, upsertExpense, type LocalExpense, type LocalTrip } from '../../lib/localDb';
 import { computeBalances, ME, parseCompanions, parseSplitWith, settleUp } from '../../lib/split';
@@ -39,7 +39,8 @@ export function BudgetTab({ trip, onChanged, readOnly = false }: Props) {
   const [expenses, setExpenses] = useState<LocalExpense[]>([]);
   const [rates, setRates] = useState<RatesSnapshot | null>(null);
   const [amount, setAmount] = useState('');
-  const [currency, setCurrency] = useState(tripCurrency);
+  // Expenses use the journey's currency, chosen once when the journey is created.
+  const currency = tripCurrency;
   const [category, setCategory] = useState('food');
   const [note, setNote] = useState('');
   const [paidBy, setPaidBy] = useState(ME);
@@ -167,7 +168,7 @@ export function BudgetTab({ trip, onChanged, readOnly = false }: Props) {
       <View style={{ flexDirection: 'row', gap: 8 }}>
         <TextInput
           mode="outlined"
-          label="Amount"
+          label={`Amount (${tripCurrency})`}
           value={amount}
           onChangeText={t => setAmount(t.replace(/[^0-9.]/g, ''))}
           keyboardType="decimal-pad"
@@ -176,7 +177,6 @@ export function BudgetTab({ trip, onChanged, readOnly = false }: Props) {
         <TextInput mode="outlined" label="Note" value={note} onChangeText={setNote} style={{ flex: 1.4 }} />
       </View>
       <View style={{ marginTop: 10, gap: 10 }}>
-        <ChipSelect scroll options={POPULAR_CURRENCIES.map(c => ({ value: c, label: c }))} value={currency} onChange={setCurrency} />
         <ChipSelect scroll options={EXPENSE_CATEGORIES} value={category} onChange={setCategory} />
         {companions.length ? (
           <>

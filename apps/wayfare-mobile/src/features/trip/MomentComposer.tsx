@@ -28,6 +28,9 @@ type Props = {
   onMoney: (m: MomentMoney | null) => void;
   currencySymbol: string;
   recording: boolean;
+  /** Voice notes recorded for this moment, waiting for Save. */
+  voiceCount?: number;
+  onRemoveVoice?: (index: number) => void;
   voiceBusy: boolean;
   onToggleVoice: () => void;
   saving: boolean;
@@ -42,6 +45,25 @@ type Props = {
  * The moment box. Whatever is added (photos, mood, location, money, a recording) shows as small chips
  * and thumbnails above the text, like attachments in a chat box. The icons below add them.
  */
+/** An attachment in the moment box: icon, words, and a remove button centred on the right. */
+function TrayPill({ icon, label, onPress, onRemove, removeLabel, danger }: { icon?: string; label: string; onPress?: () => void; onRemove?: () => void; removeLabel?: string; danger?: boolean }) {
+  const { colors } = useAppTheme();
+  const fg = danger ? colors.danger : colors.onSurfaceVariant;
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', height: 34, borderRadius: 17, paddingLeft: 12, paddingRight: onRemove ? 4 : 12, gap: 6, backgroundColor: colors.surfaceVariant }}>
+      <Pressable onPress={onPress} disabled={!onPress} style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }} accessibilityRole={onPress ? 'button' : undefined}>
+        {icon ? <Icon name={icon} size={16} color={fg} /> : null}
+        <Text style={{ color: fg, fontWeight: '600', fontSize: 13 }} numberOfLines={1}>{label}</Text>
+      </Pressable>
+      {onRemove ? (
+        <Pressable onPress={onRemove} hitSlop={8} accessibilityRole="button" accessibilityLabel={removeLabel ?? 'Remove'} style={{ width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center' }}>
+          <Icon name="close" size={15} color={colors.muted} />
+        </Pressable>
+      ) : null}
+    </View>
+  );
+}
+
 export function MomentComposer(p: Props) {
   const { colors } = useAppTheme();
   const [moodOpen, setMoodOpen] = useState(false);
@@ -49,7 +71,8 @@ export function MomentComposer(p: Props) {
   const [amountText, setAmountText] = useState('');
   const [category, setCategory] = useState('food');
   const amount = parseAmount(amountText);
-  const hasTray = p.photos.length > 0 || Boolean(p.mood) || p.location || Boolean(p.money) || p.recording;
+  const voiceCount = p.voiceCount ?? 0;
+  const hasTray = p.photos.length > 0 || Boolean(p.mood) || p.location || Boolean(p.money) || p.recording || voiceCount > 0;
 
   const openMoney = () => {
     setAmountText(p.money ? String(p.money.amount) : '');
@@ -87,26 +110,21 @@ export function MomentComposer(p: Props) {
               </Pressable>
             </View>
           ))}
-          {p.mood ? (
-            <Chip onClose={() => p.onMood('')} closeIconAccessibilityLabel="Remove mood" compact>
-              {p.mood}
-            </Chip>
-          ) : null}
-          {p.location ? (
-            <Chip icon="map-marker" onClose={() => p.onLocation(false)} closeIconAccessibilityLabel="Remove location" compact>
-              Location
-            </Chip>
-          ) : null}
+          {p.mood ? <TrayPill label={p.mood} onRemove={() => p.onMood('')} removeLabel="Remove mood" /> : null}
+          {p.location ? <TrayPill icon="map-marker" label="Location" onRemove={() => p.onLocation(false)} removeLabel="Remove location" /> : null}
           {p.money ? (
-            <Chip icon="currency-inr" onPress={openMoney} onClose={() => p.onMoney(null)} closeIconAccessibilityLabel="Remove money" compact>
-              {formatMoney(p.money.amount, p.currencySymbol)} · {categoryLabel(p.money.category)}
-            </Chip>
+            <TrayPill
+              icon="currency-inr"
+              label={`${formatMoney(p.money.amount, p.currencySymbol)} · ${categoryLabel(p.money.category)}`}
+              onPress={openMoney}
+              onRemove={() => p.onMoney(null)}
+              removeLabel="Remove money"
+            />
           ) : null}
-          {p.recording ? (
-            <Chip icon="record-circle" onPress={p.onToggleVoice} compact textStyle={{ color: colors.danger, fontWeight: '700' }}>
-              Recording… tap to stop
-            </Chip>
-          ) : null}
+          {Array.from({ length: voiceCount }, (_, i) => (
+            <TrayPill key={`voice-${i}`} icon="microphone" label={voiceCount > 1 ? `Voice note ${i + 1}` : 'Voice note'} onRemove={() => p.onRemoveVoice?.(i)} removeLabel="Remove voice note" />
+          ))}
+          {p.recording ? <TrayPill icon="record-circle" label="Recording… tap ■ to stop" danger /> : null}
         </ScrollView>
       ) : null}
 
@@ -154,7 +172,7 @@ export function MomentComposer(p: Props) {
           ))}
         </Menu>
         {tool('camera-outline', 'Add photos', p.onAddPhotos, p.photos.length > 0, p.recording)}
-        {tool(p.recording ? 'stop-circle' : 'microphone-outline', p.recording ? 'Stop and save voice note' : 'Record a voice note', p.onToggleVoice, p.recording, p.voiceBusy)}
+        {tool(p.recording ? 'stop-circle' : 'microphone-outline', p.recording ? 'Stop recording' : 'Record a voice note', p.onToggleVoice, p.recording, p.voiceBusy)}
         {tool(p.location ? 'map-marker' : 'map-marker-outline', p.location ? 'Remove location' : 'Add location and weather', () => p.onLocation(!p.location), p.location, p.recording)}
         {tool('currency-inr', 'Add money spent', openMoney, Boolean(p.money), p.recording)}
         <View style={{ flex: 1 }} />
@@ -204,7 +222,7 @@ const styles = StyleSheet.create({
   box: { borderRadius: 20, borderWidth: 1, padding: 8, marginBottom: 16 },
   tray: { gap: 8, alignItems: 'center', paddingHorizontal: 6, paddingTop: 6, paddingBottom: 8 },
   thumb: { width: 60, height: 60, borderRadius: 12 },
-  remove: { position: 'absolute', top: -5, right: -5, width: 20, height: 20, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  remove: { position: 'absolute', top: 4, right: 4, width: 20, height: 20, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   input: { backgroundColor: 'transparent', minHeight: 64, maxHeight: 180 },
   tools: { flexDirection: 'row', alignItems: 'center', gap: 2, paddingTop: 2 },
 });

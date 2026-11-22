@@ -13,7 +13,7 @@ import { deleteEntry, listEntries, listExpenses, upsertEntry, upsertEntryMedia, 
 import { currencySymbol } from '../../lib/currencyMath';
 import { totalsByMoment } from '../../lib/momentMoney';
 import { persistJournalPhoto } from '../../lib/media';
-import { VOICE_NOTE_PRESET, cancelVoiceRecording, startVoiceRecording, stopVoiceRecordingAndSave } from '../../lib/voiceNote';
+import { VOICE_NOTE_PRESET, cancelVoiceRecording, startVoiceRecording, stopVoiceRecordingToDraft, type VoiceDraft } from '../../lib/voiceNote';
 import { fetchWeatherSummary } from '../../lib/weather';
 import { useAppTheme } from '../../theme';
 import { EmptyState } from '../../ui/EmptyState';
@@ -55,7 +55,9 @@ export function JournalTab({ trip, onChanged, everyday = false, crewNames = {} }
   const [saving, setSaving] = useState(false);
   const voiceLock = useRef(false);
   const [voiceBusy, setVoiceBusy] = useState(false);
-  const [recording, setRecording] = useState<string | null>(null);
+  const [recording, setRecording] = useState(false);
+  // Voice notes recorded for the moment being written; saved with it, like photos.
+  const [voices, setVoices] = useState<VoiceDraft[]>([]);
   const recorder = useAudioRecorder(VOICE_NOTE_PRESET);
   const [mediaKey, setMediaKey] = useState(0);
   // Years of daily pages would render all at once; show recent days and load older ones on request.
@@ -157,15 +159,28 @@ export function JournalTab({ trip, onChanged, everyday = false, crewNames = {} }
   };
 
   const save = async () => {
-    if (!text.trim() && !photos.length && !money) return;
+    if (recording || (!text.trim() && !photos.length && !money && !voices.length)) return;
     setSaving(true);
     try {
-      const entry = await createEntry(text.trim() || (photos.length ? '📷' : '💰'));
+      const entry = await createEntry(text.trim() || (photos.length ? '📷' : voices.length ? '🎙 Voice note' : '💰'));
       if (photos.length) await attachPhotos(entry.id, photos);
+      for (const v of voices) {
+        await upsertEntryMedia({
+          id: v.id,
+          trip_id: trip.id,
+          entry_id: entry.id,
+          local_uri: v.uri,
+          storage_path: null,
+          mime_type: 'audio/m4a',
+          sync_status: 'pending',
+          updated_at: new Date().toISOString(),
+        });
+      }
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => undefined);
       setText('');
       setMood('');
       setPhotos([]);
+      setVoices([]);
       setMoney(null);
       setAttachContext(false);
       await load();
@@ -198,34 +213,24 @@ export function JournalTab({ trip, onChanged, everyday = false, crewNames = {} }
     }
   };
 
+  /** Record, then stop: the voice note waits in the moment box (with your words) until you tap Save. */
   const toggleVoice = async () => {
     if (voiceLock.current) return;
     voiceLock.current = true;
     setVoiceBusy(true);
-    let entryId = recording;
-    let createdNew = false;
     try {
-      if (!entryId) {
-        // Money waits in the box for the next normal save; a failed recording must not leave it behind.
-        const entry = await createEntry(text.trim() || '🎙 Voice note', false);
-        entryId = entry.id;
-        createdNew = true;
+      if (!recording) {
         await startVoiceRecording(recorder);
-        setRecording(entry.id);
+        setRecording(true);
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => undefined);
       } else {
-        await stopVoiceRecordingAndSave(recorder, trip.id, entryId);
-        setRecording(null);
-        setText('');
-        setMediaKey(k => k + 1);
-        await load();
-        onChanged();
+        const draft = await stopVoiceRecordingToDraft(recorder);
+        setRecording(false);
+        setVoices(prev => [...prev, draft]);
       }
     } catch (e) {
       await cancelVoiceRecording(recorder).catch(() => undefined);
-      if (createdNew && entryId) await deleteEntry(entryId).catch(() => undefined);
-      setRecording(null);
-      await load();
+      setRecording(false);
       toast(e instanceof Error ? e.message : 'Could not record');
     } finally {
       voiceLock.current = false;
@@ -291,11 +296,13 @@ export function JournalTab({ trip, onChanged, everyday = false, crewNames = {} }
         money={money}
         onMoney={setMoney}
         currencySymbol={symbol}
-        recording={!!recording}
+        recording={recording}
+        voiceCount={voices.length}
+        onRemoveVoice={i => setVoices(prev => prev.filter((_, j) => j !== i))}
         voiceBusy={voiceBusy}
         onToggleVoice={toggleVoice}
         saving={saving}
-        canSave={Boolean(text.trim() || photos.length || money)}
+        canSave={!recording && Boolean(text.trim() || photos.length || money || voices.length)}
         onSave={save}
       />
       ) : (

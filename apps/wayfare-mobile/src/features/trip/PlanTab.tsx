@@ -4,6 +4,7 @@ import { Button, Checkbox, Dialog, IconButton, Menu, Portal, Text, TextInput } f
 import { uuid } from '../../lib/id';
 import { getDestination } from '../../content/destinations';
 import { dayCount, formatDay, parseDay, toDayString } from '../../lib/format';
+import { typeTime } from '../../lib/timeInput';
 import { deleteItineraryItem, listItinerary, upsertItineraryItem, type LocalItineraryItem, type LocalTrip } from '../../lib/localDb';
 import { fetchForecast, weatherCodeIcon, weatherCodeLabel, type ForecastDay } from '../../lib/weather';
 import { useAppTheme } from '../../theme';
@@ -225,9 +226,9 @@ export function PlanTab({ trip, onChanged, readOnly = false }: Props) {
                 mode="outlined"
                 placeholder="06:30"
                 value={draft.time}
-                onChangeText={t => setDrafts(prev => ({ ...prev, [day.index]: { ...draft, time: t } }))}
+                onChangeText={t => setDrafts(prev => ({ ...prev, [day.index]: { ...draft, time: typeTime(t) } }))}
                 style={{ width: 76 }}
-                keyboardType="numbers-and-punctuation"
+                keyboardType="number-pad"
                 maxLength={5}
               />
               <TextInput
@@ -258,7 +259,7 @@ export function PlanTab({ trip, onChanged, readOnly = false }: Props) {
           <Dialog.Content>
             <TextInput mode="outlined" label="What" value={editTitle} onChangeText={setEditTitle} maxLength={200} autoFocus />
             <View style={{ height: 10 }} />
-            <TextInput mode="outlined" label="Time (24-hour, optional)" placeholder="06:30" value={editTime} onChangeText={setEditTime} maxLength={5} keyboardType="numbers-and-punctuation" />
+            <TextInput mode="outlined" label="Time (24-hour, optional)" placeholder="06:30" value={editTime} onChangeText={t => setEditTime(typeTime(t))} maxLength={5} keyboardType="number-pad" />
           </Dialog.Content>
           <Dialog.Actions>
             <Button onPress={() => setEditing(null)}>Cancel</Button>
