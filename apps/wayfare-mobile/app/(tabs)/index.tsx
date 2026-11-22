@@ -9,7 +9,9 @@ import { daysUntil, timeAgo, tripPhase } from '../../src/lib/format';
 import { journeysOnly } from '../../src/lib/everydayMemories';
 import { listTrips, type LocalTrip } from '../../src/lib/localDb';
 import { getActiveTrackingTripId } from '../../src/lib/locationTask';
-import { buildTripSynopsis, computeTripStats, formatSpend } from '../../src/lib/tripStats';
+import { buildTripSynopsis, computeTripStats } from '../../src/lib/tripStats';
+import { getRates } from '../../src/lib/currency';
+import { sumInCurrency } from '../../src/lib/currencyMath';
 import { useAppTheme } from '../../src/theme';
 import { EmptyState } from '../../src/ui/EmptyState';
 import { Hero } from '../../src/ui/Hero';
@@ -17,7 +19,7 @@ import { Icon } from '../../src/ui/Icon';
 import { Pill } from '../../src/ui/Pill';
 import { SOCIAL_ENABLED } from '../../src/lib/features';
 
-type TripRow = LocalTrip & { synopsis: string; packingRatio: number; spent: string };
+type TripRow = LocalTrip & { synopsis: string; packingRatio: number; spentAmount: number };
 type Filter = 'all' | 'upcoming' | 'past';
 
 function greeting() {
@@ -39,6 +41,7 @@ export default function JourneysTab() {
 
   const load = useCallback(async () => {
     const raw = journeysOnly(await listTrips());
+    const rates = await getRates().catch(() => null);
     const enriched = await Promise.all(
       raw.map(async t => {
         const stats = await computeTripStats(t.id);
@@ -46,7 +49,12 @@ export default function JourneysTab() {
           ...t,
           synopsis: buildTripSynopsis(t.title, stats),
           packingRatio: stats.packingTotal ? stats.packingDone / stats.packingTotal : 0,
-          spent: formatSpend(stats.spendByCurrency),
+          // Spent in the journey's own currency, for the budget bar on its card.
+          spentAmount: sumInCurrency(
+            Object.entries(stats.spendByCurrency).map(([currency, amount]) => ({ currency, amount })),
+            t.currency || 'INR',
+            rates?.rates ?? null
+          ).total,
         };
       })
     );
@@ -141,7 +149,7 @@ export default function JourneysTab() {
 
       {nextUp ? (
         <Pressable onPress={() => router.push(`/trip/${nextUp.id}`)} accessibilityRole="button" style={{ marginTop: 14 }}>
-          <Hero variant="glacier">
+          <Hero>
             <Text style={{ color: '#ffffffcc', fontSize: 12, fontWeight: '700', letterSpacing: 1 }}>
               {tripPhase(nextUp.starts_on, nextUp.ends_on) === 'ongoing' ? 'ON THE ROAD' : 'NEXT UP'}
             </Text>
@@ -215,7 +223,7 @@ export default function JourneysTab() {
           ) : null
         }
         renderItem={({ item }) => (
-          <TripCard trip={item} synopsis={item.synopsis} packingRatio={item.packingRatio} tracking={item.id === recordingTripId} spent={item.spent} />
+          <TripCard trip={item} synopsis={item.synopsis} packingRatio={item.packingRatio} tracking={item.id === recordingTripId} spentAmount={item.spentAmount} />
         )}
       />
       <FAB

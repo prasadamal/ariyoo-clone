@@ -428,15 +428,15 @@
           "text": "import { useEffect, useMemo, useRef, useState } from 'react';"
         },
         {
-          "line": 19,
+          "line": 31,
           "text": "const [busy, setBusy] = useState(false);"
         },
         {
-          "line": 20,
+          "line": 32,
           "text": "const [error, setError] = useState<string | null>(null);"
         },
         {
-          "line": 62,
+          "line": 74,
           "text": "const [exitError, setExitError] = useState<string | null>(null);"
         }
       ]
@@ -532,32 +532,49 @@
           "text": "import { useCallback, useMemo, useState } from 'react';"
         },
         {
-          "line": 34,
+          "line": 37,
           "text": "const [trips, setTrips] = useState<TripRow[]>([]);"
         },
         {
-          "line": 35,
+          "line": 38,
           "text": "const [filter, setFilter] = useState<Filter>('all');"
         },
         {
-          "line": 36,
+          "line": 39,
           "text": "const [recordingTripId, setRecordingTripId] = useState<string | null>(null);"
         },
         {
-          "line": 37,
+          "line": 40,
           "text": "const [loaded, setLoaded] = useState(false);"
         },
         {
-          "line": 79,
+          "line": 88,
           "text": "const phase = tripPhase(t.starts_on, t.ends_on);"
         },
         {
-          "line": 81,
+          "line": 90,
           "text": "return t.status === 'completed' || phase === 'past';"
         },
         {
-          "line": 97,
+          "line": 106,
           "text": "? `${pending} change${pending === 1 ? '' : 's'} waiting to sync`"
+        }
+      ]
+    },
+    {
+      "path": "apps/wayfare-mobile/app/(tabs)/journal.tsx",
+      "evidence": [
+        {
+          "line": 1,
+          "text": "import { useCallback, useEffect, useState } from 'react';"
+        },
+        {
+          "line": 16,
+          "text": "const [trip, setTrip] = useState<LocalTrip | null>(null);"
+        },
+        {
+          "line": 17,
+          "text": "const [failed, setFailed] = useState(false);"
         }
       ]
     },
@@ -893,23 +910,6 @@
         {
           "line": 13,
           "text": "const [error, setError] = useState<string | null>(null);"
-        }
-      ]
-    },
-    {
-      "path": "apps/wayfare-mobile/app/journal.tsx",
-      "evidence": [
-        {
-          "line": 1,
-          "text": "import { useCallback, useEffect, useState } from 'react';"
-        },
-        {
-          "line": 16,
-          "text": "const [trip, setTrip] = useState<LocalTrip | null>(null);"
-        },
-        {
-          "line": 17,
-          "text": "const [failed, setFailed] = useState(false);"
         }
       ]
     },
@@ -1271,27 +1271,27 @@
           "text": "import { useEffect, useState } from 'react';"
         },
         {
-          "line": 45,
+          "line": 46,
           "text": "const [push, setPush] = useState<PushPreference>('unset');"
         },
         {
-          "line": 46,
+          "line": 47,
           "text": "const [deleteOpen, setDeleteOpen] = useState(false);"
         },
         {
-          "line": 47,
+          "line": 48,
           "text": "const [confirmText, setConfirmText] = useState('');"
         },
         {
-          "line": 48,
+          "line": 49,
           "text": "const [deleting, setDeleting] = useState(false);"
         },
         {
-          "line": 80,
+          "line": 81,
           "text": "Alert.alert('Sign out?', pending ? `${pending} change${pending === 1 ? ' has' : 's have'} not synced yet and will stay on this phone.` : 'Your journals are backed up to your account.', ["
         },
         {
-          "line": 201,
+          "line": 202,
           "text": "{syncing ? 'Syncing…' : lastErrors.length ? 'Backup needs attention — try syncing again' : pending ? `${pending} change${pending === 1 ? '' : 's'} waiting to sync` : lastSyncAt ? 'Everything is backed up' : 'Backup has not been verified yet"
         }
       ]
@@ -1343,58 +1343,62 @@
       "evidence": [
         {
           "line": 2,
-          "text": "import { useCallback, useState } from 'react';"
-        },
-        {
-          "line": 51,
-          "text": "const [trip, setTrip] = useState<LocalTrip | null | undefined>(undefined);"
-        },
-        {
-          "line": 52,
-          "text": "const [stats, setStats] = useState<TripStats | null>(null);"
-        },
-        {
-          "line": 53,
-          "text": "const [tab, setTab] = useState<Tab>(TABS.some(t => t.value === params.tab) ? (params.tab as Tab) : 'journal');"
+          "text": "import { useCallback, useEffect, useState } from 'react';"
         },
         {
           "line": 54,
+          "text": "const [rates, setRates] = useState<RatesSnapshot | null>(null);"
+        },
+        {
+          "line": 60,
+          "text": "const [trip, setTrip] = useState<LocalTrip | null | undefined>(undefined);"
+        },
+        {
+          "line": 61,
+          "text": "const [stats, setStats] = useState<TripStats | null>(null);"
+        },
+        {
+          "line": 62,
+          "text": "const [tab, setTab] = useState<Tab>(TABS.some(t => t.value === params.tab) ? (params.tab as Tab) : 'journal');"
+        },
+        {
+          "line": 63,
           "text": "const [menu, setMenu] = useState(false);"
         },
         {
-          "line": 79,
+          "line": 88,
           "text": "const phase = tripPhase(trip.starts_on, trip.ends_on);"
         },
         {
-          "line": 94,
+          "line": 103,
           "text": "await updateTrip(trip.id, { status: done ? 'completed' : 'active' });"
         },
         {
-          "line": 149,
+          "line": 157,
           "text": "{trip.status === 'completed'"
         },
         {
-          "line": 151,
+          "line": 159,
           "text": ": phase === 'upcoming' && until != null"
         },
         {
-          "line": 153,
+          "line": 161,
           "text": ": phase === 'ongoing'"
         },
         {
-          "line": 155,
+          "line": 163,
           "text": ": phase === 'past'"
         },
         {
-          "line": 191,
+          "line": 199,
           "text": "leadingIcon={trip.status === 'completed' ? 'restore' : 'flag-checkered'}"
         },
         {
-          "line": 192,
+          "line": 200,
           "text": "title={trip.status === 'completed' ? 'Reopen journey' : 'Mark complete'}"
         },
         {
-          "line": 208,
+          "line": 215,
           "text": "{trip.visibility === 'link' ? <Pill icon=\"link-variant\" label=\"Shared link\" color=\"#fff\" background=\"#ffffff26\" /> : null}"
         }
       ]
@@ -1559,12 +1563,20 @@
           "text": "import { useCallback, useEffect, useState } from 'react';"
         },
         {
-          "line": 13,
+          "line": 18,
           "text": "const [items, setItems] = useState<{ media: LocalEntryMedia; uri: string }[]>([]);"
         },
         {
-          "line": 14,
+          "line": 19,
           "text": "const [open, setOpen] = useState<number | null>(null);"
+        },
+        {
+          "line": 20,
+          "text": "const [page, setPage] = useState(0);"
+        },
+        {
+          "line": 21,
+          "text": "const [width, setWidth] = useState(0);"
         }
       ]
     },
@@ -1614,27 +1626,27 @@
       "path": "apps/wayfare-mobile/src/components/TripCard.tsx",
       "evidence": [
         {
-          "line": 43,
+          "line": 34,
           "text": "const phase = tripPhase(trip.starts_on, trip.ends_on);"
         },
         {
-          "line": 48,
+          "line": 40,
           "text": "trip.status === 'completed'"
         },
         {
-          "line": 50,
+          "line": 42,
           "text": ": phase === 'upcoming' && until != null"
         },
         {
-          "line": 54,
+          "line": 46,
           "text": ": phase === 'ongoing'"
         },
         {
-          "line": 56,
+          "line": 48,
           "text": ": phase === 'past'"
         },
         {
-          "line": 74,
+          "line": 66,
           "text": "{trip.sync_status === 'pending' ? <Icon name=\"cloud-upload-outline\" size={16} color=\"#ffffffaa\" /> : null}"
         }
       ]
@@ -1668,91 +1680,91 @@
           "text": "import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';"
         },
         {
-          "line": 44,
+          "line": 45,
           "text": "const [session, setSession] = useState<Session | null>(null);"
         },
         {
-          "line": 45,
+          "line": 46,
           "text": "const [profile, setProfile] = useState<MyProfile | null>(null);"
         },
         {
-          "line": 46,
+          "line": 47,
           "text": "const [loading, setLoading] = useState(true);"
         },
         {
-          "line": 47,
+          "line": 48,
           "text": "const [guest, setGuest] = useState(false);"
         },
         {
-          "line": 48,
+          "line": 49,
           "text": "const [guestLoading, setGuestLoading] = useState(true);"
         },
         {
-          "line": 49,
+          "line": 50,
           "text": "const [ownership, setOwnership] = useState<{ userId: string | null; phase: 'checking' | 'ready' | 'conflict' | 'error'; error?: string }>({ userId: null, phase: 'checking' });"
         },
         {
-          "line": 50,
+          "line": 51,
           "text": "const [ownershipAttempt, setOwnershipAttempt] = useState(0);"
         },
         {
-          "line": 57,
+          "line": 58,
           "text": "const journalReady = !userId || (ownership.userId === userId && ownership.phase === 'ready');"
         },
         {
-          "line": 58,
+          "line": 59,
           "text": "const ownerConflict = !!userId && ownership.userId === userId && ownership.phase === 'conflict';"
         },
         {
-          "line": 59,
+          "line": 60,
           "text": "const journalError = ownership.userId === userId && ownership.phase === 'error' ? ownership.error ?? 'Could not open this journal.' : null;"
         },
         {
-          "line": 76,
+          "line": 77,
           "text": "let active = true;"
         },
         {
-          "line": 79,
+          "line": 80,
           "text": "if (!supabase) { setLoading(false); return () => { active = false; }; }"
         },
         {
-          "line": 87,
+          "line": 88,
           "text": "const { data: sub } = supabase.auth.onAuthStateChange((_event, next) => {"
         },
         {
-          "line": 96,
+          "line": 97,
           "text": "return () => { active = false; sub.subscription.unsubscribe(); };"
         },
         {
-          "line": 101,
+          "line": 102,
           "text": "let active = true;"
         },
         {
-          "line": 102,
+          "line": 103,
           "text": "if (!userId) { setOwnership({ userId: null, phase: 'ready' }); return; }"
         },
         {
-          "line": 105,
+          "line": 106,
           "text": "setOwnership({ userId, phase: 'checking' });"
         },
         {
-          "line": 117,
+          "line": 118,
           "text": "setOwnership({ userId, phase: outcome });"
         },
         {
-          "line": 119,
+          "line": 120,
           "text": "if (current()) setOwnership({ userId, phase: 'error', error: 'Could not open this device’s journal. Retry before syncing.' });"
         },
         {
-          "line": 121,
+          "line": 122,
           "text": "return () => { active = false; };"
         },
         {
-          "line": 163,
+          "line": 164,
           "text": "setOwnership({ userId: null, phase: 'ready' });"
         },
         {
-          "line": 196,
+          "line": 197,
           "text": "setOwnership({ userId: null, phase: 'ready' });"
         }
       ]
@@ -1765,23 +1777,23 @@
           "text": "import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';"
         },
         {
-          "line": 24,
+          "line": 25,
           "text": "const [conversations, setConversations] = useState<ConversationSummary[]>([]);"
         },
         {
-          "line": 25,
+          "line": 26,
           "text": "const [unreadNotifications, setUnreadNotifications] = useState(0);"
         },
         {
-          "line": 26,
+          "line": 27,
           "text": "const [loading, setLoading] = useState(false);"
         },
         {
-          "line": 27,
+          "line": 28,
           "text": "const active = useRef<string | null>(null);"
         },
         {
-          "line": 50,
+          "line": 51,
           "text": "timer.current = setTimeout(refresh, 700);"
         }
       ]
@@ -2093,63 +2105,63 @@
           "text": "import { useCallback, useEffect, useMemo, useRef, useState } from 'react';"
         },
         {
-          "line": 41,
+          "line": 43,
           "text": "const [entries, setEntries] = useState<LocalEntry[]>([]);"
         },
         {
-          "line": 42,
+          "line": 44,
           "text": "const [text, setText] = useState('');"
         },
         {
-          "line": 43,
+          "line": 45,
           "text": "const [mood, setMood] = useState('');"
         },
         {
-          "line": 45,
+          "line": 47,
           "text": "const [attachContext, setAttachContext] = useState(false);"
         },
         {
-          "line": 46,
+          "line": 48,
           "text": "const [money, setMoney] = useState<MomentMoney | null>(null);"
         },
         {
-          "line": 47,
+          "line": 49,
           "text": "const [expenses, setExpenses] = useState<LocalExpense[]>([]);"
         },
         {
-          "line": 48,
+          "line": 50,
           "text": "const [photos, setPhotos] = useState<PickedPhoto[]>([]);"
         },
         {
-          "line": 49,
+          "line": 51,
           "text": "const [saving, setSaving] = useState(false);"
         },
         {
-          "line": 51,
+          "line": 53,
           "text": "const [voiceBusy, setVoiceBusy] = useState(false);"
         },
         {
-          "line": 52,
+          "line": 54,
           "text": "const [recording, setRecording] = useState<string | null>(null);"
         },
         {
-          "line": 54,
+          "line": 56,
           "text": "const [mediaKey, setMediaKey] = useState(0);"
         },
         {
-          "line": 56,
+          "line": 58,
           "text": "const [shownDays, setShownDays] = useState(DAYS_PER_PAGE);"
         },
         {
-          "line": 85,
+          "line": 87,
           "text": "sync_status: 'pending',"
         },
         {
-          "line": 106,
+          "line": 108,
           "text": "sync_status: 'pending',"
         },
         {
-          "line": 134,
+          "line": 136,
           "text": "sync_status: 'pending',"
         }
       ]
@@ -2162,12 +2174,16 @@
           "text": "import { useState } from 'react';"
         },
         {
-          "line": 28,
+          "line": 37,
           "text": "const [menu, setMenu] = useState(false);"
         },
         {
-          "line": 51,
-          "text": "{detail('clock-outline', e.sync_status === 'pending' ? `${time} · not synced` : time, colors.muted)}"
+          "line": 38,
+          "text": "const [expanded, setExpanded] = useState(false);"
+        },
+        {
+          "line": 80,
+          "text": "{e.sync_status === 'pending' ? ' · not synced' : ''}"
         }
       ]
     },
@@ -2351,11 +2367,11 @@
           "text": "import { useEffect, useState } from 'react';"
         },
         {
-          "line": 59,
+          "line": 60,
           "text": "const [v, setV] = useState<TripFormValues>(initial);"
         },
         {
-          "line": 60,
+          "line": 61,
           "text": "const [titleTouched, setTitleTouched] = useState(!!initial.title);"
         }
       ]
