@@ -122,7 +122,7 @@ export function initials(name: string | null | undefined) {
 
 /** Stable pleasant colour per id (avatars without photos). */
 export function colorForId(id: string | null | undefined) {
-  const palette = ['#c2410c', '#0f766e', '#7c3aed', '#be123c', '#1d4ed8', '#a16207', '#047857', '#9333ea', '#0369a1'];
+  const palette = ['#6a01a3', '#0f766e', '#7c3aed', '#be123c', '#1d4ed8', '#a16207', '#047857', '#9333ea', '#0369a1'];
   let h = 0;
   for (const ch of id ?? '') h = (h * 31 + ch.charCodeAt(0)) >>> 0;
   return palette[h % palette.length];

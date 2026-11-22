@@ -1,4 +1,3 @@
-import { LinearGradient } from 'expo-linear-gradient';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import { Pressable, View } from 'react-native';
@@ -19,7 +18,6 @@ import { Screen } from '../../src/ui/Screen';
 import { TAB_BAR_SPACE } from '../../src/ui/GlassTabBar';
 import { SectionHeader } from '../../src/ui/SectionHeader';
 
-const BANNER: [string, string] = ['#1c1917', '#57534e'];
 const HOME_CURRENCY = 'INR';
 
 function Row({ icon, label, onPress }: { icon: string; label: string; onPress: () => void }) {
@@ -41,7 +39,7 @@ function Row({ icon, label, onPress }: { icon: string; label: string; onPress: (
 function Stat({ value, label }: { value: string; label: string }) {
   const { colors } = useAppTheme();
   return (
-    <View style={{ width: '33.33%', paddingVertical: 12, alignItems: 'center' }} accessible accessibilityLabel={`${value} ${label}`}>
+    <View style={{ width: '31.5%', paddingVertical: 14, borderRadius: 16, backgroundColor: colors.surfaceVariant, alignItems: 'center' }} accessible accessibilityLabel={`${value} ${label}`}>
       <Text style={{ fontSize: 22, fontWeight: '900', letterSpacing: -0.5 }}>{value}</Text>
       <Text style={{ color: colors.muted, fontSize: 12, marginTop: 2 }}>{label}</Text>
     </View>
@@ -83,10 +81,9 @@ export default function ProfileTab() {
 
   return (
     <Screen refreshing={false} onRefresh={() => { refreshProfile(); load(); }} padded={false} bottomSpace={TAB_BAR_SPACE}>
-      {/* Banner and photo, like a profile page: the edit button sits top right. */}
-      <LinearGradient colors={BANNER} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ height: 120 }} />
-      <View style={{ paddingHorizontal: 16 }}>
-        <View style={{ flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', marginTop: -44 }}>
+      {/* The photo sits top left with the buttons beside it; no banner. */}
+      <View style={{ paddingHorizontal: 16, paddingTop: 16 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
           <View style={{ borderRadius: 48, borderWidth: 4, borderColor: colors.background, backgroundColor: colors.background }}>
             {signedIn ? (
               <Avatar id={profile!.id} name={displayName(profile)} path={profile!.avatar_path} size={84} />
@@ -134,7 +131,7 @@ export default function ProfileTab() {
         </View>
 
         {/* The numbers, all from your journal (no "on this device" split). */}
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginTop: 16, borderTopWidth: 1, borderBottomWidth: 1, borderColor: colors.border }}>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 16 }}>
           <Stat value={String(stats?.trips ?? 0)} label="Journeys" />
           <Stat value={compactNumber(stats?.entries ?? 0)} label="Moments" />
           <Stat value={formatKm(km)} label="Travelled" />
@@ -144,19 +141,19 @@ export default function ProfileTab() {
         </View>
 
         <View
-          style={{ marginTop: 14, padding: 16, borderRadius: 16, backgroundColor: colors.onSurface }}
+          style={{ marginTop: 14, padding: 16, borderRadius: 16, backgroundColor: colors.surfaceVariant }}
           accessible
           accessibilityLabel={`${formatMoney(spentThisYear, HOME_CURRENCY)} spent on travel in ${year}`}
         >
-          <Text style={{ color: colors.background, opacity: 0.7, fontSize: 12, fontWeight: '700', letterSpacing: 0.6 }}>SPENT ON TRAVEL IN {year}</Text>
-          <Text style={{ color: colors.background, fontSize: 28, fontWeight: '900', marginTop: 2 }}>{formatMoney(spentThisYear, HOME_CURRENCY)}</Text>
+          <Text style={{ color: colors.muted, fontSize: 12, fontWeight: '700', letterSpacing: 0.6 }}>SPENT ON TRAVEL IN {year}</Text>
+          <Text style={{ color: colors.onSurface, fontSize: 28, fontWeight: '900', marginTop: 2 }}>{formatMoney(spentThisYear, HOME_CURRENCY)}</Text>
         </View>
 
         <SectionHeader title="Places you've been" subtitle={stats && (stats.countryCodes.length || stats.states.length) ? `${stats.countryCodes.length} ${stats.countryCodes.length === 1 ? 'country' : 'countries'} · ${stats.states.length} ${stats.states.length === 1 ? 'state' : 'states'}` : undefined} />
         {stats && (stats.countryCodes.length || stats.states.length) ? (
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
             {stats.countryCodes.map(c => (
-              <View key={c} style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999, borderWidth: 1, borderColor: colors.border }}>
+              <View key={c} style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999, backgroundColor: colors.surfaceVariant }}>
                 <Text>{flagEmoji(c)}</Text>
                 <Text style={{ fontWeight: '700' }}>{countryName(c)}</Text>
               </View>
@@ -174,7 +171,7 @@ export default function ProfileTab() {
         )}
 
         <Pressable onPress={() => router.push('/wrapped')} accessibilityRole="button" style={{ marginTop: 18 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16, borderRadius: 16, borderWidth: 1, borderColor: colors.border }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16, borderRadius: 16, backgroundColor: colors.surfaceVariant }}>
             <Icon name="party-popper" size={26} color={colors.onSurface} />
             <View style={{ flex: 1 }}>
               <Text style={{ fontWeight: '900', fontSize: 17 }}>Your {year} in travel</Text>
@@ -188,7 +185,7 @@ export default function ProfileTab() {
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
           {badges.slice(0, 8).map(b => (
             <View key={b.id} style={{ width: '22%', alignItems: 'center', opacity: b.earned ? 1 : 0.4 }} accessibilityLabel={`${b.title}${b.earned ? ', earned' : ''}`}>
-              <View style={{ width: 52, height: 52, borderRadius: 18, backgroundColor: b.earned ? b.color : colors.surfaceVariant, alignItems: 'center', justifyContent: 'center' }}>
+              <View style={{ width: 52, height: 52, borderRadius: 18, backgroundColor: b.earned ? b.color : colors.surface, alignItems: 'center', justifyContent: 'center' }}>
                 <Icon name={b.icon} size={26} color={b.earned ? '#fff' : colors.muted} />
               </View>
               <Text style={{ fontSize: 11, textAlign: 'center', marginTop: 4 }} numberOfLines={2}>

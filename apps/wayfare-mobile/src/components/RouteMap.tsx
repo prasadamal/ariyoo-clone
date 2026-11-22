@@ -49,7 +49,7 @@ export function RouteMap({ points, pins = [], height = 240 }: { points: LatLng[]
     <MapView style={[styles.map, { height }]} initialRegion={region} scrollEnabled zoomEnabled showsCompass toolbarEnabled={false}>
       {points.length > 1 ? <Polyline coordinates={points} strokeColor={colors.primary} strokeWidth={4} /> : null}
       {start ? <Marker coordinate={start} title="Start" pinColor="#0f766e" /> : null}
-      {points.length > 1 && end ? <Marker coordinate={end} title="Latest" pinColor="#c2410c" /> : null}
+      {points.length > 1 && end ? <Marker coordinate={end} title="Latest" pinColor="#6a01a3" /> : null}
       {pins.map(p => (
         <Marker key={p.id} coordinate={p} title={p.title} description={p.description} pinColor="#7c3aed" />
       ))}

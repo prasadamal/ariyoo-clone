@@ -1,5 +1,5 @@
 import { router, useFocusEffect } from 'expo-router';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { FlatList, Pressable, RefreshControl, View } from 'react-native';
 import { IconButton, SegmentedButtons, Text } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -35,7 +35,7 @@ function greeting() {
 
 export default function JourneysTab() {
   const { colors } = useAppTheme();
-  const { user, profile, guest, offlineMode } = useAuth();
+  const { user, profile, guest, offlineMode, journalReady } = useAuth();
   const { syncing, syncNow, pending, lastSyncAt, lastErrors, refreshPending } = useSync();
   const [trips, setTrips] = useState<TripRow[]>([]);
   const [filter, setFilter] = useState<Filter>('all');
@@ -73,6 +73,11 @@ export default function JourneysTab() {
       load();
     }, [load])
   );
+
+  // Reload the list when the journal is ready and whenever a sync finishes, so every trip shows at once.
+  useEffect(() => {
+    load();
+  }, [load, lastSyncAt, journalReady]);
 
   const onRefresh = async () => {
     if (user) await syncNow();
