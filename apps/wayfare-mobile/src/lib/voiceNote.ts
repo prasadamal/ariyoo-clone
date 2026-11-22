@@ -45,3 +45,23 @@ export function stopVoiceRecordingAndSave(recorder: AudioRecorder, tripId: strin
     });
   }));
 }
+
+export type VoiceDraft = { id: string; uri: string };
+
+/**
+ * Stop and keep the recording as part of the moment being written: nothing is posted until Save.
+ * The file is copied into the app's storage so it survives until then.
+ */
+export async function stopVoiceRecordingToDraft(recorder: AudioRecorder): Promise<VoiceDraft> {
+  let draft: VoiceDraft | null = null;
+  await recording.save(recorder, async isCurrent => {
+    const uri = recorder.uri;
+    if (!uri) throw new Error('The voice note could not be saved.');
+    const id = uuid();
+    const stored = await persistVoiceNote(uri, id);
+    if (!isCurrent()) throw new Error('Recording cancelled.');
+    draft = { id, uri: stored };
+  });
+  if (!draft) throw new Error('The voice note could not be saved.');
+  return draft;
+}
