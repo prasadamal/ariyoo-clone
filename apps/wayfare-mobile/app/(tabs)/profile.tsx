@@ -16,6 +16,7 @@ import { useAppTheme } from '../../src/theme';
 import { Avatar } from '../../src/ui/Avatar';
 import { Icon } from '../../src/ui/Icon';
 import { Screen } from '../../src/ui/Screen';
+import { TAB_BAR_SPACE } from '../../src/ui/GlassTabBar';
 import { SectionHeader } from '../../src/ui/SectionHeader';
 
 const BANNER: [string, string] = ['#1c1917', '#57534e'];
@@ -81,7 +82,7 @@ export default function ProfileTab() {
   const peak = Math.max(stats?.maxAltitudeM ?? 0, profile?.max_altitude_m ?? 0);
 
   return (
-    <Screen refreshing={false} onRefresh={() => { refreshProfile(); load(); }} padded={false}>
+    <Screen refreshing={false} onRefresh={() => { refreshProfile(); load(); }} padded={false} bottomSpace={TAB_BAR_SPACE}>
       {/* Banner and photo, like a profile page: the edit button sits top right. */}
       <LinearGradient colors={BANNER} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ height: 120 }} />
       <View style={{ paddingHorizontal: 16 }}>

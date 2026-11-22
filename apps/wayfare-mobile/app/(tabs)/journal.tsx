@@ -8,6 +8,7 @@ import type { LocalTrip } from '../../src/lib/localDb';
 import { useAppTheme } from '../../src/theme';
 import { Icon } from '../../src/ui/Icon';
 import { Screen } from '../../src/ui/Screen';
+import { TAB_BAR_SPACE } from '../../src/ui/GlassTabBar';
 
 /** The private journal for ordinary days: same composer as a journey, no trip needed. */
 export default function EverydayJournalScreen() {
@@ -25,7 +26,7 @@ export default function EverydayJournalScreen() {
 
   if (failed) {
     return (
-      <Screen>
+      <Screen bottomSpace={TAB_BAR_SPACE}>
         <Text variant="titleMedium">Your journal could not be opened.</Text>
         <Text style={{ color: colors.muted, marginTop: 6 }}>Nothing was lost. Please try again.</Text>
         <Button mode="contained" onPress={open} style={{ marginTop: 16, alignSelf: 'flex-start' }}>
@@ -38,7 +39,7 @@ export default function EverydayJournalScreen() {
 
   const today = new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' });
   return (
-    <Screen>
+    <Screen bottomSpace={TAB_BAR_SPACE}>
       <View style={{ marginBottom: 14 }}>
         <Text style={{ color: colors.primary, fontSize: 12, fontWeight: '700', letterSpacing: 1 }}>{today.toUpperCase()}</Text>
         <Text variant="headlineSmall" accessibilityRole="header" style={{ fontWeight: '800', marginTop: 2 }}>

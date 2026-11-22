@@ -18,12 +18,14 @@ type Props = {
   onRefresh?: () => void;
   contentStyle?: StyleProp<ViewStyle>;
   footer?: ReactNode;
+  /** Extra room at the bottom, e.g. for the floating tab bar (TAB_BAR_SPACE). */
+  bottomSpace?: number;
 };
 
 /** Standard screen scaffold: themed background, keyboard-safe scrolling, optional pull-to-refresh. */
-export function Screen({ children, scroll = true, padded = true, refreshing, onRefresh, contentStyle, footer }: Props) {
+export function Screen({ children, scroll = true, padded = true, refreshing, onRefresh, contentStyle, footer, bottomSpace = 0 }: Props) {
   const { colors } = useAppTheme();
-  const pad = padded ? { padding: 16, paddingBottom: 48 } : null;
+  const pad = padded ? { padding: 16, paddingBottom: 48 + bottomSpace } : bottomSpace ? { paddingBottom: bottomSpace } : null;
   return (
     <KeyboardAvoidingView
       style={{ flex: 1, backgroundColor: colors.background }}

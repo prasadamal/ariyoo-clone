@@ -7,16 +7,19 @@ import { shouldApplyRemote } from './syncRules';
 import { createSyncFlight } from './syncState';
 import {
   clearTombstone,
+  discardPendingInTrip,
   getDb,
   getRowMeta,
   insertTrackPoint,
   listPending,
+  listTrips,
   listPendingTrackPoints,
   listTombstones,
   markSynced,
   markTrackPointsSynced,
   removeSyncedRowsNotIn,
   removeSyncedTripsNotIn,
+  setTripShare,
   tombstonedIds,
   upsertEntry,
   upsertEntryMedia,
@@ -123,8 +126,12 @@ const entryToRemote = (e: LocalEntry, userId: string) => ({
   updated_at: e.updated_at,
 });
 
-const entryFromRemote = (r: Record<string, any>): LocalEntry => ({
+/** Rows by other people in a shared journey remember who wrote them; yours stay null. */
+const authorOf = (r: Record<string, any>, userId: string) => (r.user_id && r.user_id !== userId ? (r.user_id as string) : null);
+
+const entryFromRemote = (r: Record<string, any>, userId: string): LocalEntry => ({
   id: r.id,
+  author_id: authorOf(r, userId),
   trip_id: r.trip_id,
   recorded_at: r.recorded_at,
   body: r.body,
@@ -164,8 +171,9 @@ const expenseToRemote = (e: LocalExpense, userId: string) => {
   };
 };
 
-const expenseFromRemote = (r: Record<string, any>): LocalExpense => ({
+const expenseFromRemote = (r: Record<string, any>, userId: string): LocalExpense => ({
   id: r.id,
+  author_id: authorOf(r, userId),
   trip_id: r.trip_id,
   category: r.category,
   amount: Number(r.amount),
@@ -213,8 +221,9 @@ const itineraryToRemote = (i: LocalItineraryItem, userId: string) => ({
   updated_at: i.updated_at,
 });
 
-const itineraryFromRemote = (r: Record<string, any>): LocalItineraryItem => ({
+const itineraryFromRemote = (r: Record<string, any>, userId: string): LocalItineraryItem => ({
   id: r.id,
+  author_id: authorOf(r, userId),
   trip_id: r.trip_id,
   day_index: r.day_index,
   title: r.title,
@@ -231,6 +240,10 @@ const itineraryFromRemote = (r: Record<string, any>): LocalItineraryItem => ({
 
 type RowWithMeta = { id: string; updated_at: string };
 
+/** Who a local row belongs to, when it isn't you: a shared journey's owner, or a moment's author. */
+const foreignOwner = (table: SyncedTable, row: Record<string, any>): string | null =>
+  (table === 'trips' ? row.owner_id : row.author_id) ?? null;
+
 async function pushTable<T extends RowWithMeta>(
   table: Exclude<SyncedTable, 'entry_media'>,
   toRemote: (row: T, userId: string) => Record<string, unknown>,
@@ -238,7 +251,19 @@ async function pushTable<T extends RowWithMeta>(
   result: SyncResult,
   key: string
 ) {
-  const pending = await listPending<T>(table);
+  const all = await listPending<T>(table);
+  const pending = all.filter(r => !foreignOwner(table, r as Record<string, any>));
+  // An admin's edits to someone else's row (or journey): update it in place, never re-own it.
+  for (const row of all.filter(r => foreignOwner(table, r as Record<string, any>))) {
+    const { user_id: _owner, ...patch } = toRemote(row, userId);
+    const { data, error } = await supabase!.from(table).update(patch).eq('id', row.id).select('id');
+    if (error || !data?.length) {
+      result.errors.push(`${key} ${row.id.slice(0, 8)}: ${error?.message ?? 'only admins can change this'}`);
+      continue;
+    }
+    await markSynced(table, row.id, row.updated_at);
+    result.pushed[key]++;
+  }
   for (let i = 0; i < pending.length; i += PUSH_CHUNK) {
     const chunk = pending.slice(i, i + PUSH_CHUNK);
     const { error } = await supabase!.from(table).upsert(chunk.map(r => toRemote(r, userId)));
@@ -276,17 +301,76 @@ async function fetchAll(table: string, select: string, userId: string) {
   return rows;
 }
 
+/** Rows whose `column` is one of `ids` (chunked), optionally leaving out a user's own rows. */
+async function fetchIn(table: string, column: string, ids: string[], excludeUser?: string) {
+  const rows: Record<string, any>[] = [];
+  for (let i = 0; i < ids.length; i += 50) {
+    const chunk = ids.slice(i, i + 50);
+    for (let from = 0; ; from += PAGE) {
+      let query = supabase!.from(table).select('*').in(column, chunk);
+      if (excludeUser) query = query.neq('user_id', excludeUser);
+      const { data, error } = await query.order('id', { ascending: true }).range(from, from + PAGE - 1);
+      if (error) throw new Error(`${table}: ${error.message}`);
+      rows.push(...((data ?? []) as Record<string, any>[]));
+      if (!data || data.length < PAGE) break;
+    }
+  }
+  return rows;
+}
+
+// --- crew (shared journeys) -------------------------------------------------------
+
+type Share = {
+  trip_id: string;
+  role: 'owner' | 'admin' | 'member';
+  owner_id: string;
+  owner_username: string | null;
+  owner_name: string | null;
+  people: number;
+};
+
+const shareFields = (s: Share) => ({
+  ownerId: s.role === 'owner' ? null : s.owner_id,
+  ownerName: s.role === 'owner' ? null : s.owner_name || (s.owner_username ? `@${s.owner_username}` : null),
+  role: s.role,
+  crewCount: s.people,
+});
+
+/** Journeys with crew: shared with me, and mine I shared. Null when unknown (offline, or crew not set up yet). */
+async function fetchShares(result: SyncResult): Promise<Share[] | null> {
+  const { data, error } = await supabase!.rpc('my_trip_shares');
+  if (error) {
+    // Before the crew update reaches the server the function doesn't exist: carry on as before.
+    if (error.code !== 'PGRST202' && error.code !== '42883') result.errors.push(`crew: ${error.message}`);
+    return null;
+  }
+  return (data ?? []) as Share[];
+}
+
+async function applyShares(shares: Share[]) {
+  const byTrip = new Map(shares.map(s => [s.trip_id, s]));
+  for (const t of await listTrips()) {
+    const share = byTrip.get(t.id);
+    if (share) await setTripShare(t.id, shareFields(share));
+    else if (!t.owner_id && (t.crew_count ?? 0) > 0) await setTripShare(t.id, { ownerId: null, ownerName: null, role: 'owner', crewCount: 0 });
+    if (share?.role === 'member') await discardPendingInTrip(t.id);
+  }
+}
+
 async function pullTable<T>(
   table: Exclude<SyncedTable, 'trips' | 'entry_media'>,
-  fromRemote: (r: Record<string, any>) => T,
+  fromRemote: (r: Record<string, any>, userId: string) => T,
   write: (row: T) => Promise<void>,
   userId: string,
   result: SyncResult,
-  key: string
+  key: string,
+  /** Journeys with crew: other people's rows in them are pulled too. */
+  sharedTripIds: string[] = []
 ) {
   let rows: Record<string, any>[];
   try {
     rows = await fetchAll(table, '*', userId);
+    if (sharedTripIds.length) rows.push(...(await fetchIn(table, 'trip_id', sharedTripIds, userId)));
   } catch (e) {
     result.errors.push((e as Error).message);
     return;
@@ -296,7 +380,7 @@ async function pullTable<T>(
     if (deleted.has(r.id)) continue;
     const local = await getRowMeta(table, r.id);
     if (!shouldApplyRemote(local, r.updated_at ?? r.created_at)) continue;
-    await write(fromRemote(r));
+    await write(fromRemote(r, userId));
     result.pulled[key]++;
   }
   // An empty remote set is more likely a transient auth problem than "everything deleted".
@@ -421,7 +505,7 @@ async function pullTrackPoints(userId: string, result: SyncResult) {
 async function pushEntryMedia(userId: string, result: SyncResult) {
   const pending = await listPending<LocalEntryMedia>('entry_media');
   for (const media of pending) {
-    if (!media.local_uri) continue;
+    if (!media.local_uri || media.author_id) continue;
     try {
       const storagePath =
         media.storage_path ??
@@ -455,10 +539,11 @@ async function pushEntryMedia(userId: string, result: SyncResult) {
   }
 }
 
-async function pullEntryMedia(userId: string, result: SyncResult) {
+async function pullEntryMedia(userId: string, result: SyncResult, sharedTripIds: string[] = []) {
   let rows: Record<string, any>[];
   try {
     rows = await fetchAll('entry_media', '*', userId);
+    if (sharedTripIds.length) rows.push(...(await fetchIn('entry_media', 'trip_id', sharedTripIds, userId)));
   } catch (e) {
     result.errors.push((e as Error).message);
     return;
@@ -476,6 +561,7 @@ async function pullEntryMedia(userId: string, result: SyncResult) {
       local_uri: '',
       storage_path: row.storage_path,
       mime_type: row.mime_type,
+      author_id: authorOf(row, userId),
       sync_status: 'synced',
       updated_at: row.updated_at ?? row.created_at,
     });
@@ -516,6 +602,12 @@ async function runSync(userId: string): Promise<SyncResult> {
   }
   if (!owner) await setLocalOwner(userId);
 
+  // Roles first: a member's unsent changes in a shared journey can't be saved, so they're dropped.
+  const shares = await fetchShares(result);
+  if (shares) await applyShares(shares);
+  const shareByTrip = new Map((shares ?? []).map(s => [s.trip_id, s]));
+  const sharedTripIds = (shares ?? []).map(s => s.trip_id);
+
   await pushDeletes(result);
   await pushTable<LocalTrip>('trips', tripToRemote, userId, result, 'trips');
   await pushTable<LocalEntry>('entries', entryToRemote, userId, result, 'entries');
@@ -526,25 +618,33 @@ async function runSync(userId: string): Promise<SyncResult> {
 
   // Trips first: their children depend on them locally.
   try {
-    const remoteTrips = await fetchAll('trips', '*', userId);
+    const ownTrips = await fetchAll('trips', '*', userId);
+    const joinedIds = (shares ?? []).filter(s => s.role !== 'owner').map(s => s.trip_id);
+    const joinedTrips = joinedIds.length ? await fetchIn('trips', 'id', joinedIds) : [];
     const deleted = await tombstonedIds('trips');
-    for (const r of remoteTrips) {
+    for (const r of [...ownTrips, ...joinedTrips]) {
       if (deleted.has(r.id)) continue;
       const local = await getRowMeta('trips', r.id);
-      if (!shouldApplyRemote(local, r.updated_at)) continue;
-      await upsertTrip(tripFromRemote(r));
-      result.pulled.trips++;
+      if (shouldApplyRemote(local, r.updated_at)) {
+        await upsertTrip(tripFromRemote(r));
+        result.pulled.trips++;
+      }
+      const share = shareByTrip.get(r.id);
+      if (share) await setTripShare(r.id, shareFields(share));
     }
-    if (remoteTrips.length) result.removed += await removeSyncedTripsNotIn(new Set(remoteTrips.map(r => r.id as string)));
+    const keep = new Set([...ownTrips, ...joinedTrips].map(r => r.id as string));
+    // Crew unknown this time: keep shared journeys rather than drop them.
+    if (!shares) for (const t of await listTrips()) if (t.owner_id) keep.add(t.id);
+    if (ownTrips.length || joinedTrips.length) result.removed += await removeSyncedTripsNotIn(keep);
   } catch (e) {
     result.errors.push((e as Error).message);
   }
-  await pullTable('entries', entryFromRemote, upsertEntry, userId, result, 'entries');
-  await pullTable('expenses', expenseFromRemote, upsertExpense, userId, result, 'expenses');
+  await pullTable('entries', entryFromRemote, upsertEntry, userId, result, 'entries', sharedTripIds);
+  await pullTable('expenses', expenseFromRemote, upsertExpense, userId, result, 'expenses', sharedTripIds);
   await pullTable('packing_items', packingFromRemote, upsertPackingItem, userId, result, 'packing');
-  await pullTable('itinerary_items', itineraryFromRemote, upsertItineraryItem, userId, result, 'itinerary');
+  await pullTable('itinerary_items', itineraryFromRemote, upsertItineraryItem, userId, result, 'itinerary', sharedTripIds);
   await pullTrackPoints(userId, result);
-  await pullEntryMedia(userId, result);
+  await pullEntryMedia(userId, result, sharedTripIds);
   await pushEntryMedia(userId, result);
 
   // Server-verified stats (distance / altitude / tier) — best effort.
@@ -572,8 +672,16 @@ async function pushTripLocked(userId: string, tripId: string) {
   const owner = await getLocalOwner();
   if (owner && owner !== userId) throw new Error('This device holds journals from another account');
   if (!owner) await setLocalOwner(userId);
-  const { error } = await supabase.from('trips').upsert(tripToRemote(trip, userId));
-  if (error) throw new Error(error.message);
+  if (trip.owner_id) {
+    // Someone else's journey: an admin may update it, never take it over.
+    if (trip.my_role !== 'admin') throw new Error('Only the owner or an admin can change this journey');
+    const { user_id: _owner, ...patch } = tripToRemote(trip, userId);
+    const { error } = await supabase.from('trips').update(patch).eq('id', trip.id);
+    if (error) throw new Error(error.message);
+  } else {
+    const { error } = await supabase.from('trips').upsert(tripToRemote(trip, userId));
+    if (error) throw new Error(error.message);
+  }
   await markSynced('trips', trip.id, trip.updated_at);
 }
 

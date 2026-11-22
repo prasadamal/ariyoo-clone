@@ -4,6 +4,7 @@ import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { Button, Chip, Dialog, IconButton, Menu, Portal, Text, TextInput } from 'react-native-paper';
 import { MOODS } from '../../components/MoodChips';
 import { parseAmount, formatMoney } from '../../lib/momentMoney';
+import { typingMention } from '../../lib/mentions';
 import { useAppTheme } from '../../theme';
 import { ChipSelect } from '../../ui/ChipSelect';
 import { Icon } from '../../ui/Icon';
@@ -32,7 +33,10 @@ type Props = {
   saving: boolean;
   canSave: boolean;
   onSave: () => void;
+  /** Usernames of the crew, offered while typing an @mention. */
+  mentionable?: string[];
 };
+
 
 /**
  * The moment box. Whatever is added (photos, mood, location, money, a recording) shows as small chips
@@ -116,6 +120,21 @@ export function MomentComposer(p: Props) {
         underlineColor="transparent"
         activeUnderlineColor="transparent"
       />
+      {(() => {
+        // Typing "@" in a shared journey offers the crew's usernames.
+        const typed = typingMention(p.text);
+        const options = typed == null ? [] : (p.mentionable ?? []).filter(u => u.startsWith(typed) && u !== typed).slice(0, 6);
+        if (!options.length || typed == null) return null;
+        return (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={{ gap: 6, paddingHorizontal: 10, paddingBottom: 6 }}>
+            {options.map(u => (
+              <Chip key={u} compact icon="at" onPress={() => p.onText(p.text.slice(0, p.text.length - typed.length) + u + ' ')}>
+                {u}
+              </Chip>
+            ))}
+          </ScrollView>
+        );
+      })()}
 
       <View style={styles.tools}>
         <Menu

@@ -18,6 +18,10 @@ type Props = {
   currencySymbol: string;
   mediaKey: number;
   canShare: boolean;
+  /** Owner or admin of the journey: may edit and delete any moment. */
+  canEdit?: boolean;
+  /** Who wrote it, when it was someone else in a shared journey ("@anna"). */
+  author?: string;
   tripId: string;
   onChanged: () => void;
   onAddPhotos: () => void;
@@ -33,7 +37,7 @@ const PLACEHOLDER_BODIES = new Set(['📷', '🎙 Voice note', '💰']);
  * One moment, like a post without a name: a header (mood and when), the photos in one fixed window,
  * the words (folded when long), voice notes, then where and how much.
  */
-export function MomentCard({ entry: e, money, currencySymbol, mediaKey, canShare, tripId, onChanged, onAddPhotos, onDelete }: Props) {
+export function MomentCard({ entry: e, money, currencySymbol, mediaKey, canShare, canEdit = true, author, tripId, onChanged, onAddPhotos, onDelete }: Props) {
   const { colors } = useAppTheme();
   const [menu, setMenu] = useState(false);
   const [expanded, setExpanded] = useState(false);
@@ -76,12 +80,19 @@ export function MomentCard({ entry: e, money, currencySymbol, mediaKey, canShare
           {emoji ? <Text style={{ fontSize: 17 }}>{emoji}</Text> : <Icon name="feather" size={16} color={colors.muted} />}
         </View>
         <View style={{ flex: 1 }}>
-          {moodWord ? <Text style={{ fontWeight: '700', fontSize: 14 }}>{moodWord}</Text> : null}
+          {author || moodWord ? (
+            <Text style={{ fontWeight: '700', fontSize: 14 }} numberOfLines={1}>
+              {author ? <Text style={{ color: colors.primary }}>{author}</Text> : null}
+              {author && moodWord ? ' · ' : ''}
+              {moodWord}
+            </Text>
+          ) : null}
           <Text style={{ color: colors.muted, fontSize: 13 }}>
             {when}
             {e.sync_status === 'pending' ? ' · not synced' : ''}
           </Text>
         </View>
+        {canEdit ? (
         <Menu
           visible={menu}
           onDismiss={() => setMenu(false)}
@@ -101,9 +112,12 @@ export function MomentCard({ entry: e, money, currencySymbol, mediaKey, canShare
           ) : null}
           <Menu.Item leadingIcon="delete-outline" title="Delete" onPress={() => { setMenu(false); onDelete(); }} />
         </Menu>
+        ) : (
+          <View style={{ width: 12, height: 40 }} />
+        )}
       </View>
 
-      <MomentPhotos entryId={e.id} refreshKey={mediaKey} onChanged={onChanged} />
+      <MomentPhotos entryId={e.id} refreshKey={mediaKey} onChanged={onChanged} canEdit={canEdit} />
 
       {body ? (
         <View style={{ paddingHorizontal: 14, paddingTop: 10 }}>

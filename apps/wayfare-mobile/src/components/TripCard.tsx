@@ -63,6 +63,12 @@ export function TripCard({ trip, synopsis, packingRatio, tracking, spentAmount =
           </Text>
           {tracking ? <Pill icon="record-circle" label="Recording" color="#fff" background="#dc2626" /> : null}
           {SOCIAL_ENABLED && trip.open_to_meet ? <Icon name="account-group" size={18} color="#fff" /> : null}
+          {(trip.crew_count ?? 0) > 1 ? (
+            <View accessibilityLabel={`Shared with ${trip.crew_count} people`} style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+              <Icon name="account-multiple" size={16} color="#fff" />
+              <Text style={{ color: '#fff', fontSize: 12, fontWeight: '700' }}>{trip.crew_count}</Text>
+            </View>
+          ) : null}
           {trip.sync_status === 'pending' ? <Icon name="cloud-upload-outline" size={16} color="#ffffffaa" /> : null}
         </View>
         <Text variant="titleLarge" style={{ color: '#fff', fontWeight: '800', marginTop: 10 }} numberOfLines={2}>
@@ -71,6 +77,11 @@ export function TripCard({ trip, synopsis, packingRatio, tracking, spentAmount =
         <Text style={{ color: '#ffffffd9', marginTop: 2 }} numberOfLines={1}>
           {[dest?.name ?? trip.destination, formatDateRange(trip.starts_on, trip.ends_on)].filter(Boolean).join(' · ') || 'Add a destination and dates'}
         </Text>
+        {trip.owner_id && trip.owner_name ? (
+          <Text style={{ color: '#ffffffcc', fontSize: 12, marginTop: 2 }} numberOfLines={1}>
+            Shared by {trip.owner_name}
+          </Text>
+        ) : null}
         {trip.budget_total ? <BudgetBar compact spent={spentAmount} budget={trip.budget_total} currency={trip.currency || 'INR'} /> : null}
       </TripCover>
       <View style={{ padding: 14, paddingTop: 10 }}>
