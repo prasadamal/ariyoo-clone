@@ -151,7 +151,7 @@ export default function SettingsScreen() {
       <ToggleRow
         icon="bell-outline"
         title="Push notifications"
-        body="Messages, join requests, follows and travellers on your dates."
+        body="Reminders, check-in timer alerts and crew updates."
         value={push === 'on'}
         onChange={togglePush}
         disabled={!canConnect}
