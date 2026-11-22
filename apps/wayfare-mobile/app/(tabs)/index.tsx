@@ -73,6 +73,10 @@ export default function JourneysTab() {
   const [recordingTripId, setRecordingTripId] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  // The backup status shows only after you tap the cloud, then fades away.
+  const [showStatus, setShowStatus] = useState(false);
+  const statusTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const busy = useRef(false);
   const shown = useRef(PAGE_SIZE);
   const insets = useSafeAreaInsets();
@@ -135,10 +139,27 @@ export default function JourneysTab() {
     setFilter(f);
   };
 
+  /** Pull to refresh: reload the list from this phone. Backing up happens only from the cloud button. */
   const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await load();
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
+  /** The cloud button: back up now and show how it went for a few seconds. */
+  const backUp = async () => {
+    setShowStatus(true);
+    if (statusTimer.current) clearTimeout(statusTimer.current);
     if (user) await syncNow();
     await load();
+    statusTimer.current = setTimeout(() => setShowStatus(false), 6000);
   };
+  useEffect(() => () => {
+    if (statusTimer.current) clearTimeout(statusTimer.current);
+  }, []);
 
   const recordingTrip = all.find(t => t.id === recordingTripId);
   const firstName = (profile?.display_name ?? '').split(' ')[0];
@@ -167,14 +188,17 @@ export default function JourneysTab() {
             {greeting()}
             {firstName ? `, ${firstName}` : ''}
           </Text>
-          <Pressable onPress={guest || !user ? () => router.push('/register') : onRefresh} accessibilityRole="button">
-            <Text style={{ color: lastErrors.length ? colors.error : colors.muted, fontSize: 13, marginTop: 2 }} numberOfLines={1}>
-              {syncLine}
-            </Text>
-          </Pressable>
+          {/* Shown after tapping the cloud, or when something needs your attention. */}
+          {showStatus || syncing || lastErrors.length || guest || !user ? (
+            <Pressable onPress={guest || !user ? () => router.push('/register') : backUp} accessibilityRole="button">
+              <Text style={{ color: lastErrors.length ? colors.error : colors.muted, fontSize: 13, marginTop: 2 }} numberOfLines={1}>
+                {syncLine}
+              </Text>
+            </Pressable>
+          ) : null}
         </View>
         {user ? (
-          <IconButton icon={syncing ? 'cloud-sync' : 'cloud-sync-outline'} onPress={onRefresh} disabled={syncing} accessibilityLabel="Sync now" />
+          <IconButton icon={syncing ? 'cloud-sync' : 'cloud-sync-outline'} onPress={backUp} disabled={syncing} accessibilityLabel="Back up now" />
         ) : null}
         <IconButton icon="shield-alert-outline" iconColor={colors.danger} onPress={() => router.push('/safety')} accessibilityLabel="Safety and SOS" />
       </View>
@@ -274,7 +298,7 @@ export default function JourneysTab() {
         data={rows}
         keyExtractor={t => t.id}
         ListHeaderComponent={header}
-        refreshControl={<RefreshControl refreshing={syncing} onRefresh={onRefresh} tintColor={colors.primary} colors={[colors.primary]} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} colors={[colors.primary]} />}
         contentContainerStyle={{ padding: 16, paddingBottom: TAB_BAR_SPACE + 80 }}
         onEndReached={loadMore}
         onEndReachedThreshold={0.4}

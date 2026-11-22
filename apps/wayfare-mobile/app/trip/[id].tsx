@@ -1,6 +1,6 @@
 import { router, Stack, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Alert, Pressable, View } from 'react-native';
+import { Alert, Pressable, ScrollView, View } from 'react-native';
 import { ActivityIndicator, Menu, Text } from 'react-native-paper';
 import { tripTypeIcon } from '../../src/components/TripCard';
 import { getDestination } from '../../src/content/destinations';
@@ -81,6 +81,8 @@ export default function TripDetailScreen() {
   const [coverUri, setCoverUri] = useState<string | null>(null);
   // The journal hands over its "load more"; scrolling near the bottom calls it.
   const loadMoreRef = useRef<(() => void) | null>(null);
+  const pageRef = useRef<ScrollView | null>(null);
+  const journalY = useRef(0);
   const registerLoadMore = useCallback((fn: () => void) => {
     loadMoreRef.current = fn;
   }, []);
@@ -192,7 +194,7 @@ export default function TripDetailScreen() {
   };
 
   return (
-    <Screen onEndReached={() => (tab === 'journal' ? loadMoreRef.current?.() : undefined)}>
+    <Screen scrollRef={pageRef} onEndReached={() => (tab === 'journal' ? loadMoreRef.current?.() : undefined)}>
       <Stack.Screen options={{ title: trip.title }} />
       <TripCover
         glass
@@ -299,17 +301,19 @@ export default function TripDetailScreen() {
         ) : null}
       </TripCover>
 
-      {trip.notes ? (
-        <Text style={{ color: colors.onSurfaceVariant, fontSize: 13, marginTop: 12, lineHeight: 19 }} numberOfLines={4}>
-          {trip.notes}
-        </Text>
-      ) : null}
-
       <View style={{ marginVertical: 14 }}>
         <TabStrip tabs={tabs} value={tabs.some(t => t.value === tab) ? tab : 'journal'} onChange={setTab} />
       </View>
 
-      {tab === 'journal' || !tabs.some(t => t.value === tab) ? <JournalTab trip={trip} onChanged={load} crewNames={crewNames} registerLoadMore={registerLoadMore} /> : null}
+      {tab === 'journal' || !tabs.some(t => t.value === tab) ? <View onLayout={e => (journalY.current = e.nativeEvent.layout.y)}>
+          <JournalTab
+            trip={trip}
+            onChanged={load}
+            crewNames={crewNames}
+            registerLoadMore={registerLoadMore}
+            onJumpTo={y => pageRef.current?.scrollTo({ y: Math.max(0, journalY.current + y - 8), animated: true })}
+          />
+        </View> : null}
       {tab === 'plan' ? <PlanTab trip={trip} onChanged={load} readOnly={!canEdit} /> : null}
       {tab === 'budget' ? <BudgetTab trip={trip} onChanged={load} readOnly={!canEdit} /> : null}
       {tab === 'pack' ? <PackingTab trip={trip} onChanged={load} /> : null}

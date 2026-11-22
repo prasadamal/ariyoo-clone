@@ -409,6 +409,12 @@ export async function listEntriesPage(tripId: string, limit: number) {
   return database.getAllAsync<LocalEntry>('SELECT * FROM entries WHERE trip_id = ? ORDER BY recorded_at ASC LIMIT ?', [tripId, limit]);
 }
 
+/** When each moment of a journey happened (cheap): for the day-jump strip. */
+export async function listEntryTimes(tripId: string) {
+  const database = await getDb();
+  return database.getAllAsync<{ recorded_at: string }>('SELECT recorded_at FROM entries WHERE trip_id = ? ORDER BY recorded_at ASC', [tripId]);
+}
+
 export async function countEntries(tripId: string) {
   const database = await getDb();
   const row = await database.getFirstAsync<{ c: number }>('SELECT COUNT(*) as c FROM entries WHERE trip_id = ?', [tripId]);

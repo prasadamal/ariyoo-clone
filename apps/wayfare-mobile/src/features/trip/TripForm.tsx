@@ -116,7 +116,6 @@ export function TripForm({ initial, submitLabel, busy, onSubmit }: Props) {
         keyboardType="decimal-pad"
         error={budgetInvalid}
       />
-      <TextInput mode="outlined" label="Notes, permits, bookings" value={v.notes} onChangeText={t => set({ notes: t })} multiline numberOfLines={3} />
 
       {SOCIAL_ENABLED ? (
       <>

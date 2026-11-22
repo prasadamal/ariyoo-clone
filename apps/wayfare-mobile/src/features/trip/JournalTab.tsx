@@ -3,13 +3,13 @@ import * as Haptics from 'expo-haptics';
 import * as Location from 'expo-location';
 import { router } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, View } from 'react-native';
+import { ActivityIndicator, Alert, ScrollView, View } from 'react-native';
 import { Button, Text } from 'react-native-paper';
 import { uuid } from '../../lib/id';
 import { useCanConnect, useSocial } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { formatDay, toDayString } from '../../lib/format';
-import { countEntries, deleteEntry, listEntries, listEntriesPage, listExpenses, upsertEntry, upsertEntryMedia, upsertExpense, type LocalEntry, type LocalExpense, type LocalTrip } from '../../lib/localDb';
+import { countEntries, deleteEntry, listEntries, listEntriesPage, listEntryTimes, listExpenses, upsertEntry, upsertEntryMedia, upsertExpense, type LocalEntry, type LocalExpense, type LocalTrip } from '../../lib/localDb';
 import { currencySymbol } from '../../lib/currencyMath';
 import { totalsByMoment } from '../../lib/momentMoney';
 import { persistJournalPhoto } from '../../lib/media';
@@ -36,6 +36,8 @@ type Props = {
   crewNames?: Record<string, string>;
   /** The page calls this when you scroll near the bottom: the journal then loads its next moments. */
   registerLoadMore?: (loadMore: () => void) => void;
+  /** Scroll the page to this position (within the journal) — used by the day-jump strip. */
+  onJumpTo?: (y: number) => void;
 };
 
 /** A journey's moments load this many at a time as you scroll. */
@@ -49,7 +51,7 @@ async function currentFix() {
   return pos.coords;
 }
 
-export function JournalTab({ trip, onChanged, everyday = false, crewNames = {}, registerLoadMore }: Props) {
+export function JournalTab({ trip, onChanged, everyday = false, crewNames = {}, registerLoadMore, onJumpTo }: Props) {
   const { colors } = useAppTheme();
   const toast = useToast();
   const canConnect = useCanConnect();
@@ -77,13 +79,18 @@ export function JournalTab({ trip, onChanged, everyday = false, crewNames = {}, 
   const [limit, setLimit] = useState(MOMENTS_PER_PAGE);
   const [total, setTotal] = useState(0);
   const [loadingMore, setLoadingMore] = useState(false);
+  // Every moment's time (cheap) for the day strip; where each day sits on screen; a day we're heading to.
+  const [times, setTimes] = useState<string[]>([]);
+  const dayY = useRef<Record<string, number>>({});
+  const [jumpTo, setJumpTo] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     if (everyday) setEntries(await listEntries(trip.id));
     else {
-      const [page, count] = await Promise.all([listEntriesPage(trip.id, limit), countEntries(trip.id)]);
+      const [page, count, all] = await Promise.all([listEntriesPage(trip.id, limit), countEntries(trip.id), listEntryTimes(trip.id)]);
       setEntries(page);
       setTotal(count);
+      setTimes(all.map(r => r.recorded_at));
       setLoadingMore(false);
     }
     setExpenses(await listExpenses(trip.id));
@@ -288,20 +295,36 @@ export function JournalTab({ trip, onChanged, everyday = false, crewNames = {}, 
   // Newest first, grouped by calendar day with "Day n" relative to the trip start.
   // Oldest first, like reading a diary. Journeys group by "Day 1, Day 2…" from the start date (or the
   // first moment); the everyday journal groups by date. Each moment shows its own date and time.
+  /** "Day 3", "Before the trip", or the date in the everyday journal. */
+  function labelFor(day: string, forStrip = false) {
+    const firstDay = times[0] ? toDayString(new Date(times[0])) : entries[0] ? toDayString(new Date(entries[0].recorded_at)) : null;
+    const startDay = everyday ? null : trip.starts_on ?? firstDay;
+    if (!startDay) return formatDay(day, { weekday: true, year: day.slice(0, 4) !== String(new Date().getFullYear()) });
+    const n = Math.round((new Date(`${day}T00:00:00`).getTime() - new Date(`${startDay}T00:00:00`).getTime()) / 86400000) + 1;
+    // In the day strip, days before the trip show their date so each chip is different.
+    return n > 0 ? `Day ${n}` : forStrip ? formatDay(day) : 'Before the trip';
+  }
+
   const groups = useMemo(() => {
     const byDay = new Map<string, LocalEntry[]>();
     for (const e of entries) {
       const day = toDayString(new Date(e.recorded_at));
       byDay.set(day, [...(byDay.get(day) ?? []), e]);
     }
-    const start = everyday ? null : trip.starts_on ? new Date(`${trip.starts_on}T00:00:00`) : entries[0] ? new Date(toDayString(new Date(entries[0].recorded_at)) + 'T00:00:00') : null;
-    return [...byDay.entries()].map(([day, list]) => {
-      const n = start ? Math.round((new Date(`${day}T00:00:00`).getTime() - start.getTime()) / 86400000) + 1 : null;
-      const year = day.slice(0, 4) !== String(new Date().getFullYear());
-      const label = n == null ? formatDay(day, { weekday: true, year }) : n > 0 ? `Day ${n}` : 'Before the trip';
-      return { day, label, list };
-    });
-  }, [entries, trip.starts_on, everyday]);
+    return [...byDay.entries()].map(([day, list]) => ({ day, label: labelFor(day), list }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [entries, trip.starts_on, everyday, times]);
+
+  // Every day of the journey (not just the loaded ones), for the strip of Day 1, Day 2… to jump to.
+  const allDays = useMemo(() => [...new Set(times.map(t => toDayString(new Date(t))))], [times]);
+
+  const jump = (day: string) => {
+    // Load moments down to the end of that day, then scroll there once it's on screen.
+    const upTo = times.filter(t => toDayString(new Date(t)) <= day).length;
+    if (upTo > entries.length) setLimit(upTo);
+    if (dayY.current[day] != null && upTo <= entries.length) onJumpTo?.(dayY.current[day]);
+    else setJumpTo(day);
+  };
 
   const moneyByMoment = useMemo(() => totalsByMoment(expenses), [expenses]);
   const canEdit = canEditTrip(trip);
@@ -360,8 +383,27 @@ export function JournalTab({ trip, onChanged, everyday = false, crewNames = {}, 
           Show earlier days ({groups.length - shownDays} more)
         </Button>
       ) : null}
+      {!everyday && allDays.length > 1 ? (
+        // Swipe along the days and tap one to jump straight to it.
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingBottom: 12 }}>
+          {allDays.map(d => (
+            <Pill key={d} label={labelFor(d, true)} onPress={() => jump(d)} />
+          ))}
+        </ScrollView>
+      ) : null}
+
       {groups.slice(-shownDays).map(g => (
-        <View key={g.day}>
+        <View
+          key={g.day}
+          onLayout={e => {
+            const y = e.nativeEvent.layout.y;
+            dayY.current[g.day] = y;
+            if (jumpTo === g.day) {
+              setJumpTo(null);
+              onJumpTo?.(y);
+            }
+          }}
+        >
           {/* The same pill as the Journal / Plan / Budget tabs above. */}
           <View style={{ marginBottom: 10, marginTop: 4, alignSelf: 'center' }} accessibilityRole="header">
             <Pill label={g.label} icon="calendar-blank-outline" selected />
