@@ -40,6 +40,7 @@ export default function TabsLayout() {
         name="journal"
         options={{
           title: 'Journal',
+          headerShown: false, // the diary draws its own header with its name
           tabBarIcon: ({ color, size }) => <Icon name="notebook-outline" color={color} size={size} />,
         }}
       />

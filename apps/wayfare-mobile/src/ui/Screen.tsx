@@ -1,3 +1,4 @@
+import type React from 'react';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import {
   Keyboard,
@@ -24,6 +25,8 @@ type Props = {
   bottomSpace?: number;
   /** Called when you scroll near the bottom (to load the next page). */
   onEndReached?: () => void;
+  /** Lets the page scroll itself (e.g. jump to a day). */
+  scrollRef?: React.RefObject<ScrollView | null>;
 };
 
 /** Gap kept between the box you are typing in and the top of the keyboard. */
@@ -35,9 +38,10 @@ const KEYBOARD_GAP = 24;
  * gains room at the bottom and scrolls the box you're typing in to just above the keyboard (also when
  * you move to another box while the keyboard is open). iOS does the same with its own keyboard insets.
  */
-export function Screen({ children, scroll = true, padded = true, refreshing, onRefresh, contentStyle, footer, bottomSpace = 0, onEndReached }: Props) {
+export function Screen({ children, scroll = true, padded = true, refreshing, onRefresh, contentStyle, footer, bottomSpace = 0, onEndReached, scrollRef: outerRef }: Props) {
   const { colors } = useAppTheme();
-  const scrollRef = useRef<ScrollView>(null);
+  const innerRef = useRef<ScrollView | null>(null);
+  const scrollRef = outerRef ?? innerRef;
   const offset = useRef(0);
   const keyboardTop = useRef<number | null>(null);
   const [keyboard, setKeyboard] = useState(0);
