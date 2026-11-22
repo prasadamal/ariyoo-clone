@@ -22,6 +22,8 @@ type Props = {
   footer?: ReactNode;
   /** Extra room at the bottom, e.g. for the floating tab bar (TAB_BAR_SPACE). */
   bottomSpace?: number;
+  /** Called when you scroll near the bottom (to load the next page). */
+  onEndReached?: () => void;
 };
 
 /** Gap kept between the box you are typing in and the top of the keyboard. */
@@ -33,7 +35,7 @@ const KEYBOARD_GAP = 24;
  * gains room at the bottom and scrolls the box you're typing in to just above the keyboard (also when
  * you move to another box while the keyboard is open). iOS does the same with its own keyboard insets.
  */
-export function Screen({ children, scroll = true, padded = true, refreshing, onRefresh, contentStyle, footer, bottomSpace = 0 }: Props) {
+export function Screen({ children, scroll = true, padded = true, refreshing, onRefresh, contentStyle, footer, bottomSpace = 0, onEndReached }: Props) {
   const { colors } = useAppTheme();
   const scrollRef = useRef<ScrollView>(null);
   const offset = useRef(0);
@@ -91,7 +93,9 @@ export function Screen({ children, scroll = true, padded = true, refreshing, onR
           keyboardDismissMode="on-drag"
           automaticallyAdjustKeyboardInsets
           onScroll={e => {
-            offset.current = e.nativeEvent.contentOffset.y;
+            const { contentOffset, layoutMeasurement, contentSize } = e.nativeEvent;
+            offset.current = contentOffset.y;
+            if (onEndReached && contentOffset.y + layoutMeasurement.height >= contentSize.height - 400) onEndReached();
           }}
           scrollEventThrottle={32}
           refreshControl={

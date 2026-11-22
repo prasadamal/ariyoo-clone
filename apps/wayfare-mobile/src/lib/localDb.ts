@@ -403,6 +403,18 @@ export async function listEntries(tripId: string) {
   return database.getAllAsync<LocalEntry>('SELECT * FROM entries WHERE trip_id = ? ORDER BY recorded_at ASC', [tripId]);
 }
 
+/** The first `limit` moments of a journey, oldest first: the journal loads a page at a time. */
+export async function listEntriesPage(tripId: string, limit: number) {
+  const database = await getDb();
+  return database.getAllAsync<LocalEntry>('SELECT * FROM entries WHERE trip_id = ? ORDER BY recorded_at ASC LIMIT ?', [tripId, limit]);
+}
+
+export async function countEntries(tripId: string) {
+  const database = await getDb();
+  const row = await database.getFirstAsync<{ c: number }>('SELECT COUNT(*) as c FROM entries WHERE trip_id = ?', [tripId]);
+  return row?.c ?? 0;
+}
+
 export async function listAllEntries() {
   const database = await getDb();
   return database.getAllAsync<LocalEntry>('SELECT * FROM entries ORDER BY recorded_at ASC');

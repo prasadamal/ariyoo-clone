@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert, Pressable, View } from 'react-native';
-import { Button, Text, TextInput } from 'react-native-paper';
+import { Button, Dialog, IconButton, Portal, Text, TextInput } from 'react-native-paper';
 import { uuid } from '../../lib/id';
 import { getRates, type RatesSnapshot } from '../../lib/currency';
 import { formatMoney, sumInCurrency } from '../../lib/currencyMath';
 import { timeAgo } from '../../lib/format';
-import { deleteExpense, listExpenses, upsertExpense, type LocalExpense, type LocalTrip } from '../../lib/localDb';
+import { deleteExpense, listExpenses, updateTrip, upsertExpense, type LocalExpense, type LocalTrip } from '../../lib/localDb';
 import { computeBalances, ME, parseCompanions, parseSplitWith, settleUp } from '../../lib/split';
 import { useAppTheme } from '../../theme';
 import { ChipSelect } from '../../ui/ChipSelect';
@@ -13,6 +13,10 @@ import { Icon } from '../../ui/Icon';
 import { Notice } from '../../ui/Notice';
 import { SectionHeader } from '../../ui/SectionHeader';
 import { Meter } from '../../ui/Meter';
+import { capitalizeName, firstName } from '../../lib/names';
+
+/** How a person shows on a chip or row: "You" for yourself, otherwise just a first name. */
+const personLabel = (name: string) => (name === ME ? 'You' : firstName(name));
 
 /** readOnly: a crew member (not an admin) sees the spending but can't change it. */
 type Props = { trip: LocalTrip; onChanged: () => void; readOnly?: boolean };
@@ -41,7 +45,11 @@ export function BudgetTab({ trip, onChanged, readOnly = false }: Props) {
   const [amount, setAmount] = useState('');
   // Expenses use the journey's currency, chosen once when the journey is created.
   const currency = tripCurrency;
-  const [category, setCategory] = useState('food');
+  const [category, setCategory] = useState('other');
+  const [noteFocused, setNoteFocused] = useState(false);
+  const [showCategories, setShowCategories] = useState(false);
+  const [budgetOpen, setBudgetOpen] = useState(false);
+  const [budgetText, setBudgetText] = useState('');
   const [note, setNote] = useState('');
   const [paidBy, setPaidBy] = useState(ME);
   const [splitWith, setSplitWith] = useState<string[]>(people);
@@ -74,7 +82,15 @@ export function BudgetTab({ trip, onChanged, readOnly = false }: Props) {
     return [...byCur.entries()]
       .map(([cur, list]) => ({
         currency: cur,
-        transfers: settleUp(computeBalances(list.map(e => ({ amount: e.amount, paidBy: e.paid_by, splitWith: parseSplitWith(e.split_with) })))),
+        transfers: settleUp(
+          computeBalances(
+            list.map(e => ({
+              amount: e.amount,
+              paidBy: e.paid_by ? capitalizeName(e.paid_by) : null,
+              splitWith: parseSplitWith(e.split_with).map(capitalizeName),
+            }))
+          )
+        ),
       }))
       .filter(s => s.transfers.length);
   }, [expenses]);
@@ -98,6 +114,7 @@ export function BudgetTab({ trip, onChanged, readOnly = false }: Props) {
     });
     setAmount('');
     setNote('');
+    setCategory('other');
     await load();
     onChanged();
   };
@@ -117,12 +134,33 @@ export function BudgetTab({ trip, onChanged, readOnly = false }: Props) {
     ]);
 
   const budget = trip.budget_total ?? 0;
+
+  const saveBudget = async () => {
+    const value = Number(budgetText.replace(/[^0-9.]/g, ''));
+    await updateTrip(trip.id, { budget_total: value > 0 ? Math.round(value) : null });
+    setBudgetOpen(false);
+    onChanged();
+  };
   const used = budget > 0 ? total.total / budget : 0;
 
   return (
     <View>
       <View style={{ backgroundColor: colors.surface, borderRadius: 18, borderWidth: 1, borderColor: colors.border, padding: 16 }}>
-        <Text style={{ color: colors.muted, fontSize: 12, fontWeight: '700' }}>SPENT SO FAR</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <Text style={{ color: colors.muted, fontSize: 12, fontWeight: '700', flex: 1 }}>SPENT SO FAR</Text>
+          {readOnly ? null : (
+            <Button
+              compact
+              icon="pencil-outline"
+              onPress={() => {
+                setBudgetText(budget > 0 ? String(budget) : '');
+                setBudgetOpen(true);
+              }}
+            >
+              {budget > 0 ? 'Edit budget' : 'Set budget'}
+            </Button>
+          )}
+        </View>
         <Text variant="displaySmall" style={{ fontWeight: '900' }}>
           {formatMoney(total.total, tripCurrency)}
         </Text>
@@ -137,7 +175,7 @@ export function BudgetTab({ trip, onChanged, readOnly = false }: Props) {
           </>
         ) : null}
         {budget <= 0 ? (
-          <Text style={{ color: colors.muted, marginTop: 8, fontSize: 13 }}>No expected budget set. Add one under Edit to track what is left.</Text>
+          <Text style={{ color: colors.muted, marginTop: 8, fontSize: 13 }}>No budget set yet. Set one to see what is left.</Text>
         ) : null}
         {total.unconverted.length ? (
           <Notice tone="warning" text={`${total.unconverted.join(', ')} not included — connect once to download exchange rates.`} />
@@ -147,7 +185,17 @@ export function BudgetTab({ trip, onChanged, readOnly = false }: Props) {
           </Text>
         ) : null}
         {byCategory.length ? (
-          <View style={{ marginTop: 12, gap: 6 }}>
+          // Spending by category stays folded until you open it with the arrow.
+          <IconButton
+            icon={showCategories ? 'chevron-up' : 'chevron-down'}
+            size={22}
+            onPress={() => setShowCategories(v => !v)}
+            accessibilityLabel={showCategories ? 'Hide spending by category' : 'Show spending by category'}
+            style={{ position: 'absolute', right: 4, bottom: 4, margin: 0 }}
+          />
+        ) : null}
+        {byCategory.length && showCategories ? (
+          <View style={{ marginTop: 12, marginBottom: 28, gap: 6 }}>
             {byCategory.map(([cat, v]) => (
               <View key={cat} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                 <Icon name={categoryIcon(cat)} size={16} color={colors.onSurfaceVariant} />
@@ -174,16 +222,36 @@ export function BudgetTab({ trip, onChanged, readOnly = false }: Props) {
           keyboardType="decimal-pad"
           style={{ flex: 1 }}
         />
-        <TextInput mode="outlined" label="Note" value={note} onChangeText={setNote} style={{ flex: 1.4 }} />
+        <TextInput
+          mode="outlined"
+          label="Note"
+          value={note}
+          onChangeText={setNote}
+          onFocus={() => setNoteFocused(true)}
+          onBlur={() => setTimeout(() => setNoteFocused(false), 200)}
+          style={{ flex: 1.4 }}
+        />
       </View>
       <View style={{ marginTop: 10, gap: 10 }}>
-        <ChipSelect scroll options={EXPENSE_CATEGORIES} value={category} onChange={setCategory} />
+        {/* Ideas for the note (and the expense's category) appear only while you're writing it. */}
+        {noteFocused ? (
+          <ChipSelect
+            scroll
+            options={EXPENSE_CATEGORIES}
+            value={category}
+            onChange={c => {
+              setCategory(c);
+              const label = EXPENSE_CATEGORIES.find(x => x.value === c)?.label ?? '';
+              if (!note.trim()) setNote(label);
+            }}
+          />
+        ) : null}
         {companions.length ? (
           <>
             <Text style={{ fontWeight: '600' }}>Paid by</Text>
-            <ChipSelect scroll options={people.map(p => ({ value: p, label: p }))} value={paidBy} onChange={setPaidBy} />
+            <ChipSelect scroll options={people.map(p => ({ value: p, label: personLabel(p) }))} value={paidBy} onChange={setPaidBy} />
             <Text style={{ fontWeight: '600' }}>Split between</Text>
-            <ChipSelect multi options={people.map(p => ({ value: p, label: p }))} value={splitWith} onChange={setSplitWith} />
+            <ChipSelect multi options={people.map(p => ({ value: p, label: personLabel(p) }))} value={splitWith} onChange={setSplitWith} />
           </>
         ) : (
           <Text style={{ color: colors.muted, fontSize: 12 }}>Add companions to this journey (Edit) to split costs.</Text>
@@ -205,9 +273,9 @@ export function BudgetTab({ trip, onChanged, readOnly = false }: Props) {
                 key={`${s.currency}-${t.from}-${t.to}`}
                 style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 8, borderBottomWidth: i === arr.length - 1 ? 0 : 1, borderBottomColor: colors.border }}
               >
-                <Text style={{ fontWeight: '700' }}>{t.from}</Text>
+                <Text style={{ fontWeight: '700' }} numberOfLines={1}>{personLabel(t.from)}</Text>
                 <Icon name="arrow-right" size={16} color={colors.muted} />
-                <Text style={{ fontWeight: '700', flex: 1 }}>{t.to}</Text>
+                <Text style={{ fontWeight: '700', flex: 1 }} numberOfLines={1}>{personLabel(t.to)}</Text>
                 <Text style={{ fontWeight: '800', color: colors.secondary }}>{formatMoney(t.amount, s.currency)}</Text>
               </View>
             ))
@@ -224,10 +292,10 @@ export function BudgetTab({ trip, onChanged, readOnly = false }: Props) {
               <Icon name={categoryIcon(e.category)} size={18} color={colors.onPrimaryContainer} />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={{ fontWeight: '600', textTransform: 'capitalize' }}>{e.note || e.category}</Text>
+              <Text style={{ fontWeight: '600', textTransform: 'capitalize' }} numberOfLines={1}>{e.note || e.category}</Text>
               <Text style={{ color: colors.muted, fontSize: 12 }}>
                 {e.spent_on ?? ''}
-                {e.paid_by ? ` · paid by ${e.paid_by}` : companions.length ? ' · paid by you' : ''}
+                {e.paid_by ? ` · paid by ${firstName(capitalizeName(e.paid_by))}` : companions.length ? ' · paid by you' : ''}
                 {split.length > 1 ? ` · split ${split.length} ways` : ''}
               </Text>
             </View>
@@ -235,6 +303,26 @@ export function BudgetTab({ trip, onChanged, readOnly = false }: Props) {
           </Pressable>
         );
       })}
+      <Portal>
+        <Dialog visible={budgetOpen} onDismiss={() => setBudgetOpen(false)}>
+          <Dialog.Title>Expected budget</Dialog.Title>
+          <Dialog.Content>
+            <TextInput
+              mode="outlined"
+              label={`Budget (${tripCurrency})`}
+              value={budgetText}
+              onChangeText={t => setBudgetText(t.replace(/[^0-9.]/g, ''))}
+              keyboardType="decimal-pad"
+              autoFocus
+            />
+            <Text style={{ color: colors.muted, marginTop: 8, fontSize: 12 }}>Leave empty to remove the budget.</Text>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setBudgetOpen(false)}>Cancel</Button>
+            <Button mode="contained" onPress={saveBudget}>Save</Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
     </View>
   );
 }
