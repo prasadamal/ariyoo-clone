@@ -197,7 +197,7 @@ export function BudgetTab({ trip, onChanged, readOnly = false }: Props) {
           </>
         ) : null}
         {budget <= 0 ? (
-          <Text style={{ color: colors.muted, marginTop: 8, fontSize: 13 }}>No budget set yet. Set one to see what is left.</Text>
+          <Text style={{ color: colors.muted, marginTop: 8, fontSize: 13 }}>{readOnly ? 'No budget set for this journey.' : 'No budget set yet. Set one to see what is left.'}</Text>
         ) : null}
         {total.unconverted.length ? (
           <Notice tone="warning" text={`${total.unconverted.join(', ')} not included — connect once to download exchange rates.`} />
@@ -285,7 +285,7 @@ export function BudgetTab({ trip, onChanged, readOnly = false }: Props) {
                 <View style={{ flex: 1 }}>
                   <Text style={{ fontWeight: '600', textTransform: 'capitalize' }} numberOfLines={1}>{e.note || e.category}</Text>
                   <Text style={{ color: colors.muted, fontSize: 12 }}>
-                    {e.paid_by || companions.length ? '' : categoryLabel(e.category)}
+                    {e.paid_by || companions.length || !e.note ? '' : categoryLabel(e.category)}
                     {e.paid_by ? `Paid by ${firstName(capitalizeName(e.paid_by))}` : companions.length ? 'Paid by you' : ''}
                     {split.length > 1 ? ` · split ${split.length} ways` : ''}
                   </Text>

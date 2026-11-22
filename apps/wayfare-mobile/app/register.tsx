@@ -81,7 +81,8 @@ export default function RegisterScreen() {
         Free forever for journaling. Your trips stay private unless you choose to share.
       </Text>
       <View style={{ gap: 4 }}>
-        <TextInput mode="outlined" label="Your name" value={displayName} onChangeText={t => setDisplayName(capitalizeWords(t))} autoComplete="name" maxLength={60} />
+        <TextInput mode="outlined" label="Your name" value={displayName} onChangeText={t => setDisplayName(capitalizeWords(t))} autoComplete="name" maxLength={60} error={displayName.length > 0 && displayName.trim().length < 2} />
+        {displayName.length > 0 && displayName.trim().length < 2 ? <HelperText type="error">At least 2 letters</HelperText> : null}
         <TextInput
           mode="outlined"
           label="Username"
@@ -110,7 +111,9 @@ export default function RegisterScreen() {
           autoCapitalize="none"
           keyboardType="email-address"
           autoComplete="email"
+          error={email.length > 3 && !/.+@.+\..+/.test(email)}
         />
+        {email.length > 3 && !/.+@.+\..+/.test(email) ? <HelperText type="error">That doesn't look like an email address</HelperText> : null}
         <TextInput
           mode="outlined"
           label="Password (8+ characters)"
@@ -120,6 +123,7 @@ export default function RegisterScreen() {
           autoComplete="new-password"
           style={{ marginTop: 8 }}
         />
+        {password.length > 0 && password.length < 8 ? <HelperText type="error">{8 - password.length} more character{8 - password.length === 1 ? '' : 's'} needed</HelperText> : null}
       </View>
       {error ? <Notice tone="error" text={error} /> : null}
       <Button mode="contained" onPress={submit} loading={loading} disabled={!valid || loading} style={{ marginTop: 16 }}>
