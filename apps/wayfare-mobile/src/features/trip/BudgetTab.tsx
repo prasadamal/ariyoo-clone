@@ -14,7 +14,8 @@ import { Notice } from '../../ui/Notice';
 import { SectionHeader } from '../../ui/SectionHeader';
 import { Meter } from '../../ui/Meter';
 
-type Props = { trip: LocalTrip; onChanged: () => void };
+/** readOnly: a crew member (not an admin) sees the spending but can't change it. */
+type Props = { trip: LocalTrip; onChanged: () => void; readOnly?: boolean };
 
 export const EXPENSE_CATEGORIES = [
   { value: 'food', label: 'Food', icon: 'silverware-fork-knife' },
@@ -30,7 +31,7 @@ function categoryIcon(c: string) {
   return EXPENSE_CATEGORIES.find(x => x.value === c)?.icon ?? 'cash';
 }
 
-export function BudgetTab({ trip, onChanged }: Props) {
+export function BudgetTab({ trip, onChanged, readOnly = false }: Props) {
   const { colors } = useAppTheme();
   const tripCurrency = trip.currency || 'INR';
   const companions = useMemo(() => parseCompanions(trip.companions), [trip.companions]);
@@ -160,6 +161,8 @@ export function BudgetTab({ trip, onChanged }: Props) {
         ) : null}
       </View>
 
+      {readOnly ? null : (
+      <>
       <SectionHeader title="Add expense" />
       <View style={{ flexDirection: 'row', gap: 8 }}>
         <TextInput
@@ -189,6 +192,8 @@ export function BudgetTab({ trip, onChanged }: Props) {
           Add {amount ? formatMoney(Number(amount) || 0, currency) : 'expense'}
         </Button>
       </View>
+      </>
+      )}
 
       {settlements.length ? (
         <View style={{ backgroundColor: colors.surface, borderRadius: 18, borderWidth: 1, borderColor: colors.border, padding: 16, marginTop: 20 }}>
@@ -210,11 +215,11 @@ export function BudgetTab({ trip, onChanged }: Props) {
         </View>
       ) : null}
 
-      {expenses.length ? <SectionHeader title="Expenses" subtitle="Long-press to delete" /> : null}
+      {expenses.length ? <SectionHeader title="Expenses" subtitle={readOnly ? undefined : 'Long-press to delete'} /> : null}
       {expenses.map(e => {
         const split = parseSplitWith(e.split_with);
         return (
-          <Pressable key={e.id} onLongPress={() => remove(e)} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.border }}>
+          <Pressable key={e.id} disabled={readOnly} onLongPress={() => remove(e)} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.border }}>
             <View style={{ width: 36, height: 36, borderRadius: 12, backgroundColor: colors.primaryContainer, alignItems: 'center', justifyContent: 'center' }}>
               <Icon name={categoryIcon(e.category)} size={18} color={colors.onPrimaryContainer} />
             </View>

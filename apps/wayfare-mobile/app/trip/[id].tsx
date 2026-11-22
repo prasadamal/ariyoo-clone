@@ -1,7 +1,7 @@
 import { router, Stack, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { Alert, View } from 'react-native';
-import { ActivityIndicator, IconButton, Menu, Text } from 'react-native-paper';
+import { Alert, Pressable, View } from 'react-native';
+import { ActivityIndicator, Menu, Text } from 'react-native-paper';
 import { tripTypeIcon } from '../../src/components/TripCard';
 import { getDestination } from '../../src/content/destinations';
 import { useAuth, useCanConnect, useSocial } from '../../src/context/AuthContext';
@@ -9,6 +9,10 @@ import { useSync } from '../../src/context/SyncContext';
 import { useToast } from '../../src/context/ToastContext';
 import { BudgetTab } from '../../src/features/trip/BudgetTab';
 import { CrewTab } from '../../src/features/trip/CrewTab';
+import { TripCrew } from '../../src/features/trip/TripCrew';
+import { cachedCrew, canEditTrip, isSharedTrip, leaveTrip, loadCrew, personName, tripRole, type CrewPerson } from '../../src/lib/crew';
+import { isEverydayTrip } from '../../src/lib/everydayMemories';
+import { Glass } from '../../src/ui/Glass';
 import { JournalTab } from '../../src/features/trip/JournalTab';
 import { PackingTab } from '../../src/features/trip/PackingTab';
 import { PlanTab } from '../../src/features/trip/PlanTab';
@@ -35,14 +39,26 @@ import { sumInCurrency } from '../../src/lib/currencyMath';
 
 type Tab = 'journal' | 'plan' | 'budget' | 'pack' | 'route' | 'crew';
 
-const TABS: TabItem<Tab>[] = [
+const ALL_TABS: TabItem<Tab>[] = [
   { value: 'journal', label: 'Journal', icon: 'notebook-outline' },
   { value: 'plan', label: 'Plan', icon: 'calendar-text-outline' },
   { value: 'budget', label: 'Budget', icon: 'wallet-outline' },
   { value: 'pack', label: 'Pack', icon: 'bag-checked' },
   { value: 'route', label: 'Route', icon: 'map-marker-path' },
-  ...(SOCIAL_ENABLED ? [{ value: 'crew' as const, label: 'Crew', icon: 'account-group-outline' }] : []),
+  { value: 'crew', label: 'Crew', icon: 'account-group-outline' },
 ];
+
+/** A round glass button on the cover. */
+function CoverButton({ icon, label, onPress, badge }: { icon: string; label: string; onPress: () => void; badge?: number }) {
+  return (
+    <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={label} hitSlop={6} style={({ pressed }) => ({ transform: [{ scale: pressed ? 0.92 : 1 }] })}>
+      <Glass variant="media" interactive radius={20} style={{ height: 40, minWidth: 40, paddingHorizontal: badge ? 10 : 0, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+        <Icon name={icon} size={20} color="#fff" />
+        {badge ? <Text style={{ color: '#fff', fontWeight: '800', fontSize: 13 }}>{badge}</Text> : null}
+      </Glass>
+    </Pressable>
+  );
+}
 
 export default function TripDetailScreen() {
   const params = useLocalSearchParams<{ id: string; tab?: string }>();
@@ -59,8 +75,9 @@ export default function TripDetailScreen() {
   const toast = useToast();
   const [trip, setTrip] = useState<LocalTrip | null | undefined>(undefined);
   const [stats, setStats] = useState<TripStats | null>(null);
-  const [tab, setTab] = useState<Tab>(TABS.some(t => t.value === params.tab) ? (params.tab as Tab) : 'journal');
+  const [tab, setTab] = useState<Tab>(ALL_TABS.some(t => t.value === params.tab) ? (params.tab as Tab) : 'journal');
   const [menu, setMenu] = useState(false);
+  const [crew, setCrew] = useState<CrewPerson[]>([]);
 
   const load = useCallback(async () => {
     const t = await getTrip(tripId);
@@ -68,6 +85,18 @@ export default function TripDetailScreen() {
     if (t) setStats(await computeTripStats(tripId));
     refreshPending();
   }, [tripId, refreshPending]);
+
+  // Names for moments written by other people in a shared journey (last known list works offline).
+  const shared = trip ? isSharedTrip(trip) : false;
+  useEffect(() => {
+    if (!shared) return;
+    let alive = true;
+    cachedCrew(tripId).then(list => alive && list.length && setCrew(list));
+    if (canConnect) loadCrew(tripId).then(list => alive && setCrew(list)).catch(() => undefined);
+    return () => {
+      alive = false;
+    };
+  }, [shared, tripId, canConnect]);
 
   useFocusEffect(
     useCallback(() => {
@@ -84,6 +113,12 @@ export default function TripDetailScreen() {
     );
   }
 
+  const role = tripRole(trip);
+  const canEdit = canEditTrip(trip);
+  const everyday = isEverydayTrip(trip);
+  // Members only look, so no route recording; the everyday journal is never shared.
+  const tabs = ALL_TABS.filter(t => !(t.value === 'route' && !canEdit) && !(t.value === 'crew' && everyday));
+  const crewNames: Record<string, string> = Object.fromEntries(crew.map(p => [p.user_id, p.username ? `@${p.username}` : personName(p)]));
   const dest = getDestination(trip.place_key);
   const phase = tripPhase(trip.starts_on, trip.ends_on);
   const until = daysUntil(trip.starts_on);
@@ -109,7 +144,7 @@ export default function TripDetailScreen() {
   };
 
   const remove = () =>
-    Alert.alert('Delete journey?', 'This deletes its journal, photos, plan, expenses and route on all your devices.', [
+    Alert.alert('Delete journey?', shared ? 'This deletes it for everyone in the crew too: its journal, photos, plan, expenses and route.' : 'This deletes its journal, photos, plan, expenses and route on all your devices.', [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Delete',
@@ -133,6 +168,23 @@ export default function TripDetailScreen() {
     }
   };
 
+  const leave = () =>
+    Alert.alert('Leave this journey?', 'It disappears from your phone. Moments you added stay in the journey.', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Leave',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            if (user) await leaveTrip(trip.id, user.id);
+            router.replace('/(tabs)');
+          } catch (e) {
+            toast(e instanceof Error ? e.message : 'Could not leave the journey');
+          }
+        },
+      },
+    ]);
+
   const exportPdf = async () => {
     try {
       await exportTripJournalPdf(trip);
@@ -145,6 +197,7 @@ export default function TripDetailScreen() {
     <Screen>
       <Stack.Screen options={{ title: trip.title }} />
       <TripCover
+        glass
         uri={trip.cover_uri}
         gradient={[colors.heroStart, colors.heroEnd]}
         style={{ borderRadius: 22, padding: 16, paddingRight: 6, minHeight: trip.cover_uri ? 190 : undefined }}
@@ -168,6 +221,11 @@ export default function TripDetailScreen() {
             <Text variant="headlineSmall" style={{ color: '#fff', fontWeight: '900', marginTop: 6 }}>
               {trip.title}
             </Text>
+            {trip.owner_id && trip.owner_name ? (
+              <Text style={{ color: '#ffffffcc', fontSize: 13, marginTop: 2 }}>
+                Shared by {trip.owner_name} · you're {role === 'admin' ? 'an admin' : 'a member'}
+              </Text>
+            ) : null}
             <Text
               style={{ color: '#ffffffe6', marginTop: 2 }}
               onPress={social && trip.place_key ? () => router.push(`/place/${trip.place_key}`) : undefined}
@@ -176,12 +234,23 @@ export default function TripDetailScreen() {
               {social && trip.place_key ? '  ›' : ''}
             </Text>
           </View>
+          <View style={{ flexDirection: 'row', gap: 8, marginRight: 10 }}>
+          {everyday ? null : (
+            <CoverButton
+              icon={shared ? 'account-group' : 'account-plus-outline'}
+              label={shared ? `Crew, ${trip.crew_count} people` : 'Add crew'}
+              badge={shared ? trip.crew_count ?? undefined : undefined}
+              onPress={() => setTab('crew')}
+            />
+          )}
           <Menu
             visible={menu}
             onDismiss={() => setMenu(false)}
-            anchor={<IconButton icon="dots-vertical" iconColor="#fff" onPress={() => setMenu(true)} accessibilityLabel="Journey options" />}
+            anchor={<CoverButton icon="dots-horizontal" label="Journey options" onPress={() => setMenu(true)} />}
           >
-            <Menu.Item leadingIcon="pencil-outline" title="Edit details" onPress={() => { setMenu(false); router.push(`/trip/edit/${trip.id}`); }} />
+            {canEdit ? (
+              <Menu.Item leadingIcon="pencil-outline" title="Edit details" onPress={() => { setMenu(false); router.push(`/trip/edit/${trip.id}`); }} />
+            ) : null}
             <Menu.Item leadingIcon="image-edit-outline" title={trip.cover_uri ? 'Change cover photo' : 'Add cover photo'} onPress={() => { setMenu(false); void changeCover(); }} />
             {social ? (
               <Menu.Item
@@ -193,37 +262,43 @@ export default function TripDetailScreen() {
                 }}
               />
             ) : null}
-            <Menu.Item leadingIcon="link-variant" title="Share read-only link" onPress={() => { setMenu(false); shareLink(); }} />
+            {canEdit ? <Menu.Item leadingIcon="link-variant" title="Share read-only link" onPress={() => { setMenu(false); shareLink(); }} /> : null}
             <Menu.Item leadingIcon="file-pdf-box" title="Export PDF journal" onPress={() => { setMenu(false); exportPdf(); }} />
-            <Menu.Item
-              leadingIcon={trip.status === 'completed' ? 'restore' : 'flag-checkered'}
-              title={trip.status === 'completed' ? 'Reopen journey' : 'Mark complete'}
-              onPress={() => {
-                setMenu(false);
-                markComplete(trip.status !== 'completed');
-              }}
-            />
-            <Menu.Item leadingIcon="delete-outline" title="Delete journey" onPress={() => { setMenu(false); remove(); }} />
+            {canEdit ? (
+              <Menu.Item
+                leadingIcon={trip.status === 'completed' ? 'restore' : 'flag-checkered'}
+                title={trip.status === 'completed' ? 'Reopen journey' : 'Mark complete'}
+                onPress={() => {
+                  setMenu(false);
+                  markComplete(trip.status !== 'completed');
+                }}
+              />
+            ) : null}
+            {role === 'owner' ? (
+              <Menu.Item leadingIcon="delete-outline" title="Delete journey" onPress={() => { setMenu(false); remove(); }} />
+            ) : (
+              <Menu.Item leadingIcon="exit-run" title="Leave journey" onPress={() => { setMenu(false); leave(); }} />
+            )}
           </Menu>
+          </View>
         </View>
         {stats ? (
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 12, paddingRight: 10 }}>
+          <Glass variant="media" radius={18} style={{ marginTop: 14, marginRight: 10, padding: 12, paddingTop: 10 }}>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
             <Pill icon="feather" label={`${stats.entryCount} ${stats.entryCount === 1 ? 'moment' : 'moments'}`} color="#fff" background="#ffffff26" />
             {stats.photoCount ? <Pill icon="camera-outline" label={`${stats.photoCount}`} color="#fff" background="#ffffff26" /> : null}
             {stats.distanceKm >= 0.1 ? <Pill icon="map-marker-path" label={formatKm(stats.distanceKm)} color="#fff" background="#ffffff26" /> : null}
             {social && trip.open_to_meet ? <Pill icon="account-group" label="Open to meet" color="#fff" background="#ffffff26" /> : null}
             {trip.visibility === 'link' ? <Pill icon="link-variant" label="Shared link" color="#fff" background="#ffffff26" /> : null}
           </View>
-        ) : null}
-        {stats ? (
-          <View style={{ paddingRight: 10 }}>
             <BudgetBar
+              compact
               spent={sumInCurrency(Object.entries(stats.spendByCurrency).map(([currency, amount]) => ({ currency, amount })), trip.currency || 'INR', rates?.rates ?? null).total}
               budget={trip.budget_total}
               currency={trip.currency || 'INR'}
-              onAddBudget={() => router.push(`/trip/edit/${trip.id}`)}
+              onAddBudget={canEdit ? () => router.push(`/trip/edit/${trip.id}`) : undefined}
             />
-          </View>
+          </Glass>
         ) : null}
       </TripCover>
 
@@ -234,15 +309,20 @@ export default function TripDetailScreen() {
       ) : null}
 
       <View style={{ marginVertical: 14 }}>
-        <TabStrip tabs={TABS} value={tab} onChange={setTab} />
+        <TabStrip tabs={tabs} value={tabs.some(t => t.value === tab) ? tab : 'journal'} onChange={setTab} />
       </View>
 
-      {tab === 'journal' ? <JournalTab trip={trip} onChanged={load} /> : null}
-      {tab === 'plan' ? <PlanTab trip={trip} onChanged={load} /> : null}
-      {tab === 'budget' ? <BudgetTab trip={trip} onChanged={load} /> : null}
+      {tab === 'journal' || !tabs.some(t => t.value === tab) ? <JournalTab trip={trip} onChanged={load} crewNames={crewNames} /> : null}
+      {tab === 'plan' ? <PlanTab trip={trip} onChanged={load} readOnly={!canEdit} /> : null}
+      {tab === 'budget' ? <BudgetTab trip={trip} onChanged={load} readOnly={!canEdit} /> : null}
       {tab === 'pack' ? <PackingTab trip={trip} onChanged={load} /> : null}
-      {tab === 'route' ? <RouteTab trip={trip} onChanged={load} /> : null}
-      {tab === 'crew' ? <CrewTab trip={trip} onChanged={load} /> : null}
+      {tab === 'route' && canEdit ? <RouteTab trip={trip} onChanged={load} /> : null}
+      {tab === 'crew' && !everyday ? (
+        <>
+          <TripCrew trip={trip} onChanged={load} onCrew={setCrew} />
+          {SOCIAL_ENABLED ? <CrewTab trip={trip} onChanged={load} /> : null}
+        </>
+      ) : null}
     </Screen>
   );
 }

@@ -1,7 +1,8 @@
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import { FlatList, Pressable, RefreshControl, View } from 'react-native';
-import { FAB, IconButton, SegmentedButtons, Text } from 'react-native-paper';
+import { IconButton, SegmentedButtons, Text } from 'react-native-paper';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { TripCard } from '../../src/components/TripCard';
 import { useAuth } from '../../src/context/AuthContext';
 import { useSync } from '../../src/context/SyncContext';
@@ -18,6 +19,8 @@ import { Hero } from '../../src/ui/Hero';
 import { Icon } from '../../src/ui/Icon';
 import { Pill } from '../../src/ui/Pill';
 import { SOCIAL_ENABLED } from '../../src/lib/features';
+import { Glass } from '../../src/ui/Glass';
+import { TAB_BAR_SPACE } from '../../src/ui/GlassTabBar';
 
 type TripRow = LocalTrip & { synopsis: string; packingRatio: number; spentAmount: number };
 type Filter = 'all' | 'upcoming' | 'past';
@@ -38,6 +41,7 @@ export default function JourneysTab() {
   const [filter, setFilter] = useState<Filter>('all');
   const [recordingTripId, setRecordingTripId] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
+  const insets = useSafeAreaInsets();
 
   const load = useCallback(async () => {
     const raw = journeysOnly(await listTrips());
@@ -204,7 +208,7 @@ export default function JourneysTab() {
         keyExtractor={t => t.id}
         ListHeaderComponent={header}
         refreshControl={<RefreshControl refreshing={syncing} onRefresh={onRefresh} tintColor={colors.primary} colors={[colors.primary]} />}
-        contentContainerStyle={{ padding: 16, paddingBottom: 110 }}
+        contentContainerStyle={{ padding: 16, paddingBottom: TAB_BAR_SPACE + 80 }}
         ListEmptyComponent={
           loaded ? (
             trips.length ? (
@@ -226,14 +230,23 @@ export default function JourneysTab() {
           <TripCard trip={item} synopsis={item.synopsis} packingRatio={item.packingRatio} tracking={item.id === recordingTripId} spentAmount={item.spentAmount} />
         )}
       />
-      <FAB
-        icon="plus"
-        label={trips.length ? undefined : 'New journey'}
-        style={{ position: 'absolute', right: 16, bottom: 16, backgroundColor: colors.primary }}
-        color={colors.onPrimary}
+      {/* New journey: a brand-coloured glass button floating above the tab bar. */}
+      <Pressable
         onPress={() => router.push('/trip/new')}
+        accessibilityRole="button"
         accessibilityLabel="Start a new journey"
-      />
+        style={({ pressed }) => ({ position: 'absolute', right: 18, bottom: Math.max(insets.bottom, 10) + 84, transform: [{ scale: pressed ? 0.94 : 1 }] })}
+      >
+        <Glass
+          tint={colors.primary}
+          interactive
+          radius={30}
+          style={{ height: 60, minWidth: 60, paddingHorizontal: trips.length ? 0 : 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, shadowColor: colors.primary, shadowOpacity: 0.35, shadowRadius: 14, shadowOffset: { width: 0, height: 6 }, elevation: 8 }}
+        >
+          <Icon name="plus" size={28} color={colors.onPrimary} />
+          {trips.length ? null : <Text style={{ color: colors.onPrimary, fontWeight: '800', fontSize: 16 }}>New journey</Text>}
+        </Glass>
+      </Pressable>
     </View>
   );
 }

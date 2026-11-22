@@ -22,11 +22,14 @@ import { MomentComposer, type MomentMoney } from './MomentComposer';
 import { pickPhotos, type PickedPhoto } from './photoPicker';
 import { Pill } from '../../ui/Pill';
 import { placeFromCoords, type FoundPlace } from '../../lib/reverseGeocode';
+import { canEditTrip } from '../../lib/crew';
+import { Notice } from '../../ui/Notice';
 
 /** `everyday` is the private journal for ordinary days: no "Day n" counter, a daily prompt. */
 const DAYS_PER_PAGE = 30;
 
-type Props = { trip: LocalTrip; onChanged: () => void; everyday?: boolean };
+/** crewNames: user id → "@username" for moments written by other people in a shared journey. */
+type Props = { trip: LocalTrip; onChanged: () => void; everyday?: boolean; crewNames?: Record<string, string> };
 
 async function currentFix() {
   const { status } = await Location.requestForegroundPermissionsAsync();
@@ -36,7 +39,7 @@ async function currentFix() {
   return pos.coords;
 }
 
-export function JournalTab({ trip, onChanged, everyday = false }: Props) {
+export function JournalTab({ trip, onChanged, everyday = false, crewNames = {} }: Props) {
   const { colors } = useAppTheme();
   const toast = useToast();
   const canConnect = useCanConnect();
@@ -263,11 +266,18 @@ export function JournalTab({ trip, onChanged, everyday = false }: Props) {
   }, [entries, trip.starts_on, everyday]);
 
   const moneyByMoment = useMemo(() => totalsByMoment(expenses), [expenses]);
+  const canEdit = canEditTrip(trip);
+  const mentionable = useMemo(
+    () => Object.values(crewNames).filter(n => n.startsWith('@')).map(n => n.slice(1)),
+    [crewNames]
+  );
   const symbol = currencySymbol(trip.currency || 'INR');
 
   return (
     <View>
+      {canEdit ? (
       <MomentComposer
+        mentionable={mentionable}
         placeholder={everyday ? 'How was today? Little things count…' : 'What happened? Sights, people, feelings…'}
         text={text}
         onText={setText}
@@ -288,6 +298,9 @@ export function JournalTab({ trip, onChanged, everyday = false }: Props) {
         canSave={Boolean(text.trim() || photos.length || money)}
         onSave={save}
       />
+      ) : (
+        <Notice text="You're a member of this journey: you see every moment. An admin can make you an admin so you can add your own." />
+      )}
 
       {!groups.length ? (
         <EmptyState
@@ -296,7 +309,9 @@ export function JournalTab({ trip, onChanged, everyday = false }: Props) {
           title={everyday ? 'Your first page' : 'Your first moment'}
           body={everyday
             ? 'One line a day is enough. Only you can see this journal, and it works offline.'
-            : 'Write a line, add a photo or record a voice note. It all works offline.'}
+            : canEdit
+              ? 'Write a line, add a photo or record a voice note. It all works offline.'
+              : 'Moments the crew adds will show up here.'}
         />
       ) : null}
 
@@ -318,7 +333,9 @@ export function JournalTab({ trip, onChanged, everyday = false }: Props) {
               money={moneyByMoment.get(e.id)}
               currencySymbol={symbol}
               mediaKey={mediaKey}
-              canShare={social}
+              canShare={social && !e.author_id}
+              canEdit={canEdit}
+              author={e.author_id ? crewNames[e.author_id] ?? 'Crew' : undefined}
               tripId={trip.id}
               onChanged={onChanged}
               onAddPhotos={() => addPhotosToEntry(e.id)}

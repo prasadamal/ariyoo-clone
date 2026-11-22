@@ -4,7 +4,7 @@ import * as SQLite from 'expo-sqlite';
 import { uuid } from './id';
 
 /** Bump when adding a migration step in `migrate()`. */
-const SCHEMA_VERSION = 4;
+const SCHEMA_VERSION = 5;
 
 export type LocalTrip = {
   id: string;
@@ -28,7 +28,17 @@ export type LocalTrip = {
   updated_at: string;
   /** Cover photo, kept on this phone only (never overwritten by a sync). */
   cover_uri?: string | null;
+  /** Crew (shared journeys). Null owner_id: you started it. Set by sync, never by local edits. */
+  owner_id?: string | null;
+  owner_name?: string | null;
+  /** 'owner' | 'admin' | 'member'; null means owner. */
+  my_role?: string | null;
+  /** People in the journey including the owner; 0 when it isn't shared. */
+  crew_count?: number | null;
 };
+
+/** Rows anyone in a shared journey can see carry their author; null means you wrote it. */
+type Authored = { author_id?: string | null };
 
 export type LocalEntry = {
   id: string;
@@ -46,7 +56,7 @@ export type LocalEntry = {
   country_code?: string | null;
   sync_status: string;
   updated_at: string;
-};
+} & Authored;
 
 export type LocalExpense = {
   id: string;
@@ -64,7 +74,7 @@ export type LocalExpense = {
   entry_id?: string | null;
   sync_status: string;
   updated_at: string;
-};
+} & Authored;
 
 export type LocalPackingItem = {
   id: string;
@@ -88,7 +98,7 @@ export type LocalItineraryItem = {
   sort_order: number;
   sync_status: string;
   updated_at: string;
-};
+} & Authored;
 
 export type LocalTrackPoint = {
   id: string;
@@ -110,7 +120,7 @@ export type LocalEntryMedia = {
   mime_type: string | null;
   sync_status: string;
   updated_at: string;
-};
+} & Authored;
 
 export type SyncedTable = 'trips' | 'entries' | 'expenses' | 'packing_items' | 'itinerary_items' | 'entry_media';
 
@@ -276,6 +286,15 @@ async function migrate(database: SQLite.SQLiteDatabase) {
   await addColumnIfMissing(database, 'entries', 'region', 'TEXT');
   await addColumnIfMissing(database, 'entries', 'country_code', 'TEXT');
 
+  // v5: crew. Who started a journey and your role in it; who wrote each shared row.
+  await addColumnIfMissing(database, 'trips', 'owner_id', 'TEXT');
+  await addColumnIfMissing(database, 'trips', 'owner_name', 'TEXT');
+  await addColumnIfMissing(database, 'trips', 'my_role', 'TEXT');
+  await addColumnIfMissing(database, 'trips', 'crew_count', 'INTEGER NOT NULL DEFAULT 0');
+  for (const table of ['entries', 'expenses', 'itinerary_items', 'entry_media']) {
+    await addColumnIfMissing(database, table, 'author_id', 'TEXT');
+  }
+
   await database.execAsync(`PRAGMA user_version = ${SCHEMA_VERSION}`);
 }
 
@@ -398,12 +417,13 @@ export async function upsertEntry(entry: LocalEntry) {
   const database = await getDb();
   await database.runAsync(
     `INSERT INTO entries (id, trip_id, recorded_at, body, mood, place_name, weather, latitude, longitude, altitude_m,
-       region, country_code, sync_status, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       region, country_code, author_id, sync_status, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
      ON CONFLICT(id) DO UPDATE SET recorded_at=excluded.recorded_at, body=excluded.body, mood=excluded.mood,
        place_name=excluded.place_name, weather=excluded.weather, latitude=excluded.latitude,
        longitude=excluded.longitude, altitude_m=excluded.altitude_m, region=excluded.region,
-       country_code=excluded.country_code, sync_status=excluded.sync_status, updated_at=excluded.updated_at`,
+       country_code=excluded.country_code, author_id=COALESCE(excluded.author_id, author_id),
+       sync_status=excluded.sync_status, updated_at=excluded.updated_at`,
     [
       entry.id,
       entry.trip_id,
@@ -417,17 +437,18 @@ export async function upsertEntry(entry: LocalEntry) {
       entry.altitude_m ?? null,
       entry.region ?? null,
       entry.country_code ?? null,
+      entry.author_id ?? null,
       entry.sync_status,
       entry.updated_at,
     ]
   );
 }
 
-/** Moments with a location whose state/country hasn't been looked up yet (newest first). */
+/** Your moments with a location whose state/country hasn't been looked up yet (newest first). */
 export async function entriesNeedingPlace(limit: number) {
   const database = await getDb();
   return database.getAllAsync<LocalEntry>(
-    'SELECT * FROM entries WHERE latitude IS NOT NULL AND longitude IS NOT NULL AND country_code IS NULL ORDER BY recorded_at DESC LIMIT ?',
+    'SELECT * FROM entries WHERE author_id IS NULL AND latitude IS NOT NULL AND longitude IS NOT NULL AND country_code IS NULL ORDER BY recorded_at DESC LIMIT ?',
     [limit]
   );
 }
@@ -452,7 +473,8 @@ export async function deleteEntry(id: string) {
   );
   await tombstone('entries', id);
   for (const m of media) {
-    if (m.storage_path) await tombstone('entry_media', m.id, m.storage_path);
+    // Someone else's photo file sits in their folder: the cloud row goes with the moment, the file stays theirs.
+    if (m.storage_path && !m.author_id) await tombstone('entry_media', m.id, m.storage_path);
   }
   await database.runAsync('DELETE FROM entry_media WHERE entry_id = ?', [id]);
   await database.runAsync('DELETE FROM entries WHERE id = ?', [id]);
@@ -478,11 +500,12 @@ export async function listAllExpenses() {
 export async function upsertExpense(expense: LocalExpense) {
   const database = await getDb();
   await database.runAsync(
-    `INSERT INTO expenses (id, trip_id, category, amount, currency, note, spent_on, paid_by, split_with, entry_id, sync_status, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `INSERT INTO expenses (id, trip_id, category, amount, currency, note, spent_on, paid_by, split_with, entry_id, author_id, sync_status, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
      ON CONFLICT(id) DO UPDATE SET category=excluded.category, amount=excluded.amount, currency=excluded.currency,
        note=excluded.note, spent_on=excluded.spent_on, paid_by=excluded.paid_by, split_with=excluded.split_with,
-       entry_id=excluded.entry_id, sync_status=excluded.sync_status, updated_at=excluded.updated_at`,
+       entry_id=excluded.entry_id, author_id=COALESCE(excluded.author_id, author_id),
+       sync_status=excluded.sync_status, updated_at=excluded.updated_at`,
     [
       expense.id,
       expense.trip_id,
@@ -494,6 +517,7 @@ export async function upsertExpense(expense: LocalExpense) {
       expense.paid_by ?? null,
       expense.split_with || '[]',
       expense.entry_id ?? null,
+      expense.author_id ?? null,
       expense.sync_status,
       expense.updated_at,
     ]
@@ -504,6 +528,36 @@ export async function upsertExpense(expense: LocalExpense) {
 export async function setTripCover(tripId: string, uri: string | null) {
   const database = await getDb();
   await database.runAsync('UPDATE trips SET cover_uri = ? WHERE id = ?', [uri, tripId]);
+}
+
+/** Crew details from the cloud. Separate from upsertTrip so a local edit can never change them. */
+export async function setTripShare(
+  tripId: string,
+  share: { ownerId: string | null; ownerName: string | null; role: string; crewCount: number }
+) {
+  const database = await getDb();
+  await database.runAsync('UPDATE trips SET owner_id = ?, owner_name = ?, my_role = ?, crew_count = ? WHERE id = ?', [
+    share.ownerId,
+    share.ownerName,
+    share.role === 'owner' ? null : share.role,
+    share.crewCount,
+    tripId,
+  ]);
+}
+
+/**
+ * As a member you can't change a shared journey, so anything still waiting to upload there (say you were
+ * an admin a moment ago) is dropped; the next pull brings back the journey as it is.
+ */
+export async function discardPendingInTrip(tripId: string) {
+  const database = await getDb();
+  await database.runAsync("UPDATE trips SET sync_status = 'synced', updated_at = '1970-01-01T00:00:00.000Z' WHERE id = ? AND sync_status = 'pending'", [tripId]);
+  for (const table of ['entries', 'expenses', 'itinerary_items', 'entry_media']) {
+    await database.runAsync(
+      `UPDATE ${table} SET sync_status = 'synced', updated_at = '1970-01-01T00:00:00.000Z' WHERE trip_id = ? AND sync_status = 'pending'`,
+      [tripId]
+    );
+  }
 }
 
 export async function deleteExpense(id: string) {
@@ -620,11 +674,12 @@ export async function upsertItineraryItem(item: LocalItineraryItem) {
   const database = await getDb();
   await database.runAsync(
     `INSERT INTO itinerary_items (id, trip_id, day_index, title, notes, start_time, place_name, done, sort_order,
-       sync_status, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       author_id, sync_status, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
      ON CONFLICT(id) DO UPDATE SET day_index=excluded.day_index, title=excluded.title, notes=excluded.notes,
        start_time=excluded.start_time, place_name=excluded.place_name, done=excluded.done,
-       sort_order=excluded.sort_order, sync_status=excluded.sync_status, updated_at=excluded.updated_at`,
+       sort_order=excluded.sort_order, author_id=COALESCE(excluded.author_id, author_id),
+       sync_status=excluded.sync_status, updated_at=excluded.updated_at`,
     [
       item.id,
       item.trip_id,
@@ -635,6 +690,7 @@ export async function upsertItineraryItem(item: LocalItineraryItem) {
       item.place_name,
       item.done,
       item.sort_order,
+      item.author_id ?? null,
       item.sync_status,
       item.updated_at,
     ]
@@ -725,11 +781,11 @@ export async function countAllMedia() {
 export async function upsertEntryMedia(media: LocalEntryMedia) {
   const database = await getDb();
   await database.runAsync(
-    `INSERT INTO entry_media (id, trip_id, entry_id, local_uri, storage_path, mime_type, sync_status, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `INSERT INTO entry_media (id, trip_id, entry_id, local_uri, storage_path, mime_type, author_id, sync_status, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
      ON CONFLICT(id) DO UPDATE SET
        local_uri=excluded.local_uri, storage_path=excluded.storage_path, mime_type=excluded.mime_type,
-       sync_status=excluded.sync_status, updated_at=excluded.updated_at`,
+       author_id=COALESCE(excluded.author_id, author_id), sync_status=excluded.sync_status, updated_at=excluded.updated_at`,
     [
       media.id,
       media.trip_id,
@@ -737,6 +793,7 @@ export async function upsertEntryMedia(media: LocalEntryMedia) {
       media.local_uri,
       media.storage_path,
       media.mime_type,
+      media.author_id ?? null,
       media.sync_status,
       media.updated_at,
     ]
@@ -746,7 +803,7 @@ export async function upsertEntryMedia(media: LocalEntryMedia) {
 export async function deleteEntryMedia(id: string) {
   const database = await getDb();
   const media = await database.getFirstAsync<LocalEntryMedia>('SELECT * FROM entry_media WHERE id = ?', [id]);
-  if (media?.storage_path) await tombstone('entry_media', id, media.storage_path);
+  if (media?.storage_path && !media.author_id) await tombstone('entry_media', id, media.storage_path);
   else await tombstone('entry_media', id);
   await database.runAsync('DELETE FROM entry_media WHERE id = ?', [id]);
 }
@@ -828,22 +885,31 @@ export async function removeSyncedRowsNotIn(table: Exclude<SyncedTable, 'trips'>
   return removed;
 }
 
-/** Trips deleted elsewhere: remove them (and their children) locally. */
+/** Removes a journey and everything in it from this phone only (nothing is deleted in the cloud). */
+export async function forgetTrip(tripId: string) {
+  const database = await getDb();
+  await database.withTransactionAsync(async () => {
+    await database.runAsync('DELETE FROM entry_media WHERE trip_id = ?', [tripId]);
+    await database.runAsync('DELETE FROM entries WHERE trip_id = ?', [tripId]);
+    await database.runAsync('DELETE FROM expenses WHERE trip_id = ?', [tripId]);
+    await database.runAsync('DELETE FROM packing_items WHERE trip_id = ?', [tripId]);
+    await database.runAsync('DELETE FROM itinerary_items WHERE trip_id = ?', [tripId]);
+    await database.runAsync('DELETE FROM track_points WHERE trip_id = ?', [tripId]);
+    await database.runAsync('DELETE FROM trips WHERE id = ?', [tripId]);
+  });
+}
+
+/** Trips deleted elsewhere (or a shared journey you left or were removed from): remove them locally. */
 export async function removeSyncedTripsNotIn(keepIds: Set<string>) {
   const database = await getDb();
-  const rows = await database.getAllAsync<{ id: string }>("SELECT id FROM trips WHERE sync_status = 'synced'");
+  // A shared journey you lost access to goes even with unsent changes: they can no longer be saved.
+  const rows = await database.getAllAsync<{ id: string }>(
+    "SELECT id FROM trips WHERE sync_status = 'synced' OR owner_id IS NOT NULL"
+  );
   let removed = 0;
   for (const r of rows) {
     if (keepIds.has(r.id)) continue;
-    await database.withTransactionAsync(async () => {
-      await database.runAsync('DELETE FROM entry_media WHERE trip_id = ?', [r.id]);
-      await database.runAsync('DELETE FROM entries WHERE trip_id = ?', [r.id]);
-      await database.runAsync('DELETE FROM expenses WHERE trip_id = ?', [r.id]);
-      await database.runAsync('DELETE FROM packing_items WHERE trip_id = ?', [r.id]);
-      await database.runAsync('DELETE FROM itinerary_items WHERE trip_id = ?', [r.id]);
-      await database.runAsync('DELETE FROM track_points WHERE trip_id = ?', [r.id]);
-      await database.runAsync('DELETE FROM trips WHERE id = ?', [r.id]);
-    });
+    await forgetTrip(r.id);
     removed++;
   }
   return removed;
