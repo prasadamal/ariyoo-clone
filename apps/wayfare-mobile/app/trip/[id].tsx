@@ -218,7 +218,7 @@ export default function TripDetailScreen() {
                         : 'PLANNING'}
               </Text>
             </View>
-            <Text variant="headlineSmall" style={{ color: '#fff', fontWeight: '900', marginTop: 6 }}>
+            <Text variant="headlineSmall" style={{ color: '#fff', fontWeight: '900', marginTop: 6 }} numberOfLines={2}>
               {trip.title}
             </Text>
             {trip.owner_id && trip.owner_name ? (

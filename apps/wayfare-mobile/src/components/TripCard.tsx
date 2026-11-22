@@ -28,9 +28,9 @@ export function tripTypeIcon(type: string) {
 }
 
 /** coverUri: the cover to show (your chosen photo, or the newest moment photo). */
-type Props = { trip: LocalTrip; synopsis: string; packingRatio: number; tracking?: boolean; spentAmount?: number; coverUri?: string | null };
+type Props = { trip: LocalTrip; synopsis: string; packingRatio: number; tracking?: boolean; spentAmount?: number; coverUri?: string | null; showUpload?: boolean };
 
-export function TripCard({ trip, synopsis, packingRatio, tracking, spentAmount = 0, coverUri }: Props) {
+export function TripCard({ trip, synopsis, packingRatio, tracking, spentAmount = 0, coverUri, showUpload = true }: Props) {
   const cover = coverUri === undefined ? trip.cover_uri : coverUri;
   const { colors } = useAppTheme();
   const phase = tripPhase(trip.starts_on, trip.ends_on);
@@ -71,7 +71,7 @@ export function TripCard({ trip, synopsis, packingRatio, tracking, spentAmount =
               <Text style={{ color: '#fff', fontSize: 12, fontWeight: '700' }}>{trip.crew_count}</Text>
             </View>
           ) : null}
-          {trip.sync_status === 'pending' ? <Icon name="cloud-upload-outline" size={16} color="#ffffffaa" /> : null}
+          {showUpload && trip.sync_status === 'pending' ? <Icon name="cloud-upload-outline" size={16} color="#ffffffaa" /> : null}
         </View>
         <Text variant="titleLarge" style={{ color: '#fff', fontWeight: '800', marginTop: 10 }} numberOfLines={2}>
           {trip.title}

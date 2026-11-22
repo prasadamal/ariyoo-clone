@@ -66,7 +66,7 @@ export default function EditEntryScreen() {
 
   return (
     <Screen>
-      <Text style={{ color: colors.muted, marginBottom: 10 }}>{new Date(entry.recorded_at).toLocaleString('en-IN')}</Text>
+      <Text style={{ color: colors.muted, marginBottom: 10 }}>{new Date(entry.recorded_at).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })} · {new Date(entry.recorded_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</Text>
       <View style={{ gap: 12 }}>
         <TextInput mode="outlined" label="What happened?" value={body} onChangeText={setBody} multiline style={{ minHeight: 140 }} />
         <TextInput mode="outlined" label="Place" value={place} onChangeText={setPlace} left={<TextInput.Icon icon="map-marker-outline" />} />

@@ -234,7 +234,7 @@ export default function SafetyScreen() {
         ) : null}
       </View>
       <Text style={{ color: colors.muted, fontSize: 12, marginTop: 6 }}>
-        Emergency numbers for {numbers.country}
+        {numbers.country === 'Anywhere' ? 'International emergency number' : `Emergency numbers for ${numbers.country}`}
         {numbers.tourist ? ' · tourist helpline' : ''}. Change country:
       </Text>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
