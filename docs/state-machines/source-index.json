@@ -529,7 +529,7 @@
       "evidence": [
         {
           "line": 2,
-          "text": "import { useCallback, useMemo, useState } from 'react';"
+          "text": "import { useCallback, useEffect, useMemo, useState } from 'react';"
         },
         {
           "line": 40,
@@ -548,15 +548,15 @@
           "text": "const [loaded, setLoaded] = useState(false);"
         },
         {
-          "line": 94,
+          "line": 99,
           "text": "const phase = tripPhase(t.starts_on, t.ends_on);"
         },
         {
-          "line": 96,
+          "line": 101,
           "text": "return t.status === 'completed' || phase === 'past';"
         },
         {
-          "line": 112,
+          "line": 117,
           "text": "? `${pending} change${pending === 1 ? '' : 's'} waiting to sync`"
         }
       ]
@@ -582,15 +582,15 @@
       "path": "apps/wayfare-mobile/app/(tabs)/profile.tsx",
       "evidence": [
         {
-          "line": 3,
+          "line": 2,
           "text": "import { useCallback, useMemo, useState } from 'react';"
         },
         {
-          "line": 56,
+          "line": 54,
           "text": "const [stats, setStats] = useState<TravelStats | null>(null);"
         },
         {
-          "line": 57,
+          "line": 55,
           "text": "const [spentThisYear, setSpentThisYear] = useState(0);"
         }
       ]

@@ -87,7 +87,7 @@ function useReduceTransparency() {
   return reduce;
 }
 
-/** "#c2410c" + 0.8 → "rgba(194,65,12,0.8)". Other colour formats are returned unchanged. */
+/** "#6a01a3" + 0.8 → "rgba(194,65,12,0.8)". Other colour formats are returned unchanged. */
 export function withAlpha(color: string, alpha: number) {
   const m = /^#([0-9a-f]{6})$/i.exec(color);
   if (!m) return color;

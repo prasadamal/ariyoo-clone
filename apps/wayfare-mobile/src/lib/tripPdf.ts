@@ -60,7 +60,7 @@ export async function exportTripJournalPdf(trip: LocalTrip) {
   <html><head><meta charset="utf-8" />
   <style>
     body { font-family: Georgia, serif; color: #1c1917; padding: 32px; max-width: 720px; margin: auto; }
-    h1 { color: #c2410c; font-size: 28px; margin-bottom: 4px; }
+    h1 { color: #6a01a3; font-size: 28px; margin-bottom: 4px; }
     .sub { color: #57534e; margin-bottom: 20px; }
     .stats { background: #fafaf9; padding: 12px 16px; border-radius: 8px; margin-bottom: 24px; border: 1px solid #e7e5e4; }
     .entry { border-left: 3px solid #0f766e; padding-left: 12px; margin-bottom: 20px; page-break-inside: avoid; }

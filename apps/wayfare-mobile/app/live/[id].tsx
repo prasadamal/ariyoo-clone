@@ -49,7 +49,7 @@ export default function LiveViewerScreen() {
         <View style={{ height: 360, borderRadius: 18, overflow: 'hidden', marginTop: 8 }}>
           <MapView style={{ flex: 1 }} region={region}>
             <Marker coordinate={region} title={data.display_name} pinColor={colors.primary} />
-            {data.accuracy_m ? <Circle center={region} radius={data.accuracy_m} fillColor="#c2410c22" strokeColor="#c2410c66" /> : null}
+            {data.accuracy_m ? <Circle center={region} radius={data.accuracy_m} fillColor="#6a01a322" strokeColor="#6a01a366" /> : null}
           </MapView>
         </View>
       ) : region ? null : (
