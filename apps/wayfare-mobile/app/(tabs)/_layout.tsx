@@ -3,6 +3,7 @@ import { useInbox } from '../../src/context/InboxContext';
 import { useAppTheme } from '../../src/theme';
 import { Icon } from '../../src/ui/Icon';
 import { SOCIAL_ENABLED } from '../../src/lib/features';
+import { GlassTabBar } from '../../src/ui/GlassTabBar';
 
 // While social features are off the bar is Journeys · Journal · You; the social tabs stay in the code
 // (href: null hides a tab without removing its screen) and come back with the switch.
@@ -14,10 +15,12 @@ export default function TabsLayout() {
   const inboxBadge = unreadMessages + unreadNotifications;
   return (
     <Tabs
+      // The bar floats over the content as glass (see GlassTabBar); screens leave room at the bottom.
+      tabBar={props => <GlassTabBar {...props} />}
       screenOptions={{
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.muted,
-        tabBarStyle: { backgroundColor: colors.surface, borderTopColor: colors.border },
+        tabBarStyle: { position: 'absolute' },
         headerStyle: { backgroundColor: colors.background },
         headerTintColor: colors.onSurface,
         headerTitleStyle: { fontWeight: '800' },
@@ -37,6 +40,7 @@ export default function TabsLayout() {
         name="journal"
         options={{
           title: 'Journal',
+          headerShown: false, // the diary draws its own header with its name
           tabBarIcon: ({ color, size }) => <Icon name="notebook-outline" color={color} size={size} />,
         }}
       />

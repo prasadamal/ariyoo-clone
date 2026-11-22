@@ -68,7 +68,7 @@ export default function WrappedScreen() {
   };
 
   return (
-    <LinearGradient colors={['#1c1917', '#431407', '#7c2d12']} style={{ flex: 1 }}>
+    <LinearGradient colors={['#1c1917', '#2a0045', '#3f0263']} style={{ flex: 1 }}>
       <SafeAreaView style={{ flex: 1 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8 }}>
           <IconButton icon="close" iconColor="#fff" onPress={() => router.back()} accessibilityLabel="Close" />
@@ -84,7 +84,7 @@ export default function WrappedScreen() {
         ) : (
           <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
             <View ref={cardRef} collapsable={false} style={{ borderRadius: 28, overflow: 'hidden' }}>
-              <LinearGradient colors={['#ea580c', '#9a3412', '#4c1d95']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ padding: 22 }}>
+              <LinearGradient colors={['#6a01a3', '#3f0263', '#4c1d95']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ padding: 22 }}>
                 <Text style={{ color: '#ffffffcc', fontWeight: '800', letterSpacing: 2 }}>WAYFARE · {summary.year}</Text>
                 <Text style={{ color: '#fff', fontSize: 34, fontWeight: '900', marginTop: 8, lineHeight: 38 }}>
                   {profile?.display_name ? `${profile.display_name.split(' ')[0]}’s` : 'My'} year in travel
@@ -130,7 +130,7 @@ export default function WrappedScreen() {
                 <Text style={{ color: '#ffffff99', marginTop: 18, fontSize: 11, fontWeight: '700', letterSpacing: 1 }}>YOUR JOURNEY, JOURNALED · WAYFARE</Text>
               </LinearGradient>
             </View>
-            <Button mode="contained" icon="share-variant" buttonColor="#fff" textColor="#7c2d12" style={{ marginTop: 18 }} onPress={share} loading={sharing} disabled={sharing}>
+            <Button mode="contained" icon="share-variant" buttonColor="#fff" textColor="#3f0263" style={{ marginTop: 18 }} onPress={share} loading={sharing} disabled={sharing}>
               Share my year
             </Button>
             {summary.stats.trips === 0 ? (

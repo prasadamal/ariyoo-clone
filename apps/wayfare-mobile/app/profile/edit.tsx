@@ -1,3 +1,4 @@
+import { capitalizeWords } from '../../src/lib/names';
 import * as ImagePicker from 'expo-image-picker';
 import { router, Stack } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
@@ -133,7 +134,7 @@ export default function EditProfileScreen() {
         </View>
       </Pressable>
       <View style={{ gap: 10, padding: 16 }}>
-        <TextInput mode="outlined" label="Name" value={name} onChangeText={setName} maxLength={60} />
+        <TextInput mode="outlined" label="Name" value={name} onChangeText={t => setName(capitalizeWords(t))} maxLength={60} />
         <TextInput
           mode="outlined"
           label="Username"

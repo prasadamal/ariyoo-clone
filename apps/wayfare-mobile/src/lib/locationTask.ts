@@ -74,7 +74,7 @@ async function refreshLocationUpdatesLocked() {
           ? 'Recording your route · sharing live location'
           : 'Recording your trip route'
         : 'Sharing your live location',
-      notificationColor: '#c2410c',
+      notificationColor: '#6a01a3',
     },
   });
 }

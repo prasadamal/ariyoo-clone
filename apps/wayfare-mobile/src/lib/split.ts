@@ -1,3 +1,5 @@
+import { capitalizeName } from './names';
+
 /** Group expense splitting ("who owes whom") — pure, currency-agnostic math. */
 
 export const ME = 'Me';
@@ -19,7 +21,7 @@ export function parseCompanions(text: string | null | undefined): string[] {
   const seen = new Set<string>();
   const out: string[] = [];
   for (const raw of text.split(/[,;\n]+/)) {
-    const name = raw.trim().replace(/\s+/g, ' ');
+    const name = capitalizeName(raw);
     if (!name || name.toLowerCase() === ME.toLowerCase()) continue;
     const key = name.toLowerCase();
     if (seen.has(key)) continue;

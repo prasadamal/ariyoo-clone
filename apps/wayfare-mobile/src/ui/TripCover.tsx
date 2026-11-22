@@ -3,6 +3,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import type { ReactNode } from 'react';
 import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import { Text } from 'react-native-paper';
+import { GlassArea } from './Glass';
 import { Icon } from './Icon';
 
 type Props = {
@@ -13,6 +14,8 @@ type Props = {
   /** Total spent so far, for example "₹15,000". */
   spent?: string;
   style?: StyleProp<ViewStyle>;
+  /** The cover holds glass controls: let Android blur the photo behind them (the journey page). */
+  glass?: boolean;
   children: ReactNode;
 };
 
@@ -20,17 +23,25 @@ type Props = {
  * The top of a journey card or page: the cover photo with a dark fade so white text stays readable,
  * or a colour gradient when there is no photo. The total spent is a small label in the corner.
  */
-export function TripCover({ uri, gradient, spent, style, children }: Props) {
+export function TripCover({ uri, gradient, spent, style, glass, children }: Props) {
+  const background = uri ? (
+    <>
+      <Image source={{ uri }} style={StyleSheet.absoluteFill} contentFit="cover" transition={150} accessibilityElementsHidden />
+      <LinearGradient colors={['rgba(0,0,0,0.15)', 'rgba(0,0,0,0.72)']} style={StyleSheet.absoluteFill} />
+    </>
+  ) : (
+    <LinearGradient colors={gradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
+  );
+  if (glass) {
+    return (
+      <GlassArea background={background} style={[{ overflow: 'hidden' }, style]}>
+        {children}
+      </GlassArea>
+    );
+  }
   return (
     <View style={[{ overflow: 'hidden' }, style]}>
-      {uri ? (
-        <>
-          <Image source={{ uri }} style={StyleSheet.absoluteFill} contentFit="cover" transition={150} accessibilityElementsHidden />
-          <LinearGradient colors={['rgba(0,0,0,0.15)', 'rgba(0,0,0,0.72)']} style={StyleSheet.absoluteFill} />
-        </>
-      ) : (
-        <LinearGradient colors={gradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
-      )}
+      {background}
       {children}
       {spent ? (
         <View

@@ -4,13 +4,15 @@ import { Button, Checkbox, Dialog, IconButton, Menu, Portal, Text, TextInput } f
 import { uuid } from '../../lib/id';
 import { getDestination } from '../../content/destinations';
 import { dayCount, formatDay, parseDay, toDayString } from '../../lib/format';
+import { typeTime } from '../../lib/timeInput';
 import { deleteItineraryItem, listItinerary, upsertItineraryItem, type LocalItineraryItem, type LocalTrip } from '../../lib/localDb';
 import { fetchForecast, weatherCodeIcon, weatherCodeLabel, type ForecastDay } from '../../lib/weather';
 import { useAppTheme } from '../../theme';
 import { EmptyState } from '../../ui/EmptyState';
 import { Icon } from '../../ui/Icon';
 
-type Props = { trip: LocalTrip; onChanged: () => void };
+/** readOnly: a crew member (not an admin) sees the plan but can't change it. */
+type Props = { trip: LocalTrip; onChanged: () => void; readOnly?: boolean };
 
 const TIME_RE = /^([01]?\d|2[0-3]):([0-5]\d)$/;
 
@@ -19,7 +21,7 @@ function normalizeTime(t: string) {
   return m ? `${m[1].padStart(2, '0')}:${m[2]}` : null;
 }
 
-export function PlanTab({ trip, onChanged }: Props) {
+export function PlanTab({ trip, onChanged, readOnly = false }: Props) {
   const { colors } = useAppTheme();
   const [items, setItems] = useState<LocalItineraryItem[]>([]);
   const [extraDays, setExtraDays] = useState(0);
@@ -154,7 +156,12 @@ export function PlanTab({ trip, onChanged }: Props) {
           {doneCount}/{items.length} planned stops done
         </Text>
       ) : (
-        <EmptyState compact icon="calendar-text-outline" title="Plan each day" body="Add stops, timings and ideas per day. Tick them off as you go — it works offline." />
+        <EmptyState
+          compact
+          icon="calendar-text-outline"
+          title={readOnly ? 'No plan yet' : 'Plan each day'}
+          body={readOnly ? 'When the owner or an admin plans the days, you will see them here.' : 'Add stops, timings and ideas per day. Tick them off as you go — it works offline.'}
+        />
       )}
       {days.map(day => {
         const f = day.date ? forecast[day.date] : undefined;
@@ -175,6 +182,7 @@ export function PlanTab({ trip, onChanged }: Props) {
                   </Text>
                 </View>
               ) : null}
+              {readOnly ? null : (
               <Menu
                 visible={menuDay === day.index}
                 onDismiss={() => setMenuDay(null)}
@@ -185,29 +193,42 @@ export function PlanTab({ trip, onChanged }: Props) {
                   <Menu.Item leadingIcon="delete-outline" title="Delete this day" onPress={removeExtraDay} />
                 ) : null}
               </Menu>
+              )}
             </View>
             {day.items.map(item => (
-              <Pressable key={item.id} onPress={() => startEdit(item)} onLongPress={() => remove(item)} accessibilityLabel={`Edit ${item.title}`} style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <Checkbox.Android status={item.done ? 'checked' : 'unchecked'} onPress={() => toggle(item)} />
+              <Pressable
+                key={item.id}
+                disabled={readOnly}
+                onPress={() => startEdit(item)}
+                onLongPress={() => remove(item)}
+                accessibilityLabel={readOnly ? item.title : `Edit ${item.title}`}
+                style={{ flexDirection: 'row', alignItems: 'center', minHeight: readOnly ? 40 : undefined }}
+              >
+                <Checkbox.Android status={item.done ? 'checked' : 'unchecked'} disabled={readOnly} onPress={() => toggle(item)} />
                 <View style={{ flex: 1 }}>
                   <Text style={{ textDecorationLine: item.done ? 'line-through' : 'none', color: item.done ? colors.muted : colors.onSurface }}>
                     {item.start_time ? <Text style={{ fontWeight: '700', color: colors.primary }}>{item.start_time} </Text> : null}
                     {item.title}
                   </Text>
                 </View>
-                <IconButton icon="pencil-outline" size={16} onPress={() => startEdit(item)} accessibilityLabel={`Edit ${item.title}`} />
-                <IconButton icon="delete-outline" size={18} onPress={() => remove(item)} accessibilityLabel={`Remove ${item.title}`} />
+                {readOnly ? null : (
+                  <>
+                    <IconButton icon="pencil-outline" size={16} onPress={() => startEdit(item)} accessibilityLabel={`Edit ${item.title}`} />
+                    <IconButton icon="delete-outline" size={18} onPress={() => remove(item)} accessibilityLabel={`Remove ${item.title}`} />
+                  </>
+                )}
               </Pressable>
             ))}
+            {readOnly ? null : (
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 }}>
               <TextInput
                 dense
                 mode="outlined"
                 placeholder="06:30"
                 value={draft.time}
-                onChangeText={t => setDrafts(prev => ({ ...prev, [day.index]: { ...draft, time: t } }))}
+                onChangeText={t => setDrafts(prev => ({ ...prev, [day.index]: { ...draft, time: typeTime(t) } }))}
                 style={{ width: 76 }}
-                keyboardType="numbers-and-punctuation"
+                keyboardType="number-pad"
                 maxLength={5}
               />
               <TextInput
@@ -223,19 +244,22 @@ export function PlanTab({ trip, onChanged }: Props) {
               />
               <IconButton icon="plus-circle" iconColor={colors.primary} onPress={() => add(day.index)} accessibilityLabel={`Add to day ${day.index + 1}`} />
             </View>
+            )}
           </View>
         );
       })}
-      <Button icon="calendar-plus" onPress={() => setExtraDays(n => n + 1)}>
-        Add a day
-      </Button>
+      {readOnly ? null : (
+        <Button icon="calendar-plus" onPress={() => setExtraDays(n => n + 1)}>
+          Add a day
+        </Button>
+      )}
       <Portal>
         <Dialog visible={editing !== null} onDismiss={() => setEditing(null)}>
           <Dialog.Title>Edit plan</Dialog.Title>
           <Dialog.Content>
             <TextInput mode="outlined" label="What" value={editTitle} onChangeText={setEditTitle} maxLength={200} autoFocus />
             <View style={{ height: 10 }} />
-            <TextInput mode="outlined" label="Time (24-hour, optional)" placeholder="06:30" value={editTime} onChangeText={setEditTime} maxLength={5} keyboardType="numbers-and-punctuation" />
+            <TextInput mode="outlined" label="Time (24-hour, optional)" placeholder="06:30" value={editTime} onChangeText={t => setEditTime(typeTime(t))} maxLength={5} keyboardType="number-pad" />
           </Dialog.Content>
           <Dialog.Actions>
             <Button onPress={() => setEditing(null)}>Cancel</Button>

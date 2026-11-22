@@ -136,6 +136,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signUp = useCallback(async (email: string, password: string, displayName: string, username?: string) => {
     if (!supabase) throw new Error('Cloud sign-up is not configured in this build');
+    // Accounts are created already confirmed (no email to wait for), then signed in right away.
+    // If that service isn't reachable, fall back to the normal Supabase sign-up.
+    let created = false;
+    if (username) {
+      try {
+        const { data: made, error: fnError } = await supabase.functions.invoke('signup', {
+          body: { email, password, display_name: displayName, username },
+        });
+        if (fnError) {
+          // A refusal carries the reason ("username taken", "already exists"): show it.
+          const ctx = (fnError as { context?: Response }).context;
+          const body = ctx ? await ctx.json().catch(() => null) : null;
+          if (body?.error) throw new Error(body.error);
+        } else if (made?.ok) created = true;
+      } catch (e) {
+        if (e instanceof Error && !/fetch|network|function/i.test(e.message)) throw e;
+      }
+    }
+    if (created) {
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) throw error;
+      router.replace('/(tabs)');
+      return { needsConfirmation: false };
+    }
     const { data, error } = await supabase.auth.signUp({
       email,
       password,

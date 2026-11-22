@@ -13,7 +13,7 @@ const SLIDES: { title: string; body: string; icon: string; colors: [string, stri
     title: 'Your journey, journaled',
     body: 'Write moments with photos, voice notes, mood and weather — fully offline. Record your GPS route and relive it on a map.',
     icon: 'notebook-edit-outline',
-    colors: ['#ea580c', '#7c2d12'],
+    colors: ['#6a01a3', '#3f0263'],
   },
   {
     title: 'Your people, found',

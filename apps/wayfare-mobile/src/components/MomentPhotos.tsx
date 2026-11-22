@@ -7,13 +7,14 @@ import { isAudio, resolveMediaUri } from '../lib/media';
 import { useAppTheme } from '../theme';
 import { Icon } from '../ui/Icon';
 import { PhotoViewer } from '../ui/PhotoGrid';
+import { Glass } from '../ui/Glass';
 
 /**
  * A moment's photos in one fixed 4:3 window. With several photos the window looks like a small stack
  * (two cards peek out behind it) with a "1/3" counter, and you swipe sideways through them. Tap to view
  * full screen; long-press to remove. Renders nothing when there are no photos.
  */
-export function MomentPhotos({ entryId, refreshKey = 0, onChanged }: { entryId: string; refreshKey?: number; onChanged?: () => void }) {
+export function MomentPhotos({ entryId, refreshKey = 0, onChanged, canEdit = true }: { entryId: string; refreshKey?: number; onChanged?: () => void; canEdit?: boolean }) {
   const { colors } = useAppTheme();
   const [items, setItems] = useState<{ media: LocalEntryMedia; uri: string }[]>([]);
   const [open, setOpen] = useState<number | null>(null);
@@ -73,8 +74,8 @@ export function MomentPhotos({ entryId, refreshKey = 0, onChanged }: { entryId: 
               <Pressable
                 key={item.media.id}
                 onPress={() => setOpen(i)}
-                onLongPress={() => remove(item.media)}
-                accessibilityLabel={`Photo ${i + 1} of ${items.length}. Tap to enlarge, long press to remove.`}
+                onLongPress={canEdit ? () => remove(item.media) : undefined}
+                accessibilityLabel={`Photo ${i + 1} of ${items.length}. Tap to enlarge${canEdit ? ', long press to remove' : ''}.`}
               >
                 <Image source={{ uri: item.uri }} style={{ width, aspectRatio: 4 / 3 }} contentFit="cover" transition={150} />
               </Pressable>
@@ -82,15 +83,17 @@ export function MomentPhotos({ entryId, refreshKey = 0, onChanged }: { entryId: 
           </ScrollView>
         ) : null}
         {many ? (
-          <View
+          <Glass
+            variant="media"
+            radius={999}
             pointerEvents="none"
-            style={{ position: 'absolute', top: 10, right: 10, flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(0,0,0,0.55)', borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3 }}
+            style={{ position: 'absolute', top: 10, right: 10, flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 9, paddingVertical: 4 }}
           >
             <Icon name="image-multiple-outline" size={13} color="#fff" />
             <Text style={{ color: '#fff', fontSize: 12, fontWeight: '700' }}>
               {page + 1}/{items.length}
             </Text>
-          </View>
+          </Glass>
         ) : null}
       </View>
       <PhotoViewer uris={items.map(i => i.uri)} index={open} onClose={() => setOpen(null)} />

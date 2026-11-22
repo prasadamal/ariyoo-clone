@@ -28,9 +28,6 @@ export default function NewTripScreen() {
       currency: d?.currency ?? 'INR',
       startsOn: params.startsOn ? String(params.startsOn) : null,
       endsOn: params.endsOn ? String(params.endsOn) : null,
-      notes: d
-        ? [`Best season: ${d.bestSeason}`, d.permits ? `Permits: ${d.permits}` : '', `Getting there: ${d.transport}`].filter(Boolean).join('\n')
-        : '',
     });
   }, [params.placeKey, params.title, params.tripType, params.startsOn, params.endsOn]);
 

@@ -22,3 +22,9 @@ export function splitMentions(text: string): TextPart[] {
 export function mentionedUsernames(text: string): string[] {
   return [...new Set(splitMentions(text).filter(p => p.mention).map(p => p.mention as string))];
 }
+
+/** The @word being typed at the end of the text, if any ("see you @an" → "an", "@" → ""). */
+export function typingMention(text: string): string | null {
+  const m = /(?:^|\s)@([a-z0-9_.]{0,24})$/i.exec(text);
+  return m ? m[1].toLowerCase() : null;
+}

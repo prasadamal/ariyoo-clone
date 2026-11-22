@@ -1,3 +1,4 @@
+import { capitalizeWords } from '../../lib/names';
 import { useEffect, useState } from 'react';
 import { View } from 'react-native';
 import { Button, HelperText, Switch, Text, TextInput } from 'react-native-paper';
@@ -101,7 +102,7 @@ export function TripForm({ initial, submitLabel, busy, onSubmit }: Props) {
         mode="outlined"
         label="Travelling with (names, comma separated)"
         value={v.companions}
-        onChangeText={t => set({ companions: t })}
+        onChangeText={t => set({ companions: capitalizeWords(t) })}
         left={<TextInput.Icon icon="account-multiple-outline" />}
       />
       <Text style={{ color: colors.muted, fontSize: 12, marginTop: -6 }}>Used to split expenses fairly in the Budget tab.</Text>
@@ -115,7 +116,6 @@ export function TripForm({ initial, submitLabel, busy, onSubmit }: Props) {
         keyboardType="decimal-pad"
         error={budgetInvalid}
       />
-      <TextInput mode="outlined" label="Notes, permits, bookings" value={v.notes} onChangeText={t => set({ notes: t })} multiline numberOfLines={3} />
 
       {SOCIAL_ENABLED ? (
       <>
