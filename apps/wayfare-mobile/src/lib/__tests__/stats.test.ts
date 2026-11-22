@@ -85,14 +85,46 @@ test('travel stats + badges', () => {
   assert.equal(stats.rainEntries, 1);
   assert.equal(stats.maxAltitudeM, 4000);
   const badges = computeBadges(stats);
-  const earned = new Set(badges.filter(b => b.earned).map(b => b.id));
-  for (const id of ['first-steps', 'thin-air', 'marathon', 'early-bird', 'night-owl', 'snow-chaser', 'monsoon-soul']) {
-    assert.ok(earned.has(id), id);
-  }
-  assert.ok(!earned.has('globetrotter'));
-  assert.equal(badges.find(b => b.id === 'globetrotter')?.progress, 2 / 3);
+  const byId = new Map(badges.map(b => [b.id, b]));
+  // Levelled families: 3 journeys is First Steps I (next level at 10); 14 days is Long Haul II.
+  assert.equal(byId.get('journeys')?.level, 1);
+  assert.equal(byId.get('journeys')?.title, 'First Steps I');
+  assert.equal(byId.get('journeys')?.target, 10);
+  assert.equal(byId.get('long-trip')?.level, 2);
+  // Two countries is Globetrotter I; the old weather and altitude one-offs are gone.
+  assert.equal(byId.get('countries')?.level, 1);
+  for (const gone of ['thin-air', 'cloud-walker', 'snow-chaser', 'monsoon-soul']) assert.ok(!byId.has(gone), gone);
+  assert.ok(badges.length <= 10);
   const sorted = sortBadges(badges);
   assert.ok(sorted[0].earned && !sorted[sorted.length - 1].earned);
+});
+
+test('distance badge levels climb by plain rules', () => {
+  const base = computeTravelStats(input);
+  const at = (km: number) => computeBadges({ ...base, kmTravelled: km }).find(b => b.id === 'distance')!;
+  assert.equal(at(999).level, 0);
+  assert.equal(at(1000).level, 1);
+  assert.equal(at(10000).level, 2);
+  assert.equal(at(50000).level, 3);
+  assert.equal(at(100000).level, 4);
+  assert.equal(at(100000).progress, 1);
+  assert.equal(at(5500).progress, 0.5);
+});
+
+test('distance travelled uses moment locations when no route was recorded', () => {
+  const stats = computeTravelStats({
+    trips: [{ id: 'x', title: 'Road trip', destination: null, place_key: null, starts_on: null, ends_on: null, status: 'active' }],
+    entries: [
+      { trip_id: 'x', recorded_at: '2026-01-01T08:00:00Z', mood: null, place_name: null, weather: null, latitude: 12.97, longitude: 77.59, region: 'Karnataka', country_code: 'IN' },
+      { trip_id: 'x', recorded_at: '2026-01-01T18:00:00Z', mood: null, place_name: null, weather: null, latitude: 9.93, longitude: 76.26, region: 'Kerala', country_code: 'IN' },
+    ],
+    trackPointsByTrip: {},
+    photos: 0,
+    voiceNotes: 0,
+  });
+  assert.ok(stats.kmTravelled > 350 && stats.kmTravelled < 400, `${stats.kmTravelled}`); // Bengaluru → Kochi
+  assert.deepEqual(stats.states, ['Karnataka', 'Kerala']);
+  assert.deepEqual(stats.countryCodes, ['IN']);
 });
 
 test('wrapped only counts the chosen year', () => {

@@ -4,7 +4,7 @@ import * as SQLite from 'expo-sqlite';
 import { uuid } from './id';
 
 /** Bump when adding a migration step in `migrate()`. */
-const SCHEMA_VERSION = 3;
+const SCHEMA_VERSION = 4;
 
 export type LocalTrip = {
   id: string;
@@ -41,6 +41,9 @@ export type LocalEntry = {
   latitude: number | null;
   longitude: number | null;
   altitude_m: number | null;
+  /** State / province and ISO country code, looked up from the location (for "states and countries visited"). */
+  region?: string | null;
+  country_code?: string | null;
   sync_status: string;
   updated_at: string;
 };
@@ -269,6 +272,10 @@ async function migrate(database: SQLite.SQLiteDatabase) {
   await addColumnIfMissing(database, 'trips', 'cover_uri', 'TEXT');
   await database.execAsync('CREATE INDEX IF NOT EXISTS expenses_entry_idx ON expenses (entry_id)');
 
+  // v4: where a moment was, as state and country (looked up once from its location).
+  await addColumnIfMissing(database, 'entries', 'region', 'TEXT');
+  await addColumnIfMissing(database, 'entries', 'country_code', 'TEXT');
+
   await database.execAsync(`PRAGMA user_version = ${SCHEMA_VERSION}`);
 }
 
@@ -391,12 +398,12 @@ export async function upsertEntry(entry: LocalEntry) {
   const database = await getDb();
   await database.runAsync(
     `INSERT INTO entries (id, trip_id, recorded_at, body, mood, place_name, weather, latitude, longitude, altitude_m,
-       sync_status, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       region, country_code, sync_status, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
      ON CONFLICT(id) DO UPDATE SET recorded_at=excluded.recorded_at, body=excluded.body, mood=excluded.mood,
        place_name=excluded.place_name, weather=excluded.weather, latitude=excluded.latitude,
-       longitude=excluded.longitude, altitude_m=excluded.altitude_m, sync_status=excluded.sync_status,
-       updated_at=excluded.updated_at`,
+       longitude=excluded.longitude, altitude_m=excluded.altitude_m, region=excluded.region,
+       country_code=excluded.country_code, sync_status=excluded.sync_status, updated_at=excluded.updated_at`,
     [
       entry.id,
       entry.trip_id,
@@ -408,9 +415,29 @@ export async function upsertEntry(entry: LocalEntry) {
       entry.latitude ?? null,
       entry.longitude ?? null,
       entry.altitude_m ?? null,
+      entry.region ?? null,
+      entry.country_code ?? null,
       entry.sync_status,
       entry.updated_at,
     ]
+  );
+}
+
+/** Moments with a location whose state/country hasn't been looked up yet (newest first). */
+export async function entriesNeedingPlace(limit: number) {
+  const database = await getDb();
+  return database.getAllAsync<LocalEntry>(
+    'SELECT * FROM entries WHERE latitude IS NOT NULL AND longitude IS NOT NULL AND country_code IS NULL ORDER BY recorded_at DESC LIMIT ?',
+    [limit]
+  );
+}
+
+/** Save a looked-up place on a moment (and back it up). Keeps a place name the person typed. */
+export async function setEntryPlace(id: string, place: { name: string | null; region: string | null; countryCode: string | null }) {
+  const database = await getDb();
+  await database.runAsync(
+    `UPDATE entries SET place_name = COALESCE(place_name, ?), region = ?, country_code = ?, sync_status = 'pending', updated_at = ? WHERE id = ?`,
+    [place.name, place.region, place.countryCode, new Date().toISOString(), id]
   );
 }
 

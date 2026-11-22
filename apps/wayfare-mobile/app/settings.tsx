@@ -19,6 +19,7 @@ import { Icon } from '../src/ui/Icon';
 import { Notice } from '../src/ui/Notice';
 import { Screen } from '../src/ui/Screen';
 import { SectionHeader } from '../src/ui/SectionHeader';
+import { SOCIAL_ENABLED } from '../src/lib/features';
 
 function ToggleRow({ icon, title, body, value, onChange, disabled }: { icon: string; title: string; body: string; value: boolean; onChange: (v: boolean) => void; disabled?: boolean }) {
   const { colors } = useAppTheme();
@@ -156,7 +157,7 @@ export default function SettingsScreen() {
         disabled={!canConnect}
       />
 
-      {canConnect && profile ? (
+      {canConnect && profile && SOCIAL_ENABLED ? (
         <>
           <SectionHeader title="Privacy" />
           <ToggleRow
