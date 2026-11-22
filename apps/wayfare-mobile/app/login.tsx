@@ -53,7 +53,7 @@ export default function LoginScreen() {
         <Text variant="headlineMedium" style={{ color: '#fff', fontWeight: '800' }}>
           Welcome back
         </Text>
-        <Text style={{ color: '#ffffffd9', marginTop: 4 }}>Your journeys and your travel people are waiting.</Text>
+        <Text style={{ color: '#ffffffd9', marginTop: 4 }}>Your journeys are waiting.</Text>
       </Hero>
       <View style={{ marginTop: 20, gap: 12 }}>
         <TextInput

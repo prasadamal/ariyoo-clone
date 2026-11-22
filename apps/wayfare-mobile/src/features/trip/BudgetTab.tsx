@@ -128,7 +128,7 @@ export function BudgetTab({ trip, onChanged, readOnly = false }: Props) {
         </Text>
         {budget > 0 ? (
           <>
-            <Meter progress={Math.min(1, used)} color={used > 1 ? colors.danger : used > 0.85 ? colors.warning : colors.secondary} height={8} style={{ marginTop: 10 }} />
+            <Meter progress={Math.min(1, used)} color={used > 1 ? colors.danger : used > 0.85 ? colors.warning : colors.primary} height={8} style={{ marginTop: 10 }} />
             <Text style={{ color: used > 1 ? colors.danger : colors.muted, marginTop: 6, fontSize: 13 }}>
               {used > 1
                 ? `${formatMoney(total.total - budget, tripCurrency)} over your ${formatMoney(budget, tripCurrency)} expected budget`
