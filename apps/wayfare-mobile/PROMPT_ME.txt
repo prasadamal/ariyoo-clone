@@ -1,0 +1,179 @@
+WAYFARE — PROMPT ME
+====================
+Read this first. It is the full story of Wayfare so a new developer or AI agent can continue
+without the founder having to explain anything again. Last updated: 23 November 2026.
+
+Founder: Amal Prasad (non-technical; co-founders of the parent company Ariyoo: Akshay K Vijayan, Arif K).
+Repo: github.com/prasadamal/ariyoo-clone  ->  apps/wayfare-mobile  (shares the repo with Ariyoo).
+Working branch used by the AI agent: claude/product-analysis-strategy-a20mgt (merged to main via PRs #16-#19).
+
+
+1. WHAT WAYFARE IS (THE IDEA)
+-----------------------------
+A personal travel journal and diary for your whole life, that works offline.
+- On a trip: write "moments" (text, photos, voice notes, mood, place, weather, money spent),
+  plan each day, track the budget and split costs, keep a packing list, record the GPS route.
+- Every day: a private diary ("My diary") with one page per day.
+- With people you travel with: add them as "crew" to a journey, like a WhatsApp group.
+It began as a travel app plus a social network for travellers (feed, nearby travellers,
+trip matching, travel board, chat). The founder decided the social-media side is OFF for now:
+Wayfare must be useful alone, as a personal journal, before any social features return.
+
+Positioning (marketing): "The trip journal that works with no signal." Lead with offline
+journaling and safety for Indian treks (Himalaya, Western Ghats) and road trips; family can
+follow your live location. Niche competitors: Polarsteps owns travel journaling globally
+(~15M users, paid tier since July 2026); no big player focuses on Indian treks.
+
+
+2. THE END PRODUCT (WHERE IT IS GOING)
+--------------------------------------
+- A beautiful, simple, offline-first journal app on Android first, then iPhone.
+- Look: Apple "Liquid Glass" feel (floating glass tab bar and buttons), the company logo
+  colours (purple #6a01a3 primary, orange #fe9f41 accent), white background, light-gray tiles.
+- Core loops: write moments during trips, write in the diary daily, share a trip with crew,
+  see your year in travel, earn levelled badges, see countries/states visited.
+- Later (only when there are users): switch the social features back on destination by
+  destination (they are hidden behind a flag, not deleted).
+
+
+3. FEATURES THAT EXIST TODAY (all merged to main)
+--------------------------------------------------
+Tabs (bottom bar, floating glass pill): Journeys · Journal · You.
+
+Journeys (home)
+- Greeting; cloud button to back up (status line appears only after tapping the cloud).
+- Pull-to-refresh reloads the list from the phone only (does NOT back up).
+- Quick links row: Year in travel, Badges, Currency, and a filter icon (All / Upcoming / Past)
+  at the right end of that row.
+- "Next up / On the road" card on top with the journey's cover photo; that journey is not
+  repeated in the list below.
+- Journey cards load 5 at a time while scrolling (spinner while loading).
+- Cover = chosen cover photo, otherwise the newest photo from the journey's moments,
+  otherwise one brand gradient for every journey.
+- Glass "+" button to start a journey (hidden on the empty screen, which has its own button).
+
+Journey (trip) page
+- Cover with title (max 2 lines), dates, "Shared by X · you're a member/admin" for shared trips,
+  round glass buttons (crew, ⋯ menu), moment/photo counts and a budget progress bar floating on
+  the cover (no blurred box; no "Shared link" pill).
+- Tabs: Journal, Plan, Budget, Pack, Route, Crew.
+- Journal: moment box (text, mood, photos, voice note, location+weather, ₹ money). Attachments
+  appear as chips above the text like a chat app; voice notes wait in the box until Save.
+  Timeline is oldest first; day labels "Day 1, Day 2" (centred pill), each moment shows its own
+  date and time. Moments load 5 at a time; a strip of Day chips jumps straight to a day.
+  Moment card: header (mood + date/time, or the author's @name in shared trips), photos in one
+  fixed 4:3 window as a stack with a 1/N counter, long text folds behind "See more",
+  @mentions highlighted, location/weather/₹ in grey. No per-moment "not synced" label.
+- Plan: per-day items with a time field that accepts only a real 24h time (digits; colon added).
+- Budget: "Spent so far" tile with Edit/Set budget, remaining amount, categories folded behind
+  an arrow; one "Add expense" button opens a pop-up (Amount, Note with category ideas shown
+  only while typing the note, Paid by, Split between). Currency = the journey's currency, chosen
+  once when the journey is created. People show as "You" and first names only; chips have no
+  tick, only colour. Expenses grouped by day with a daily total; "Settle up" folds away.
+- Pack: personal packing list, copy from a past trip.
+- Route: GPS route recording (foreground service on Android), GPX/GeoJSON export.
+- Crew: add people by @username as Member (view only) or Admin (add, edit, delete anything,
+  manage crew, edit trip details — like a WhatsApp group admin). Owner alone deletes the trip.
+  Anyone can leave; what they added stays. Packing lists and routes stay personal.
+  Typing "@" in the moment box suggests crew usernames.
+- ⋯ menu: Edit details, cover photo, Export PDF journal, Mark complete, Delete (owner) / Leave.
+
+Journal tab = "My diary" (renamable; stored as the everyday-journal trip's title)
+- Today's page is one big writing space that saves as you type (photo optional, no money).
+- Swipe left for earlier days (read only, lock icon); no future pages; calendar icon jumps to
+  any date (nearest earlier written day if that day is empty); "today" button returns.
+- Paper styles: Personal diary (cream ruled paper, serif), Simple note, Lavender, Night.
+
+You tab (simplified on 22-23 Nov)
+- Photo, name, @username, home town, settings gear, Edit profile.
+- One row of 3 stats (journeys, countries, km travelled); one "Your <year>" tile with money spent
+  on travel that opens Year in travel; Places you've been (countries with flags + states, up to
+  8 then "+N more"); one row of badges with "See all".
+- Countries/states come from reverse geocoding a moment's location on the phone
+  (entries.region and entries.country_code).
+
+Badges: 10 families with Bronze/Silver/Gold/Platinum levels on plain rules
+(e.g. Road Runner 1,000 / 10,000 / 50,000 / 100,000 km). Removed on purpose: Thin Air,
+Cloud Walker, Snow Chaser, Monsoon Soul, Early Bird, Night Owl, Voice, Finisher.
+
+Other: Year in travel (wrapped), Safety (SOS, call, live location link, check-in timer,
+emergency contacts), Currency converter (offline rates once downloaded), Settings (theme,
+app lock, notifications, backup, delete account), sign-up with required username,
+names capitalised as typed, login, forgot password, guest mode ("Just journal for now").
+
+
+4. SWITCHED OFF / ON HOLD (code kept, hidden)
+---------------------------------------------
+- All social features: Discover feed, posts, likes, comments, follows, people search,
+  Connect (travel board, nearby travellers, trip matching, place chat rooms), Inbox/chat,
+  "Share to feed", "open to meet", the old social Crew chat, the destination "traveller tips"
+  page opened from the trip header. Flag: EXPO_PUBLIC_WAYFARE_SOCIAL=1 brings them back
+  (src/lib/features.ts, SocialRouteGuard in app/_layout.tsx).
+- "Share read-only link" was removed from the trip menu and banner on request.
+- Journey "Notes, permits, bookings" field removed from the journey form (old notes not shown).
+- Ideas not built yet: places bucket list, travel documents vault, life map, spending insights,
+  photo book export, acclimatisation log, Wayfare admin web page, Google/Apple sign-in,
+  backup ONLY when tapping the cloud (today the app still auto-backs up on open/background;
+  the founder was asked whether to turn auto-backup off — not answered yet).
+
+
+5. FOUNDER PREFERENCES (follow these)
+-------------------------------------
+- Simple, uncluttered, user-friendly; follow platform UI standards; check long names/text.
+- Must be useful alone (personal journal first, social later).
+- Liquid Glass look as a core design element; logo colours; white background; light-gray tiles.
+- Dynamic UI: the field being typed must stay visible above the keyboard.
+- Don't add things that make it feel like social media.
+- Before big changes the founder sometimes wants suggestions first; otherwise build, test,
+  show screenshots, then build an APK.
+- The founder tests on an Android phone with APKs; uses the demo account (credentials are
+  with the founder, not in this file).
+
+
+6. TECHNICAL MAP
+----------------
+- Expo SDK 57, React Native, expo-router (app/ folder), React Native Paper, TypeScript.
+- Offline store: expo-sqlite (src/lib/localDb.ts, SCHEMA_VERSION 5). Sync: src/lib/sync.ts
+  (push pending rows, pull own rows + rows of shared trips via my_trip_shares RPC).
+- Backend: Supabase project ref ujtylwimukufmbungnju (free tier; pauses after ~7 days idle,
+  a GitHub keep-alive workflow pings it). Migrations in /supabase/migrations
+  (latest: 20261122120000_entry_region_country, 20261122180000_shared_trips — both applied live).
+  RLS: trip_role() = owner/admin/member; tests in supabase/tests (run_local.sh, run_http.sh).
+- Edge functions: supabase/functions/signup (creates an already-confirmed account; the app then
+  signs in — used because Supabase's "Confirm email" switch was not available and the free
+  mailer rarely delivers), supabase/functions/push.
+- Glass: src/ui/Glass.tsx (iOS 26 real Liquid Glass via expo-glass-effect; BlurView elsewhere;
+  real blur on Android only inside GlassArea; solid when Reduce Transparency is on),
+  src/ui/GlassTabBar.tsx. Theme tokens: src/theme.ts.
+- Tests: npm run verify (typecheck + ~89 unit tests in src/lib/__tests__). Browser preview:
+  CI=1 EXPO_OFFLINE=1 npx expo start --web (needs EXPO_PUBLIC_SUPABASE_URL/ANON_KEY from eas.json).
+- Builds: Expo/EAS free Android builds were used up until 1 Dec, so APKs are built on GitHub
+  Actions: push to branch claude/wayfare-apk-build -> workflow .github/workflows/wayfare-apk-github.yml
+  -> artifact "wayfare-apk" (download from the run page; direct links expire in ~10 min).
+  Expo account: prasadaamals-team (project "wayfare"); eas.json left untouched for later store builds.
+- Repo rule: after changing files, run `node scripts/state-index.mjs` (CI checks it).
+
+
+7. FOUNDER ACTIONS STILL OPEN
+-----------------------------
+- Delete two leftover test accounts in Supabase → Authentication → Users:
+  signup.probe.1122@wayfare-test.dev and probe1@wayfare-test.dev.
+- Google Play developer account ($25 once) for store release; Apple ($99/yr) later.
+- A domain (~$10-15/yr) for real support email and password-reset emails (Gmail SMTP is a free
+  alternative for sending).
+- Decide: auto-backup off (backup only on cloud tap)?
+- Not yet tested on a real phone: keyboard behaviour, voice recording, photo swipe, date picker,
+  glass blur on Android, place lookup.
+
+
+8. MARKETING PLAN (from the 19 Nov plan)
+----------------------------------------
+- Audience: trekkers/backpackers 20-35 heading to Himachal, Uttarakhand, Sikkim, Western Ghats;
+  parents/partners who want updates; trek leaders with groups of 10-20.
+- Message: "Journal your trek offline. Let family follow your live location."
+- Channels: trek operators/leaders (one leader brings ~15 users), r/trekking, r/IndiaTravel,
+  Facebook/Instagram trek groups, finished-trek journal posts (route map, elevation, photos),
+  pre-season pushes (Mar-Jun, Sep-Dec), Year-in-travel card in late December.
+- Targets (90 days): 800 installs, 150 trips logged, 40 trips with a route.
+- Risks: location features must match store declarations exactly; never market empty social rooms;
+  answer safety reports within 24h.

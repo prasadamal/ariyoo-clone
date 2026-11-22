@@ -1,0 +1,94 @@
+ARIYOO (THE COMPANY) + THIS REPO — PROMPT ME
+=============================================
+Read this first. It explains the company, what lives in this repo, and the founder's other
+apps, so a new developer or AI agent doesn't need anything explained again.
+Last updated: 23 November 2026.
+
+Per-app files with the full detail:
+- Wayfare (travel journal):           apps/wayfare-mobile/PROMPT_ME.txt
+- Ariyoo app (ask a local expert):    apps/mobile/PROMPT_ME.txt
+- ReelMates (film game + taste match): github.com/prasadamal/letterboxd-dating-app  PROMPT_ME.txt
+- Forward (save & sort anything):     github.com/prasadamal/Forward  PROMPT_ME.txt
+- Parked/archived: MalayaliFinder, projectX, WindowsStorageSense, simple-ios-movie-player
+  (CinePlayer) — each has its own PROMPT_ME.txt.
+
+
+1. THE COMPANY
+--------------
+Ariyoo — a small app company. Founders: Amal Prasad (publisher, non-technical), Akshay K Vijayan,
+Arif K. Address: Bengaluru, Benninganahalli, 11th cross, Nagavarapalaya. Brand colours:
+purple + peach (the logo: a rounded purple "a" with an orange/peach inner "c"; app colours
+purple #6a01a3 and orange #fe9f41). Tone for the company website: serious enterprise.
+Products: Wayfare, ReelMates, Ariyoo (the app), Forward.
+
+
+2. WHAT IS IN THIS REPO
+-----------------------
+- apps/wayfare-mobile — Wayfare (Expo). Backend: Supabase (ujtylwimukufmbungnju), supabase/.
+- apps/mobile — Ariyoo app (Expo). apps/web — Ariyoo Angular web client.
+- services/api — Ariyoo Node API (Render: ariyoo-api-cboa; database Neon).
+- supabase/ — Wayfare migrations, tests and edge functions (signup, push).
+- docs/ — Wayfare public viewer pages and state-machine index (run `node scripts/state-index.mjs`
+  after changes; CI checks it).
+- Company website: branch claude/corporate-website, folder apps/corporate-web (the local
+  apps/corporate-web folder on other branches is only a leftover node_modules).
+
+
+3. COMPANY WEBSITE (paused on 20 Nov at the founder's request)
+--------------------------------------------------------------
+- History: first planned as Angular + Java; then changed to plain HTML, CSS and JavaScript with a
+  separate file per page; the Java backend was deleted — front end only, to showcase the company
+  and its apps. Reference style: personio.com.
+- Pages: Home (hero "Apps that make everyday life a little easier", three phones cycling Ariyoo,
+  Wayfare, ReelMates like a live ad, a moving screen strip, tabbed app showcase), Our apps,
+  Company (founders), Trust & Safety, Careers, Press, Contact (cards that open email), Legal.
+  Pause-animation button and reduced-motion support; no cookies, no external requests.
+- Still to do: replace placeholder email Ariyoo@test.com everywhere; founder titles and photos
+  (how-to was given: put photos in the site's images folder and add <img> in company.html);
+  real screenshots with friendly sample names; maybe add Forward; free static hosting
+  (Render/Netlify/GitHub Pages); legal review of privacy/terms (India DPDP).
+- Run locally: from the site folder, `python -m http.server 4000`, open http://localhost:4000.
+
+
+4. HOW THE FOUNDER WORKS WITH AN AGENT
+--------------------------------------
+- Non-technical; wants things DONE (code, tests, deploy, builds), not just plans; explain in
+  plain words; give exact links/steps when something needs them (never ask for secrets in chat).
+- Tests on an Android phone with APK links; likes before/after screenshots.
+- Approvals for live database changes have often not reached the founder's screen (Supabase
+  prompts timed out); give a copy-paste SQL + link to the Supabase SQL editor as the fallback.
+- Branch used by the agent: claude/product-analysis-strategy-a20mgt in every repo.
+
+
+5. HOSTING & COST DECISIONS (all free tier for now)
+---------------------------------------------------
+| App       | Server                         | Database              | Cost now |
+|-----------|--------------------------------|-----------------------|----------|
+| Forward   | none                           | none (on phone)       | $0       |
+| Wayfare   | Supabase edge functions        | Supabase free         | $0       |
+| ReelMates | Render free (reelmates-api-kshi)| Supabase free (moviematch) | $0  |
+| Ariyoo    | Render free (ariyoo-api-cboa)  | Neon free             | $0       |
+Render free servers sleep after 15 min (15-60 s wake) and share 750 h/month; move a busy one
+to Render Starter ($7/mo). Supabase free pauses after 7 idle days (keep-alive workflows ping).
+Upgrade Supabase to Pro ($25/mo) before a public launch with real users.
+Builds: Expo free plan used up until 1 Dec 2026 → Wayfare and ReelMates APKs now build on GitHub
+Actions (branches claude/wayfare-apk-build, claude/reelmates-apk-build). Expo account:
+prasadaamals-team (projects for all four apps). Store fees: Google Play $25 once (one account
+covers all apps), Apple $99/yr (later).
+
+
+6. LAUNCH ORDER & PORTFOLIO VIEW (analysis of 16 Nov + marketing plan of 19 Nov)
+-------------------------------------------------------------------------------
+Launch one at a time on Android: Forward → ReelMates → Wayfare → Ariyoo. Spend nothing beyond
+the Play fee until an app keeps 1 in 4 users for a week. One metric per app. No new products
+until one app has 500 weekly users. Play's rule: new personal accounts need 12 testers for
+14 days per app — recruit one pool of 15-20 testers.
+
+
+7. CROSS-APP FOUNDER ACTIONS STILL OPEN
+---------------------------------------
+- Pay Google Play ($25); later Apple ($99/yr).
+- Buy one domain (~$10-15/yr) for support emails and password-reset email (all apps).
+- ReelMates: merge PR #34; add cron secrets in GitHub.
+- Wayfare: delete 2 test accounts in Supabase Auth; decide on auto-backup.
+- Test data cleanups in ReelMates (Supabase approval needed).
