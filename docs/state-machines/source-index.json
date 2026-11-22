@@ -579,6 +579,23 @@
       ]
     },
     {
+      "path": "apps/wayfare-mobile/app/(tabs)/profile.tsx",
+      "evidence": [
+        {
+          "line": 3,
+          "text": "import { useCallback, useMemo, useState } from 'react';"
+        },
+        {
+          "line": 55,
+          "text": "const [stats, setStats] = useState<TravelStats | null>(null);"
+        },
+        {
+          "line": 56,
+          "text": "const [spentThisYear, setSpentThisYear] = useState(0);"
+        }
+      ]
+    },
+    {
       "path": "apps/wayfare-mobile/app/badges.tsx",
       "evidence": [
         {
@@ -1084,54 +1101,54 @@
       "evidence": [
         {
           "line": 3,
-          "text": "import { useEffect, useState } from 'react';"
-        },
-        {
-          "line": 22,
-          "text": "const [name, setName] = useState(profile?.display_name ?? '');"
-        },
-        {
-          "line": 23,
-          "text": "const [username, setUsername] = useState(profile?.username ?? '');"
-        },
-        {
-          "line": 24,
-          "text": "const [usernameOk, setUsernameOk] = useState<boolean | null>(true);"
+          "text": "import { useEffect, useRef, useState } from 'react';"
         },
         {
           "line": 25,
-          "text": "const [bio, setBio] = useState(profile?.bio ?? '');"
+          "text": "const [name, setName] = useState(profile?.display_name ?? '');"
         },
         {
           "line": 26,
-          "text": "const [region, setRegion] = useState(profile?.home_region ?? '');"
+          "text": "const [username, setUsername] = useState(profile?.username ?? '');"
         },
         {
           "line": 27,
-          "text": "const [country, setCountry] = useState(profile?.home_country ?? '');"
+          "text": "const [usernameOk, setUsernameOk] = useState<boolean | null>(true);"
         },
         {
           "line": 28,
-          "text": "const [styles, setStyles] = useState<string[]>(profile?.travel_styles ?? []);"
+          "text": "const [bio, setBio] = useState(profile?.bio ?? '');"
         },
         {
           "line": 29,
-          "text": "const [languages, setLanguages] = useState((profile?.languages ?? []).join(', '));"
+          "text": "const [region, setRegion] = useState(profile?.home_region ?? '');"
         },
         {
           "line": 30,
-          "text": "const [avatarUri, setAvatarUri] = useState<string | null>(null);"
+          "text": "const [country, setCountry] = useState(profile?.home_country ?? '');"
         },
         {
           "line": 31,
-          "text": "const [avatarSize, setAvatarSize] = useState<{ width?: number; height?: number } | undefined>();"
+          "text": "const [styles, setStyles] = useState<string[]>(profile?.travel_styles ?? []);"
         },
         {
           "line": 32,
+          "text": "const [languages, setLanguages] = useState((profile?.languages ?? []).join(', '));"
+        },
+        {
+          "line": 33,
+          "text": "const [avatarUri, setAvatarUri] = useState<string | null>(null);"
+        },
+        {
+          "line": 34,
+          "text": "const [avatarSize, setAvatarSize] = useState<{ width?: number; height?: number } | undefined>();"
+        },
+        {
+          "line": 35,
           "text": "const [busy, setBusy] = useState(false);"
         },
         {
-          "line": 44,
+          "line": 62,
           "text": "const t = setTimeout(() => usernameAvailable(username).then(setUsernameOk).catch(() => setUsernameOk(null)), 400);"
         }
       ]
@@ -2105,63 +2122,63 @@
           "text": "import { useCallback, useEffect, useMemo, useRef, useState } from 'react';"
         },
         {
-          "line": 43,
+          "line": 44,
           "text": "const [entries, setEntries] = useState<LocalEntry[]>([]);"
         },
         {
-          "line": 44,
+          "line": 45,
           "text": "const [text, setText] = useState('');"
         },
         {
-          "line": 45,
+          "line": 46,
           "text": "const [mood, setMood] = useState('');"
         },
         {
-          "line": 47,
+          "line": 48,
           "text": "const [attachContext, setAttachContext] = useState(false);"
         },
         {
-          "line": 48,
+          "line": 49,
           "text": "const [money, setMoney] = useState<MomentMoney | null>(null);"
         },
         {
-          "line": 49,
+          "line": 50,
           "text": "const [expenses, setExpenses] = useState<LocalExpense[]>([]);"
         },
         {
-          "line": 50,
+          "line": 51,
           "text": "const [photos, setPhotos] = useState<PickedPhoto[]>([]);"
         },
         {
-          "line": 51,
+          "line": 52,
           "text": "const [saving, setSaving] = useState(false);"
         },
         {
-          "line": 53,
+          "line": 54,
           "text": "const [voiceBusy, setVoiceBusy] = useState(false);"
         },
         {
-          "line": 54,
+          "line": 55,
           "text": "const [recording, setRecording] = useState<string | null>(null);"
         },
         {
-          "line": 56,
+          "line": 57,
           "text": "const [mediaKey, setMediaKey] = useState(0);"
         },
         {
-          "line": 58,
+          "line": 59,
           "text": "const [shownDays, setShownDays] = useState(DAYS_PER_PAGE);"
         },
         {
-          "line": 87,
+          "line": 88,
           "text": "sync_status: 'pending',"
         },
         {
-          "line": 108,
+          "line": 109,
           "text": "sync_status: 'pending',"
         },
         {
-          "line": 136,
+          "line": 148,
           "text": "sync_status: 'pending',"
         }
       ]
@@ -2182,7 +2199,7 @@
           "text": "const [expanded, setExpanded] = useState(false);"
         },
         {
-          "line": 80,
+          "line": 81,
           "text": "{e.sync_status === 'pending' ? ' · not synced' : ''}"
         }
       ]
@@ -2459,143 +2476,147 @@
           "text": "sync_status: string;"
         },
         {
-          "line": 44,
+          "line": 47,
           "text": "sync_status: string;"
         },
         {
-          "line": 62,
+          "line": 65,
           "text": "sync_status: string;"
         },
         {
-          "line": 72,
+          "line": 75,
           "text": "sync_status: string;"
         },
         {
-          "line": 86,
+          "line": 89,
           "text": "sync_status: string;"
         },
         {
-          "line": 98,
+          "line": 101,
           "text": "sync_status: string;"
         },
         {
-          "line": 108,
+          "line": 111,
           "text": "sync_status: string;"
         },
         {
-          "line": 264,
+          "line": 267,
           "text": "await database.runAsync(\"UPDATE packing_items SET id = ?, sync_status = 'pending' WHERE id = ?\", [uuid(), p.id]);"
         },
         {
-          "line": 299,
+          "line": 306,
           "text": "starts_on=excluded.starts_on, ends_on=excluded.ends_on, visibility=excluded.visibility,"
         },
         {
-          "line": 300,
+          "line": 307,
           "text": "companions=excluded.companions, status=excluded.status, notes=excluded.notes,"
         },
         {
-          "line": 303,
+          "line": 310,
           "text": "dest_lng=excluded.dest_lng, sync_status=excluded.sync_status, updated_at=excluded.updated_at`,"
         },
         {
-          "line": 332,
+          "line": 339,
           "text": "const next: LocalTrip = { ...trip, ...patch, id, sync_status: 'pending', updated_at: now() };"
         },
         {
-          "line": 398,
-          "text": "longitude=excluded.longitude, altitude_m=excluded.altitude_m, sync_status=excluded.sync_status,"
+          "line": 406,
+          "text": "country_code=excluded.country_code, sync_status=excluded.sync_status, updated_at=excluded.updated_at`,"
         },
         {
-          "line": 423,
+          "line": 439,
+          "text": "`UPDATE entries SET place_name = COALESCE(place_name, ?), region = ?, country_code = ?, sync_status = 'pending', updated_at = ? WHERE id = ?`,"
+        },
+        {
+          "line": 450,
           "text": "\"UPDATE expenses SET entry_id = NULL, sync_status = 'pending', updated_at = ? WHERE entry_id = ?\","
         },
         {
-          "line": 458,
+          "line": 485,
           "text": "entry_id=excluded.entry_id, sync_status=excluded.sync_status, updated_at=excluded.updated_at`,"
         },
         {
-          "line": 506,
+          "line": 533,
           "text": "sync_status=excluded.sync_status, updated_at=excluded.updated_at`,"
         },
         {
-          "line": 523,
+          "line": 550,
           "text": "sync_status: 'pending',"
         },
         {
-          "line": 543,
+          "line": 570,
           "text": "sync_status: 'pending',"
         },
         {
-          "line": 572,
+          "line": 599,
           "text": "sync_status: 'pending',"
         },
         {
-          "line": 600,
+          "line": 627,
           "text": "sort_order=excluded.sort_order, sync_status=excluded.sync_status, updated_at=excluded.updated_at`,"
         },
         {
-          "line": 705,
+          "line": 732,
           "text": "sync_status=excluded.sync_status, updated_at=excluded.updated_at`,"
         },
         {
-          "line": 733,
+          "line": 760,
           "text": "return database.getAllAsync<T>(`SELECT * FROM ${table} WHERE sync_status = 'pending'`);"
         },
         {
-          "line": 739,
+          "line": 766,
           "text": "`SELECT * FROM track_points WHERE sync_status = 'pending' ORDER BY recorded_at ASC LIMIT ?`,"
         },
         {
-          "line": 748,
+          "line": 775,
           "text": "await database.runAsync(`UPDATE ${table} SET sync_status = 'synced' WHERE id = ? AND updated_at = ?`, ["
         },
         {
-          "line": 753,
+          "line": 780,
           "text": "await database.runAsync(`UPDATE ${table} SET sync_status = 'synced' WHERE id = ?`, [id]);"
         },
         {
-          "line": 761,
+          "line": 788,
           "text": "await database.runAsync(`UPDATE track_points SET sync_status = 'synced' WHERE id IN (${placeholders})`, ids);"
         },
         {
-          "line": 784,
+          "line": 811,
           "text": "return database.getFirstAsync<{ sync_status: string; updated_at: string }>("
         },
         {
-          "line": 793,
+          "line": 820,
           "text": "const rows = await database.getAllAsync<{ id: string }>(`SELECT id FROM ${table} WHERE sync_status = 'synced'`);"
         },
         {
-          "line": 807,
+          "line": 834,
           "text": "const rows = await database.getAllAsync<{ id: string }>(\"SELECT id FROM trips WHERE sync_status = 'synced'\");"
         },
         {
-          "line": 829,
+          "line": 856,
           "text": "(SELECT COUNT(*) FROM trips WHERE sync_status = 'pending') +"
         },
         {
-          "line": 830,
+          "line": 857,
           "text": "(SELECT COUNT(*) FROM entries WHERE sync_status = 'pending') +"
         },
         {
-          "line": 831,
+          "line": 858,
           "text": "(SELECT COUNT(*) FROM expenses WHERE sync_status = 'pending') +"
         },
         {
-          "line": 832,
+          "line": 859,
           "text": "(SELECT COUNT(*) FROM packing_items WHERE sync_status = 'pending') +"
         },
         {
-          "line": 833,
+          "line": 860,
           "text": "(SELECT COUNT(*) FROM itinerary_items WHERE sync_status = 'pending') +"
         },
         {
-          "line": 834,
+          "line": 861,
           "text": "(SELECT COUNT(*) FROM track_points WHERE sync_status = 'pending') +"
         },
         {
-          "line": 835,
+          "line": 862,
           "text": "(SELECT COUNT(*) FROM entry_media WHERE sync_status = 'pending') +"
         }
       ]
@@ -2726,35 +2747,35 @@
           "text": "sync_status: 'synced',"
         },
         {
-          "line": 135,
+          "line": 139,
           "text": "sync_status: 'synced',"
         },
         {
-          "line": 174,
+          "line": 178,
           "text": "sync_status: 'synced',"
         },
         {
-          "line": 194,
+          "line": 198,
           "text": "sync_status: 'synced',"
         },
         {
-          "line": 222,
+          "line": 226,
           "text": "sync_status: 'synced',"
         },
         {
-          "line": 237,
+          "line": 241,
           "text": "const pending = await listPending<T>(table);"
         },
         {
-          "line": 418,
+          "line": 422,
           "text": "const pending = await listPending<LocalEntryMedia>('entry_media');"
         },
         {
-          "line": 446,
+          "line": 450,
           "text": "await upsertEntryMedia({ ...media, storage_path: storagePath, sync_status: 'synced' });"
         },
         {
-          "line": 475,
+          "line": 479,
           "text": "sync_status: 'synced',"
         }
       ]
@@ -2829,7 +2850,7 @@
           "text": "status: string;"
         },
         {
-          "line": 108,
+          "line": 149,
           "text": "completedTrips: input.trips.filter(t => t.status === 'completed').length,"
         }
       ]
@@ -3691,6 +3712,19 @@
         {
           "line": 188,
           "text": "and t.visibility = 'link'"
+        }
+      ]
+    },
+    {
+      "path": "supabase/migrations/20261122120000_entry_region_country.sql",
+      "evidence": [
+        {
+          "line": 3,
+          "text": "alter table public.entries add column if not exists region text check (region is null or char_length(region) <= 80);"
+        },
+        {
+          "line": 4,
+          "text": "alter table public.entries add column if not exists country_code text check (country_code is null or country_code ~ '^[A-Z]{2}$');"
         }
       ]
     }

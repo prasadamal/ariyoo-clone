@@ -21,6 +21,7 @@ import { MomentCard } from './MomentCard';
 import { MomentComposer, type MomentMoney } from './MomentComposer';
 import { pickPhotos, type PickedPhoto } from './photoPicker';
 import { Pill } from '../../ui/Pill';
+import { placeFromCoords, type FoundPlace } from '../../lib/reverseGeocode';
 
 /** `everyday` is the private journal for ordinary days: no "Day n" counter, a daily prompt. */
 const DAYS_PER_PAGE = 30;
@@ -114,10 +115,19 @@ export function JournalTab({ trip, onChanged, everyday = false }: Props) {
     const now = new Date().toISOString();
     let weather: string | null = null;
     let coords: Location.LocationObjectCoords | null = null;
+    let place: FoundPlace | null = null;
     if (attachContext) {
       try {
         coords = await currentFix();
-        if (coords) weather = await fetchWeatherSummary(coords.latitude, coords.longitude);
+        if (coords) {
+          // Weather and the place (city, state, country) are looked up together.
+          const [w, p] = await Promise.all([
+            fetchWeatherSummary(coords.latitude, coords.longitude).catch(() => null),
+            placeFromCoords(coords.latitude, coords.longitude),
+          ]);
+          weather = w;
+          place = p;
+        }
       } catch {
         // offline / no fix — the entry still saves
       }
@@ -128,8 +138,10 @@ export function JournalTab({ trip, onChanged, everyday = false }: Props) {
       recorded_at: now,
       body,
       mood: mood || null,
-      place_name: null,
+      place_name: place?.name ?? null,
       weather,
+      region: place?.region ?? null,
+      country_code: place?.countryCode ?? null,
       latitude: coords?.latitude ?? null,
       longitude: coords?.longitude ?? null,
       altitude_m: coords?.altitude ?? null,

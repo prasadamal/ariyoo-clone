@@ -43,6 +43,7 @@ export function MomentCard({ entry: e, money, currencySymbol, mediaKey, canShare
   const body = e.body && !PLACEHOLDER_BODIES.has(e.body) ? e.body : '';
   const long = body.length > FOLD_CHARS || body.split('\n').length > FOLD_LINES;
   const emoji = e.mood ? e.mood.split(' ')[0] : null;
+  const moodWord = e.mood ? e.mood.split(' ').slice(1).join(' ') : '';
 
   // Every detail in one quiet colour, the same as the time.
   const detail = (icon: string, label: string) => (
@@ -74,7 +75,7 @@ export function MomentCard({ entry: e, money, currencySymbol, mediaKey, canShare
           {emoji ? <Text style={{ fontSize: 17 }}>{emoji}</Text> : <Icon name="feather" size={16} color={colors.muted} />}
         </View>
         <View style={{ flex: 1 }}>
-          {e.mood ? <Text style={{ fontWeight: '700', fontSize: 14 }}>{e.mood.split(' ').slice(1).join(' ') || e.mood}</Text> : null}
+          {moodWord ? <Text style={{ fontWeight: '700', fontSize: 14 }}>{moodWord}</Text> : null}
           <Text style={{ color: colors.muted, fontSize: 13 }}>
             {when}
             {e.sync_status === 'pending' ? ' · not synced' : ''}

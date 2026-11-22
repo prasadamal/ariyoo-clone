@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { View } from 'react-native';
 import { Text } from 'react-native-paper';
 import { useAuth } from '../src/context/AuthContext';
-import { computeBadges, sortBadges } from '../src/lib/badges';
+import { computeBadges, LEVEL_COLORS, LEVEL_NAMES, sortBadges } from '../src/lib/badges';
 import { formatAltitude, formatKm } from '../src/lib/format';
 import { computeTier, nextTierProgress, TIER_META, TIER_RULES, type Tier } from '../src/lib/tiers';
 import { useTravelStats } from '../src/lib/useTravelStats';
@@ -71,22 +71,28 @@ export default function BadgesScreen() {
           <View
             key={b.id}
             style={{ width: '48%', padding: 12, borderRadius: 16, backgroundColor: colors.surface, borderWidth: 1, borderColor: b.earned ? b.color : colors.border }}
-            accessibilityLabel={`${b.title}: ${b.description}. ${b.earned ? 'Earned' : `${Math.round(b.progress * 100)} percent`}`}
+            accessibilityLabel={`${b.title}: ${b.description}. Level ${b.level} of ${b.maxLevel}`}
           >
             <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: b.earned ? b.color : colors.surfaceVariant, alignItems: 'center', justifyContent: 'center' }}>
               <Icon name={b.icon} size={24} color={b.earned ? '#fff' : colors.muted} />
             </View>
             <Text style={{ fontWeight: '800', marginTop: 8 }}>{b.title}</Text>
             <Text style={{ color: colors.muted, fontSize: 12, marginTop: 2 }}>{b.description}</Text>
-            {!b.earned ? (
+            {/* Level dots: one per level, filled up to the level reached. */}
+            <View style={{ flexDirection: 'row', gap: 4, marginTop: 8 }} accessibilityElementsHidden>
+              {Array.from({ length: b.maxLevel }, (_, i) => (
+                <View key={i} style={{ flex: 1, height: 4, borderRadius: 2, backgroundColor: i < b.level ? LEVEL_COLORS[i] : colors.surfaceVariant }} />
+              ))}
+            </View>
+            {b.level < b.maxLevel ? (
               <>
-                <Meter progress={b.progress} color={b.color} height={5} style={{ marginTop: 8 }} />
+                <Meter progress={b.progress} color={LEVEL_COLORS[b.level]} height={5} style={{ marginTop: 6 }} />
                 <Text style={{ fontSize: 11, color: colors.muted, marginTop: 4 }}>
-                  {Math.floor(b.value).toLocaleString('en-IN')} / {b.target.toLocaleString('en-IN')} {b.unit ?? ''}
+                  Next: {LEVEL_NAMES[b.level]} at {b.target.toLocaleString('en-IN')}{b.unit ? ` ${b.unit}` : ''}
                 </Text>
               </>
             ) : (
-              <Text style={{ fontSize: 11, color: colors.success, marginTop: 6, fontWeight: '700' }}>Earned ✓</Text>
+              <Text style={{ fontSize: 11, color: colors.success, marginTop: 6, fontWeight: '700' }}>Top level ✓</Text>
             )}
           </View>
         ))}
