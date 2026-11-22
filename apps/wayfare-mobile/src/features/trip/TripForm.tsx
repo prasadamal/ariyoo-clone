@@ -11,6 +11,7 @@ import { ChipSelect } from '../../ui/ChipSelect';
 import { DateRangeField } from '../../ui/DateRangeField';
 import { CoverPicker } from './CoverPicker';
 import { PlaceField } from '../../ui/PlaceField';
+import { SOCIAL_ENABLED } from '../../lib/features';
 
 export type TripFormValues = {
   title: string;
@@ -116,6 +117,8 @@ export function TripForm({ initial, submitLabel, busy, onSubmit }: Props) {
       />
       <TextInput mode="outlined" label="Notes, permits, bookings" value={v.notes} onChangeText={t => set({ notes: t })} multiline numberOfLines={3} />
 
+      {SOCIAL_ENABLED ? (
+      <>
       <View
         style={{
           flexDirection: 'row',
@@ -139,6 +142,8 @@ export function TripForm({ initial, submitLabel, busy, onSubmit }: Props) {
       </View>
       {v.openToMeet && canConnect && (!v.startsOn || !v.destinationMatch) ? (
         <HelperText type="info">Tip: pick a listed destination and add dates so we can match you.</HelperText>
+      ) : null}
+      </>
       ) : null}
 
       <Button mode="contained" onPress={() => onSubmit(v)} loading={busy} disabled={!canSubmit} style={{ marginTop: 8 }}>

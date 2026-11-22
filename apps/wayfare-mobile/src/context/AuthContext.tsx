@@ -12,6 +12,7 @@ import { supabase } from '../lib/supabase';
 import { getLocalOwner, setLocalOwner } from '../lib/sync';
 import { fetchMyProfile, touchLastActive } from '../social/profiles';
 import type { MyProfile } from '../social/types';
+import { SOCIAL_ENABLED } from '../lib/features';
 
 type SignUpResult = { needsConfirmation: boolean };
 
@@ -233,6 +234,11 @@ export function useAuth() {
 }
 
 /** True when community features can be used (cloud configured and signed in). */
+/** Signed in AND social features switched on (src/lib/features.ts): feed, travellers, chat, follows. */
+export function useSocial() {
+  return useCanConnect() && SOCIAL_ENABLED;
+}
+
 export function useCanConnect() {
   const { user, offlineMode, journalReady, ownerConflict } = useAuth();
   return !offlineMode && !!user && journalReady && !ownerConflict;

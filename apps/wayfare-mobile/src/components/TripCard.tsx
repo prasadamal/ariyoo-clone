@@ -9,6 +9,7 @@ import { useAppTheme } from '../theme';
 import { Icon } from '../ui/Icon';
 import { Pill } from '../ui/Pill';
 import { Meter } from '../ui/Meter';
+import { SOCIAL_ENABLED } from '../lib/features';
 
 const TYPE_ICONS: Record<string, string> = {
   trek: 'hiking',
@@ -70,7 +71,7 @@ export function TripCard({ trip, synopsis, packingRatio, tracking, spent }: Prop
             {phaseLabel.toUpperCase()}
           </Text>
           {tracking ? <Pill icon="record-circle" label="Recording" color="#fff" background="#dc2626" /> : null}
-          {trip.open_to_meet ? <Icon name="account-group" size={18} color="#fff" /> : null}
+          {SOCIAL_ENABLED && trip.open_to_meet ? <Icon name="account-group" size={18} color="#fff" /> : null}
           {trip.sync_status === 'pending' ? <Icon name="cloud-upload-outline" size={16} color="#ffffffaa" /> : null}
         </View>
         <Text variant="titleLarge" style={{ color: '#fff', fontWeight: '800', marginTop: 10 }} numberOfLines={2}>

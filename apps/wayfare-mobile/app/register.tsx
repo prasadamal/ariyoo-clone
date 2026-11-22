@@ -73,7 +73,7 @@ export default function RegisterScreen() {
   return (
     <Screen>
       <Text variant="headlineSmall" style={{ fontWeight: '800' }}>
-        Join the travellers
+        Create your Wayfare account
       </Text>
       <Text style={{ color: colors.muted, marginTop: 4, marginBottom: 16 }}>
         Free forever for journaling. Your trips stay private unless you choose to share.

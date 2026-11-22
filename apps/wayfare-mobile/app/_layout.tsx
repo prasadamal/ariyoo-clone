@@ -1,6 +1,6 @@
 // Registers the background location task as early as possible (background relaunches need it).
 import '../src/lib/locationTask';
-import { Stack, DarkTheme, DefaultTheme, ThemeProvider as NavigationThemeProvider } from 'expo-router';
+import { Stack, DarkTheme, DefaultTheme, ThemeProvider as NavigationThemeProvider, router, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { View } from 'react-native';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -12,6 +12,18 @@ import { SyncProvider } from '../src/context/SyncContext';
 import { ThemeProvider, useWayfareTheme } from '../src/context/ThemeContext';
 import { ToastProvider } from '../src/context/ToastContext';
 import { refreshPushRegistration, useNotificationRouting } from '../src/lib/notifications';
+import { isHiddenSocialRoute } from '../src/lib/features';
+
+// Social screens are switched off (src/lib/features.ts): an old link, notification or deep link to one
+// lands on Journeys instead of a screen that shouldn't be reachable.
+function SocialRouteGuard() {
+  const segments = useSegments();
+  const hidden = isHiddenSocialRoute(segments);
+  useEffect(() => {
+    if (hidden) router.replace('/(tabs)');
+  }, [hidden]);
+  return null;
+}
 
 function OwnerConflictDialog() {
   const { ownerConflict, resolveOwnerConflict } = useAuth();
@@ -67,6 +79,7 @@ function RootStack() {
   return (
     <View style={{ flex: 1 }}>
     <View style={{ flex: 1 }} pointerEvents={blocked ? 'none' : 'auto'} accessibilityElementsHidden={blocked} importantForAccessibility={blocked ? 'no-hide-descendants' : 'auto'}>
+    <SocialRouteGuard />
     <Stack key={`${user?.id ?? 'guest'}:${journalReady}`}
       screenOptions={{
         headerStyle: { backgroundColor: c.background },
@@ -100,7 +113,6 @@ function RootStack() {
       <Stack.Screen name="board/new" options={{ title: 'Post to the board', presentation: 'modal' }} />
       <Stack.Screen name="board/[id]" options={{ title: 'Board' }} />
       <Stack.Screen name="place/[key]" options={{ title: '' }} />
-      <Stack.Screen name="journal" options={{ title: 'Journal' }} />
       <Stack.Screen name="safety" options={{ title: 'Safety' }} />
       <Stack.Screen name="live/[id]" options={{ title: 'Live location' }} />
       <Stack.Screen name="wrapped" options={{ headerShown: false, presentation: 'fullScreenModal' }} />

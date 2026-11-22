@@ -6,7 +6,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, View } from 'react-native';
 import { Button, Text } from 'react-native-paper';
 import { uuid } from '../../lib/id';
-import { useCanConnect } from '../../context/AuthContext';
+import { useCanConnect, useSocial } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { formatDay, toDayString } from '../../lib/format';
 import { deleteEntry, listEntries, listExpenses, upsertEntry, upsertEntryMedia, upsertExpense, type LocalEntry, type LocalExpense, type LocalTrip } from '../../lib/localDb';
@@ -38,6 +38,7 @@ export function JournalTab({ trip, onChanged, everyday = false }: Props) {
   const { colors } = useAppTheme();
   const toast = useToast();
   const canConnect = useCanConnect();
+  const social = useSocial();
   const [entries, setEntries] = useState<LocalEntry[]>([]);
   const [text, setText] = useState('');
   const [mood, setMood] = useState('');
@@ -296,7 +297,7 @@ export function JournalTab({ trip, onChanged, everyday = false }: Props) {
               money={moneyByMoment.get(e.id)}
               currencySymbol={symbol}
               mediaKey={mediaKey}
-              canShare={canConnect}
+              canShare={social}
               tripId={trip.id}
               onChanged={onChanged}
               onAddPhotos={() => addPhotosToEntry(e.id)}

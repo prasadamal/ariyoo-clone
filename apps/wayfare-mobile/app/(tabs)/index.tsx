@@ -15,6 +15,7 @@ import { EmptyState } from '../../src/ui/EmptyState';
 import { Hero } from '../../src/ui/Hero';
 import { Icon } from '../../src/ui/Icon';
 import { Pill } from '../../src/ui/Pill';
+import { SOCIAL_ENABLED } from '../../src/lib/features';
 
 type TripRow = LocalTrip & { synopsis: string; packingRatio: number; spent: string };
 type Filter = 'all' | 'upcoming' | 'past';
@@ -116,7 +117,6 @@ export default function JourneysTab() {
         {user ? (
           <IconButton icon={syncing ? 'cloud-sync' : 'cloud-sync-outline'} onPress={onRefresh} disabled={syncing} accessibilityLabel="Sync now" />
         ) : null}
-        <IconButton icon="notebook-outline" onPress={() => router.push('/journal')} accessibilityLabel="Everyday journal" />
         <IconButton icon="shield-alert-outline" iconColor={colors.danger} onPress={() => router.push('/safety')} accessibilityLabel="Safety and SOS" />
       </View>
 
@@ -164,7 +164,7 @@ export default function JourneysTab() {
                 ) : null;
               })()}
             </View>
-            {nextUp.open_to_meet ? (
+            {SOCIAL_ENABLED && nextUp.open_to_meet ? (
               <View style={{ marginTop: 10 }}>
                 <Pill icon="account-group" label="Open to meet travellers" color="#fff" background="#ffffff2e" />
               </View>
@@ -208,8 +208,8 @@ export default function JourneysTab() {
                 body="Start a journey to journal moments offline, plan each day, split costs with friends and find travellers heading the same way."
                 action="Start a journey"
                 onAction={() => router.push('/trip/new')}
-                secondary="Explore destinations"
-                onSecondary={() => router.push('/(tabs)/discover')}
+                secondary={SOCIAL_ENABLED ? 'Explore destinations' : undefined}
+                onSecondary={SOCIAL_ENABLED ? () => router.push('/(tabs)/discover') : undefined}
               />
             )
           ) : null
