@@ -1,3 +1,4 @@
+import { capitalizeWords } from '../src/lib/names';
 import { Link } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Linking, View } from 'react-native';
@@ -80,7 +81,7 @@ export default function RegisterScreen() {
         Free forever for journaling. Your trips stay private unless you choose to share.
       </Text>
       <View style={{ gap: 4 }}>
-        <TextInput mode="outlined" label="Your name" value={displayName} onChangeText={setDisplayName} autoComplete="name" maxLength={60} />
+        <TextInput mode="outlined" label="Your name" value={displayName} onChangeText={t => setDisplayName(capitalizeWords(t))} autoComplete="name" maxLength={60} />
         <TextInput
           mode="outlined"
           label="Username"

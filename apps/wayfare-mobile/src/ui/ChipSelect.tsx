@@ -27,6 +27,7 @@ export function ChipSelect<T extends string>(props: Props<T>) {
       key={o.value}
       icon={o.icon ? ({ size }) => <Icon name={o.icon!} size={size} color={isSelected(o.value) ? colors.onPrimary : colors.primary} /> : undefined}
       selected={isSelected(o.value)}
+      showSelectedCheck={false}
       onPress={() => toggle(o.value)}
       compact
       // Chosen: solid brand colour. Not chosen: quiet grey. The difference reads at a glance.

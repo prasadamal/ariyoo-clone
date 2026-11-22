@@ -3,13 +3,13 @@ import * as Haptics from 'expo-haptics';
 import * as Location from 'expo-location';
 import { router } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, View } from 'react-native';
+import { ActivityIndicator, Alert, View } from 'react-native';
 import { Button, Text } from 'react-native-paper';
 import { uuid } from '../../lib/id';
 import { useCanConnect, useSocial } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { formatDay, toDayString } from '../../lib/format';
-import { deleteEntry, listEntries, listExpenses, upsertEntry, upsertEntryMedia, upsertExpense, type LocalEntry, type LocalExpense, type LocalTrip } from '../../lib/localDb';
+import { countEntries, deleteEntry, listEntries, listEntriesPage, listExpenses, upsertEntry, upsertEntryMedia, upsertExpense, type LocalEntry, type LocalExpense, type LocalTrip } from '../../lib/localDb';
 import { currencySymbol } from '../../lib/currencyMath';
 import { totalsByMoment } from '../../lib/momentMoney';
 import { persistJournalPhoto } from '../../lib/media';
@@ -29,7 +29,17 @@ import { Notice } from '../../ui/Notice';
 const DAYS_PER_PAGE = 30;
 
 /** crewNames: user id → "@username" for moments written by other people in a shared journey. */
-type Props = { trip: LocalTrip; onChanged: () => void; everyday?: boolean; crewNames?: Record<string, string> };
+type Props = {
+  trip: LocalTrip;
+  onChanged: () => void;
+  everyday?: boolean;
+  crewNames?: Record<string, string>;
+  /** The page calls this when you scroll near the bottom: the journal then loads its next moments. */
+  registerLoadMore?: (loadMore: () => void) => void;
+};
+
+/** A journey's moments load this many at a time as you scroll. */
+const MOMENTS_PER_PAGE = 5;
 
 async function currentFix() {
   const { status } = await Location.requestForegroundPermissionsAsync();
@@ -39,7 +49,7 @@ async function currentFix() {
   return pos.coords;
 }
 
-export function JournalTab({ trip, onChanged, everyday = false, crewNames = {} }: Props) {
+export function JournalTab({ trip, onChanged, everyday = false, crewNames = {}, registerLoadMore }: Props) {
   const { colors } = useAppTheme();
   const toast = useToast();
   const canConnect = useCanConnect();
@@ -63,14 +73,35 @@ export function JournalTab({ trip, onChanged, everyday = false, crewNames = {} }
   // Years of daily pages would render all at once; show recent days and load older ones on request.
   const [shownDays, setShownDays] = useState(DAYS_PER_PAGE);
 
+  // Journeys: the first moments, then more as you scroll. The everyday journal keeps its own day paging.
+  const [limit, setLimit] = useState(MOMENTS_PER_PAGE);
+  const [total, setTotal] = useState(0);
+  const [loadingMore, setLoadingMore] = useState(false);
+
   const load = useCallback(async () => {
-    setEntries(await listEntries(trip.id));
+    if (everyday) setEntries(await listEntries(trip.id));
+    else {
+      const [page, count] = await Promise.all([listEntriesPage(trip.id, limit), countEntries(trip.id)]);
+      setEntries(page);
+      setTotal(count);
+      setLoadingMore(false);
+    }
     setExpenses(await listExpenses(trip.id));
-  }, [trip.id]);
+  }, [trip.id, everyday, limit]);
 
   useEffect(() => {
     load();
   }, [load]);
+
+  const hasMore = !everyday && entries.length < total;
+  const loadMore = useCallback(() => {
+    if (!hasMore || loadingMore) return;
+    setLoadingMore(true);
+    setLimit(n => n + MOMENTS_PER_PAGE);
+  }, [hasMore, loadingMore]);
+  useEffect(() => {
+    registerLoadMore?.(loadMore);
+  }, [registerLoadMore, loadMore]);
 
   useEffect(
     () => () => {
@@ -183,6 +214,8 @@ export function JournalTab({ trip, onChanged, everyday = false, crewNames = {} }
       setVoices([]);
       setMoney(null);
       setAttachContext(false);
+      // A new moment is the latest, so it sits at the end: show everything down to it.
+      if (!everyday) setLimit(total + 1);
       await load();
       onChanged();
     } catch (e) {
@@ -330,7 +363,7 @@ export function JournalTab({ trip, onChanged, everyday = false, crewNames = {} }
       {groups.slice(-shownDays).map(g => (
         <View key={g.day}>
           {/* The same pill as the Journal / Plan / Budget tabs above. */}
-          <View style={{ marginBottom: 10, marginTop: 4 }} accessibilityRole="header">
+          <View style={{ marginBottom: 10, marginTop: 4, alignSelf: 'center' }} accessibilityRole="header">
             <Pill label={g.label} icon="calendar-blank-outline" selected />
           </View>
           {g.list.map(e => (
@@ -351,6 +384,17 @@ export function JournalTab({ trip, onChanged, everyday = false, crewNames = {} }
           ))}
         </View>
       ))}
+      {hasMore ? (
+        <View style={{ alignItems: 'center', paddingVertical: 16 }}>
+          {loadingMore ? (
+            <ActivityIndicator color={colors.primary} accessibilityLabel="Loading more moments" />
+          ) : (
+            <Button mode="text" onPress={loadMore}>
+              Show more moments ({total - entries.length})
+            </Button>
+          )}
+        </View>
+      ) : null}
     </View>
   );
 }

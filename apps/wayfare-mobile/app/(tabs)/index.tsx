@@ -1,7 +1,7 @@
 import { router, useFocusEffect } from 'expo-router';
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { FlatList, Pressable, RefreshControl, View } from 'react-native';
-import { IconButton, SegmentedButtons, Text } from 'react-native-paper';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { ActivityIndicator, FlatList, Pressable, RefreshControl, View } from 'react-native';
+import { IconButton, Menu, Text } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { TripCard } from '../../src/components/TripCard';
 import { useAuth } from '../../src/context/AuthContext';
@@ -13,17 +13,23 @@ import { getActiveTrackingTripId } from '../../src/lib/locationTask';
 import { buildTripSynopsis, computeTripStats } from '../../src/lib/tripStats';
 import { getRates } from '../../src/lib/currency';
 import { sumInCurrency } from '../../src/lib/currencyMath';
+import { tripCoverUri } from '../../src/lib/tripCover';
+import { applyTripFilter, pickNextUp, type TripFilter } from '../../src/lib/tripList';
 import { useAppTheme } from '../../src/theme';
 import { EmptyState } from '../../src/ui/EmptyState';
-import { Hero } from '../../src/ui/Hero';
 import { Icon } from '../../src/ui/Icon';
 import { Pill } from '../../src/ui/Pill';
+import { TripCover } from '../../src/ui/TripCover';
 import { SOCIAL_ENABLED } from '../../src/lib/features';
 import { Glass } from '../../src/ui/Glass';
 import { TAB_BAR_SPACE } from '../../src/ui/GlassTabBar';
 
-type TripRow = LocalTrip & { synopsis: string; packingRatio: number; spentAmount: number };
-type Filter = 'all' | 'upcoming' | 'past';
+type TripRow = LocalTrip & { synopsis: string; packingRatio: number; spentAmount: number; cover: string | null };
+
+/** Journeys are prepared (stats, money, cover) a few at a time as you scroll, not all at once. */
+const PAGE_SIZE = 5;
+
+const FILTER_LABEL: Record<TripFilter, string> = { all: 'All journeys', upcoming: 'Upcoming', past: 'Past' };
 
 function greeting() {
   const h = new Date().getHours();
@@ -33,40 +39,62 @@ function greeting() {
   return 'Good evening';
 }
 
+/** Stats, spend in the journey's currency and the cover picture, for the cards being shown. */
+async function prepare(list: LocalTrip[]): Promise<TripRow[]> {
+  const rates = await getRates().catch(() => null);
+  return Promise.all(
+    list.map(async t => {
+      const stats = await computeTripStats(t.id);
+      return {
+        ...t,
+        synopsis: buildTripSynopsis(t.title, stats),
+        packingRatio: stats.packingTotal ? stats.packingDone / stats.packingTotal : 0,
+        spentAmount: sumInCurrency(
+          Object.entries(stats.spendByCurrency).map(([currency, amount]) => ({ currency, amount })),
+          t.currency || 'INR',
+          rates?.rates ?? null
+        ).total,
+        cover: await tripCoverUri(t).catch(() => null),
+      };
+    })
+  );
+}
+
 export default function JourneysTab() {
   const { colors } = useAppTheme();
   const { user, profile, guest, offlineMode, journalReady } = useAuth();
   const { syncing, syncNow, pending, lastSyncAt, lastErrors, refreshPending } = useSync();
-  const [trips, setTrips] = useState<TripRow[]>([]);
-  const [filter, setFilter] = useState<Filter>('all');
+  // Every journey's basic details (cheap), and the prepared cards shown so far (a page at a time).
+  const [all, setAll] = useState<LocalTrip[]>([]);
+  const [rows, setRows] = useState<TripRow[]>([]);
+  const [nextUp, setNextUp] = useState<TripRow | null>(null);
+  const [filter, setFilter] = useState<TripFilter>('all');
+  const [filterOpen, setFilterOpen] = useState(false);
   const [recordingTripId, setRecordingTripId] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const busy = useRef(false);
+  const shown = useRef(PAGE_SIZE);
   const insets = useSafeAreaInsets();
 
-  const load = useCallback(async () => {
-    const raw = journeysOnly(await listTrips());
-    const rates = await getRates().catch(() => null);
-    const enriched = await Promise.all(
-      raw.map(async t => {
-        const stats = await computeTripStats(t.id);
-        return {
-          ...t,
-          synopsis: buildTripSynopsis(t.title, stats),
-          packingRatio: stats.packingTotal ? stats.packingDone / stats.packingTotal : 0,
-          // Spent in the journey's own currency, for the budget bar on its card.
-          spentAmount: sumInCurrency(
-            Object.entries(stats.spendByCurrency).map(([currency, amount]) => ({ currency, amount })),
-            t.currency || 'INR',
-            rates?.rates ?? null
-          ).total,
-        };
-      })
-    );
-    setTrips(enriched);
-    setRecordingTripId(await getActiveTrackingTripId());
-    setLoaded(true);
-    refreshPending();
-  }, [refreshPending]);
+  const load = useCallback(
+    async (f: TripFilter = filter) => {
+      const list = journeysOnly(await listTrips());
+      const top = pickNextUp(list);
+      const rest = applyTripFilter(list, f, top?.id ?? null);
+      // Keep as many cards as were already on screen, at least one page.
+      const count = Math.max(PAGE_SIZE, Math.min(shown.current, rest.length));
+      const [page, topRow] = await Promise.all([prepare(rest.slice(0, count)), top ? prepare([top]) : Promise.resolve([])]);
+      shown.current = count;
+      setAll(list);
+      setRows(page);
+      setNextUp(topRow[0] ?? null);
+      setRecordingTripId(await getActiveTrackingTripId());
+      setLoaded(true);
+      refreshPending();
+    },
+    [filter, refreshPending]
+  );
 
   useFocusEffect(
     useCallback(() => {
@@ -74,35 +102,45 @@ export default function JourneysTab() {
     }, [load])
   );
 
-  // Reload the list when the journal is ready and whenever a sync finishes, so every trip shows at once.
+  // Reload when the journal is ready and whenever a sync finishes, so every trip shows at once.
   useEffect(() => {
     load();
   }, [load, lastSyncAt, journalReady]);
+
+  const rest = useMemo(() => applyTripFilter(all, filter, nextUp?.id ?? null), [all, filter, nextUp]);
+  const hasMore = rows.length < rest.length;
+
+  /** The next page of cards, with a spinner while they're prepared. */
+  const loadMore = async () => {
+    if (busy.current || !hasMore) return;
+    busy.current = true;
+    setLoadingMore(true);
+    try {
+      const more = await prepare(rest.slice(rows.length, rows.length + PAGE_SIZE));
+      setRows(prev => {
+        const seen = new Set(prev.map(r => r.id));
+        const next = [...prev, ...more.filter(r => !seen.has(r.id))];
+        shown.current = next.length;
+        return next;
+      });
+    } finally {
+      busy.current = false;
+      setLoadingMore(false);
+    }
+  };
+
+  const chooseFilter = (f: TripFilter) => {
+    setFilterOpen(false);
+    shown.current = PAGE_SIZE;
+    setFilter(f);
+  };
 
   const onRefresh = async () => {
     if (user) await syncNow();
     await load();
   };
 
-  const nextUp = useMemo(() => {
-    const upcoming = trips
-      .filter(t => t.status !== 'completed' && ['upcoming', 'ongoing'].includes(tripPhase(t.starts_on, t.ends_on)))
-      .sort((a, b) => (a.starts_on ?? '').localeCompare(b.starts_on ?? ''));
-    return upcoming[0] ?? null;
-  }, [trips]);
-
-  // The journey shown up top (on the road / next up) isn't listed again below.
-  const visible = useMemo(() => {
-    const rest = nextUp ? trips.filter(t => t.id !== nextUp.id) : trips;
-    if (filter === 'all') return rest;
-    return rest.filter(t => {
-      const phase = tripPhase(t.starts_on, t.ends_on);
-      if (filter === 'upcoming') return t.status !== 'completed' && phase !== 'past';
-      return t.status === 'completed' || phase === 'past';
-    });
-  }, [trips, filter, nextUp]);
-
-  const recordingTrip = trips.find(t => t.id === recordingTripId);
+  const recordingTrip = all.find(t => t.id === recordingTripId);
   const firstName = (profile?.display_name ?? '').split(' ')[0];
 
   const syncLine = offlineMode
@@ -119,11 +157,13 @@ export default function JourneysTab() {
               ? `Backed up ${timeAgo(lastSyncAt)}`
               : 'Backup has not been verified yet';
 
+  const days = nextUp ? daysUntil(nextUp.starts_on) : null;
+
   const header = (
     <View style={{ paddingBottom: 6 }}>
       <View style={{ flexDirection: 'row', alignItems: 'center' }}>
         <View style={{ flex: 1 }}>
-          <Text variant="headlineSmall" style={{ fontWeight: '800' }}>
+          <Text variant="headlineSmall" style={{ fontWeight: '800' }} numberOfLines={1}>
             {greeting()}
             {firstName ? `, ${firstName}` : ''}
           </Text>
@@ -139,11 +179,38 @@ export default function JourneysTab() {
         <IconButton icon="shield-alert-outline" iconColor={colors.danger} onPress={() => router.push('/safety')} accessibilityLabel="Safety and SOS" />
       </View>
 
-      {/* One quick-links row, right under the sync line. */}
-      <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
+      {/* Quick links, with the journey filter at the right end of the row. */}
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 12 }}>
         <Pill icon="party-popper" label="Year in travel" onPress={() => router.push('/wrapped')} />
         <Pill icon="medal-outline" label="Badges" onPress={() => router.push('/badges')} />
         <Pill icon="swap-horizontal" label="Currency" onPress={() => router.push('/tools/currency')} />
+        <View style={{ flex: 1 }} />
+        {all.length > 1 ? (
+          <Menu
+            visible={filterOpen}
+            onDismiss={() => setFilterOpen(false)}
+            anchor={
+              <IconButton
+                icon={filter === 'all' ? 'filter-variant' : 'filter-check'}
+                size={20}
+                mode={filter === 'all' ? undefined : 'contained-tonal'}
+                iconColor={filter === 'all' ? colors.onSurfaceVariant : colors.primary}
+                style={{ margin: 0 }}
+                onPress={() => setFilterOpen(true)}
+                accessibilityLabel={`Filter journeys: ${FILTER_LABEL[filter]}`}
+              />
+            }
+          >
+            {(['all', 'upcoming', 'past'] as TripFilter[]).map(f => (
+              <Menu.Item
+                key={f}
+                title={FILTER_LABEL[f]}
+                leadingIcon={filter === f ? 'check' : undefined}
+                onPress={() => chooseFilter(f)}
+              />
+            ))}
+          </Menu>
+        ) : null}
       </View>
 
       {recordingTrip ? (
@@ -160,7 +227,12 @@ export default function JourneysTab() {
 
       {nextUp ? (
         <Pressable onPress={() => router.push(`/trip/${nextUp.id}`)} accessibilityRole="button" style={{ marginTop: 14 }}>
-          <Hero>
+          {/* The journey on the road or next up, on its cover photo like every other card. */}
+          <TripCover
+            uri={nextUp.cover}
+            gradient={[colors.heroStart, colors.heroEnd]}
+            style={{ borderRadius: 22, padding: 18, minHeight: nextUp.cover ? 180 : undefined, justifyContent: 'flex-end' }}
+          >
             <Text style={{ color: '#ffffffcc', fontSize: 12, fontWeight: '700', letterSpacing: 1 }}>
               {tripPhase(nextUp.starts_on, nextUp.ends_on) === 'ongoing' ? 'ON THE ROAD' : 'NEXT UP'}
             </Text>
@@ -173,68 +245,74 @@ export default function JourneysTab() {
                   {nextUp.synopsis}
                 </Text>
               </View>
-              {(() => {
-                const d = daysUntil(nextUp.starts_on);
-                return d != null && d > 0 ? (
-                  <View style={{ alignItems: 'center', marginLeft: 12 }}>
-                    <Text style={{ color: '#fff', fontSize: 34, fontWeight: '900', lineHeight: 38 }}>{d}</Text>
-                    <Text style={{ color: '#ffffffcc', fontSize: 11 }}>day{d === 1 ? '' : 's'} to go</Text>
-                  </View>
-                ) : null;
-              })()}
+              {days != null && days > 0 ? (
+                <View style={{ alignItems: 'center', marginLeft: 12 }}>
+                  <Text style={{ color: '#fff', fontSize: 34, fontWeight: '900', lineHeight: 38 }}>{days}</Text>
+                  <Text style={{ color: '#ffffffcc', fontSize: 11 }}>day{days === 1 ? '' : 's'} to go</Text>
+                </View>
+              ) : null}
             </View>
             {SOCIAL_ENABLED && nextUp.open_to_meet ? (
               <View style={{ marginTop: 10 }}>
                 <Pill icon="account-group" label="Open to meet travellers" color="#fff" background="#ffffff2e" />
               </View>
             ) : null}
-          </Hero>
+          </TripCover>
         </Pressable>
       ) : null}
 
-
-      {trips.length ? (
-        <SegmentedButtons
-          value={filter}
-          onValueChange={v => setFilter(v as Filter)}
-          style={{ marginTop: 16, marginBottom: 6 }}
-          buttons={[
-            { value: 'all', label: `All (${trips.length})` },
-            { value: 'upcoming', label: 'Upcoming' },
-            { value: 'past', label: 'Past' },
-          ]}
-        />
+      {filter !== 'all' ? (
+        <Text style={{ color: colors.muted, marginTop: 14, fontWeight: '600' }}>{FILTER_LABEL[filter]}</Text>
       ) : null}
+      <View style={{ height: 10 }} />
     </View>
   );
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <FlatList
-        data={visible}
+        data={rows}
         keyExtractor={t => t.id}
         ListHeaderComponent={header}
         refreshControl={<RefreshControl refreshing={syncing} onRefresh={onRefresh} tintColor={colors.primary} colors={[colors.primary]} />}
         contentContainerStyle={{ padding: 16, paddingBottom: TAB_BAR_SPACE + 80 }}
+        onEndReached={loadMore}
+        onEndReachedThreshold={0.4}
+        ListFooterComponent={
+          loadingMore || hasMore ? (
+            <View style={{ paddingVertical: 18, alignItems: 'center' }} accessibilityLabel="Loading more journeys">
+              <ActivityIndicator color={colors.primary} />
+            </View>
+          ) : null
+        }
         ListEmptyComponent={
           loaded ? (
-            trips.length ? (
+            all.length ? (
               nextUp && filter === 'all' ? null : <EmptyState compact icon="filter-outline" title="Nothing here" body="No journeys match this filter." />
             ) : (
               <EmptyState
                 icon="map-marker-path"
                 title="Where to next?"
-                body="Start a journey to journal moments offline, plan each day, split costs with friends and find travellers heading the same way."
+                body="Start a journey to journal moments offline, plan each day, split costs and add your crew."
                 action="Start a journey"
                 onAction={() => router.push('/trip/new')}
                 secondary={SOCIAL_ENABLED ? 'Explore destinations' : undefined}
                 onSecondary={SOCIAL_ENABLED ? () => router.push('/(tabs)/discover') : undefined}
               />
             )
-          ) : null
+          ) : (
+            <ActivityIndicator style={{ marginTop: 30 }} color={colors.primary} />
+          )
         }
         renderItem={({ item }) => (
-          <TripCard trip={item} synopsis={item.synopsis} packingRatio={item.packingRatio} tracking={item.id === recordingTripId} spentAmount={item.spentAmount} />
+          <TripCard
+            trip={item}
+            synopsis={item.synopsis}
+            packingRatio={item.packingRatio}
+            tracking={item.id === recordingTripId}
+            spentAmount={item.spentAmount}
+            coverUri={item.cover}
+          />
         )}
       />
       {/* New journey: a brand-coloured glass button floating above the tab bar. */}
@@ -248,13 +326,12 @@ export default function JourneysTab() {
           tint={colors.primary}
           interactive
           radius={30}
-          style={{ height: 60, minWidth: 60, paddingHorizontal: trips.length ? 0 : 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, shadowColor: colors.primary, shadowOpacity: 0.35, shadowRadius: 14, shadowOffset: { width: 0, height: 6 }, elevation: 8 }}
+          style={{ height: 60, minWidth: 60, paddingHorizontal: all.length ? 0 : 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, shadowColor: colors.primary, shadowOpacity: 0.35, shadowRadius: 14, shadowOffset: { width: 0, height: 6 }, elevation: 8 }}
         >
           <Icon name="plus" size={28} color={colors.onPrimary} />
-          {trips.length ? null : <Text style={{ color: colors.onPrimary, fontWeight: '800', fontSize: 16 }}>New journey</Text>}
+          {all.length ? null : <Text style={{ color: colors.onPrimary, fontWeight: '800', fontSize: 16 }}>New journey</Text>}
         </Glass>
       </Pressable>
     </View>
   );
 }
-

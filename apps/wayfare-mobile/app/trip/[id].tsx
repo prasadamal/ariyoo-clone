@@ -1,5 +1,5 @@
 import { router, Stack, useLocalSearchParams, useFocusEffect } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, Pressable, View } from 'react-native';
 import { ActivityIndicator, Menu, Text } from 'react-native-paper';
 import { tripTypeIcon } from '../../src/components/TripCard';
@@ -13,6 +13,7 @@ import { TripCrew } from '../../src/features/trip/TripCrew';
 import { cachedCrew, canEditTrip, isSharedTrip, leaveTrip, loadCrew, personName, tripRole, type CrewPerson } from '../../src/lib/crew';
 import { isEverydayTrip } from '../../src/lib/everydayMemories';
 import { Glass } from '../../src/ui/Glass';
+import { tripCoverUri } from '../../src/lib/tripCover';
 import { JournalTab } from '../../src/features/trip/JournalTab';
 import { PackingTab } from '../../src/features/trip/PackingTab';
 import { PlanTab } from '../../src/features/trip/PlanTab';
@@ -23,7 +24,6 @@ import { persistCoverPhoto } from '../../src/lib/media';
 import { pickPhotos } from '../../src/features/trip/photoPicker';
 import { TripCover } from '../../src/ui/TripCover';
 import { getActiveTrackingTripId, stopTripTracking } from '../../src/lib/locationTask';
-import { shareTripLink } from '../../src/lib/shareTrip';
 import { pushTripNow } from '../../src/lib/sync';
 import { exportTripJournalPdf } from '../../src/lib/tripPdf';
 import { computeTripStats, type TripStats } from '../../src/lib/tripStats';
@@ -78,11 +78,20 @@ export default function TripDetailScreen() {
   const [tab, setTab] = useState<Tab>(ALL_TABS.some(t => t.value === params.tab) ? (params.tab as Tab) : 'journal');
   const [menu, setMenu] = useState(false);
   const [crew, setCrew] = useState<CrewPerson[]>([]);
+  const [coverUri, setCoverUri] = useState<string | null>(null);
+  // The journal hands over its "load more"; scrolling near the bottom calls it.
+  const loadMoreRef = useRef<(() => void) | null>(null);
+  const registerLoadMore = useCallback((fn: () => void) => {
+    loadMoreRef.current = fn;
+  }, []);
 
   const load = useCallback(async () => {
     const t = await getTrip(tripId);
     setTrip(t);
-    if (t) setStats(await computeTripStats(tripId));
+    if (t) {
+      setStats(await computeTripStats(tripId));
+      setCoverUri(await tripCoverUri(t));
+    }
     refreshPending();
   }, [tripId, refreshPending]);
 
@@ -157,17 +166,6 @@ export default function TripDetailScreen() {
       },
     ]);
 
-  const shareLink = async () => {
-    try {
-      await shareTripLink(trip);
-      if (user) await pushTripNow(user.id, trip.id).catch(() => toast('Link will work once this journey syncs.'));
-      else toast('Sign in so the link can be opened by others.');
-      await load();
-    } catch (e) {
-      toast(e instanceof Error ? e.message : 'Could not share');
-    }
-  };
-
   const leave = () =>
     Alert.alert('Leave this journey?', 'It disappears from your phone. Moments you added stay in the journey.', [
       { text: 'Cancel', style: 'cancel' },
@@ -194,13 +192,13 @@ export default function TripDetailScreen() {
   };
 
   return (
-    <Screen>
+    <Screen onEndReached={() => (tab === 'journal' ? loadMoreRef.current?.() : undefined)}>
       <Stack.Screen options={{ title: trip.title }} />
       <TripCover
         glass
-        uri={trip.cover_uri}
+        uri={coverUri}
         gradient={[colors.heroStart, colors.heroEnd]}
-        style={{ borderRadius: 22, padding: 16, paddingRight: 6, minHeight: trip.cover_uri ? 190 : undefined }}
+        style={{ borderRadius: 22, padding: 16, paddingRight: 6, minHeight: coverUri ? 210 : undefined }}
       >
         <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
           <View style={{ flex: 1 }}>
@@ -262,7 +260,6 @@ export default function TripDetailScreen() {
                 }}
               />
             ) : null}
-            {canEdit ? <Menu.Item leadingIcon="link-variant" title="Share read-only link" onPress={() => { setMenu(false); shareLink(); }} /> : null}
             <Menu.Item leadingIcon="file-pdf-box" title="Export PDF journal" onPress={() => { setMenu(false); exportPdf(); }} />
             {canEdit ? (
               <Menu.Item
@@ -283,13 +280,13 @@ export default function TripDetailScreen() {
           </View>
         </View>
         {stats ? (
-          <Glass variant="media" radius={18} style={{ marginTop: 14, marginRight: 10, padding: 12, paddingTop: 10 }}>
+          // Counts and money float straight on the cover photo.
+          <View style={{ marginTop: 14, marginRight: 10 }}>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
             <Pill icon="feather" label={`${stats.entryCount} ${stats.entryCount === 1 ? 'moment' : 'moments'}`} color="#fff" background="#ffffff26" />
             {stats.photoCount ? <Pill icon="camera-outline" label={`${stats.photoCount}`} color="#fff" background="#ffffff26" /> : null}
             {stats.distanceKm >= 0.1 ? <Pill icon="map-marker-path" label={formatKm(stats.distanceKm)} color="#fff" background="#ffffff26" /> : null}
             {social && trip.open_to_meet ? <Pill icon="account-group" label="Open to meet" color="#fff" background="#ffffff26" /> : null}
-            {trip.visibility === 'link' ? <Pill icon="link-variant" label="Shared link" color="#fff" background="#ffffff26" /> : null}
           </View>
             <BudgetBar
               compact
@@ -298,7 +295,7 @@ export default function TripDetailScreen() {
               currency={trip.currency || 'INR'}
               onAddBudget={canEdit ? () => router.push(`/trip/edit/${trip.id}`) : undefined}
             />
-          </Glass>
+          </View>
         ) : null}
       </TripCover>
 
@@ -312,7 +309,7 @@ export default function TripDetailScreen() {
         <TabStrip tabs={tabs} value={tabs.some(t => t.value === tab) ? tab : 'journal'} onChange={setTab} />
       </View>
 
-      {tab === 'journal' || !tabs.some(t => t.value === tab) ? <JournalTab trip={trip} onChanged={load} crewNames={crewNames} /> : null}
+      {tab === 'journal' || !tabs.some(t => t.value === tab) ? <JournalTab trip={trip} onChanged={load} crewNames={crewNames} registerLoadMore={registerLoadMore} /> : null}
       {tab === 'plan' ? <PlanTab trip={trip} onChanged={load} readOnly={!canEdit} /> : null}
       {tab === 'budget' ? <BudgetTab trip={trip} onChanged={load} readOnly={!canEdit} /> : null}
       {tab === 'pack' ? <PackingTab trip={trip} onChanged={load} /> : null}
