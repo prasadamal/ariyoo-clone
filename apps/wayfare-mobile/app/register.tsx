@@ -44,7 +44,7 @@ export default function RegisterScreen() {
     setLoading(true);
     setError('');
     try {
-      const result = await signUp(email.trim(), password, displayName.trim(), username || undefined);
+      const result = await signUp(email.trim(), password, displayName.trim(), username);
       if (result.needsConfirmation) setConfirmEmail(email.trim());
     } catch (e: unknown) {
       setError((e as Error).message || 'Registration failed');
@@ -68,7 +68,8 @@ export default function RegisterScreen() {
     );
   }
 
-  const valid = displayName.trim().length >= 2 && /.+@.+\..+/.test(email) && password.length >= 8 && usernameState !== 'taken' && usernameState !== 'invalid';
+  // A username is required: it is how people find and add you to a shared trip.
+  const valid = displayName.trim().length >= 2 && /.+@.+\..+/.test(email) && password.length >= 8 && usernameState === 'ok';
 
   return (
     <Screen>
@@ -98,7 +99,7 @@ export default function RegisterScreen() {
                 ? '✓ Available'
                 : usernameState === 'checking'
                   ? 'Checking…'
-                  : 'Optional — we will pick one you can change later'}
+                  : 'Pick a username: people use it to add you to a trip or @mention you'}
         </HelperText>
         <TextInput
           mode="outlined"

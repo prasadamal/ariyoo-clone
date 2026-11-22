@@ -9,6 +9,7 @@ import type { LocalEntry } from '../../lib/localDb';
 import { formatMoney } from '../../lib/momentMoney';
 import { useAppTheme } from '../../theme';
 import { Icon } from '../../ui/Icon';
+import { splitMentions } from '../../lib/mentions';
 
 type Props = {
   entry: LocalEntry;
@@ -107,7 +108,15 @@ export function MomentCard({ entry: e, money, currencySymbol, mediaKey, canShare
       {body ? (
         <View style={{ paddingHorizontal: 14, paddingTop: 10 }}>
           <Text style={{ lineHeight: 22, fontSize: 16 }} numberOfLines={long && !expanded ? FOLD_LINES : undefined}>
-            {body}
+            {splitMentions(body).map((part, i) =>
+              part.mention ? (
+                <Text key={i} style={{ color: colors.primary, fontWeight: '700' }}>
+                  {part.text}
+                </Text>
+              ) : (
+                part.text
+              )
+            )}
           </Text>
           {long ? (
             <Pressable onPress={() => setExpanded(x => !x)} accessibilityRole="button" hitSlop={8} style={{ alignSelf: 'flex-start', marginTop: 4 }}>
