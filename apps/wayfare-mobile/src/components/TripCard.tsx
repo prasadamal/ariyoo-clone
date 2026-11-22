@@ -9,6 +9,8 @@ import { useAppTheme } from '../theme';
 import { Icon } from '../ui/Icon';
 import { Pill } from '../ui/Pill';
 import { Meter } from '../ui/Meter';
+import { SOCIAL_ENABLED } from '../lib/features';
+import { BudgetBar } from '../ui/BudgetBar';
 
 const TYPE_ICONS: Record<string, string> = {
   trek: 'hiking',
@@ -21,29 +23,19 @@ const TYPE_ICONS: Record<string, string> = {
   international: 'airplane',
 };
 
-const TYPE_GRADIENTS: Record<string, [string, string]> = {
-  trek: ['#0f766e', '#134e4a'],
-  road: ['#c2410c', '#7c2d12'],
-  city: ['#4338ca', '#1e1b4b'],
-  beach: ['#0284c7', '#0c4a6e'],
-  backpacking: ['#a16207', '#422006'],
-  pilgrimage: ['#b45309', '#451a03'],
-  wildlife: ['#15803d', '#052e16'],
-  international: ['#7c3aed', '#2e1065'],
-};
-
 export function tripTypeIcon(type: string) {
   return TYPE_ICONS[type] ?? 'map-outline';
 }
 
-type Props = { trip: LocalTrip; synopsis: string; packingRatio: number; tracking?: boolean; spent?: string };
+type Props = { trip: LocalTrip; synopsis: string; packingRatio: number; tracking?: boolean; spentAmount?: number };
 
-export function TripCard({ trip, synopsis, packingRatio, tracking, spent }: Props) {
+export function TripCard({ trip, synopsis, packingRatio, tracking, spentAmount = 0 }: Props) {
   const { colors } = useAppTheme();
   const phase = tripPhase(trip.starts_on, trip.ends_on);
   const until = daysUntil(trip.starts_on);
   const dest = getDestination(trip.place_key);
-  const gradient = TYPE_GRADIENTS[trip.trip_type] ?? ['#57534e', '#1c1917'];
+  // One cover colour for every journey without a photo (the same as the journey page).
+  const gradient: [string, string] = [colors.heroStart, colors.heroEnd];
   const phaseLabel =
     trip.status === 'completed'
       ? 'Completed'
@@ -63,14 +55,14 @@ export function TripCard({ trip, synopsis, packingRatio, tracking, spent }: Prop
       accessibilityRole="button"
       accessibilityLabel={`${trip.title}, ${phaseLabel}`}
     >
-      <TripCover uri={trip.cover_uri} gradient={gradient} spent={spent} style={{ padding: 16, minHeight: trip.cover_uri ? 150 : 104 }}>
+      <TripCover uri={trip.cover_uri} gradient={gradient} style={{ padding: 16, minHeight: trip.cover_uri ? 150 : 104 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
           <Icon name={tripTypeIcon(trip.trip_type)} size={18} color="#fff" />
           <Text style={{ color: '#ffffffcc', fontSize: 12, fontWeight: '700', letterSpacing: 0.5, flex: 1 }}>
             {phaseLabel.toUpperCase()}
           </Text>
           {tracking ? <Pill icon="record-circle" label="Recording" color="#fff" background="#dc2626" /> : null}
-          {trip.open_to_meet ? <Icon name="account-group" size={18} color="#fff" /> : null}
+          {SOCIAL_ENABLED && trip.open_to_meet ? <Icon name="account-group" size={18} color="#fff" /> : null}
           {trip.sync_status === 'pending' ? <Icon name="cloud-upload-outline" size={16} color="#ffffffaa" /> : null}
         </View>
         <Text variant="titleLarge" style={{ color: '#fff', fontWeight: '800', marginTop: 10 }} numberOfLines={2}>
@@ -79,6 +71,7 @@ export function TripCard({ trip, synopsis, packingRatio, tracking, spent }: Prop
         <Text style={{ color: '#ffffffd9', marginTop: 2 }} numberOfLines={1}>
           {[dest?.name ?? trip.destination, formatDateRange(trip.starts_on, trip.ends_on)].filter(Boolean).join(' · ') || 'Add a destination and dates'}
         </Text>
+        {trip.budget_total ? <BudgetBar compact spent={spentAmount} budget={trip.budget_total} currency={trip.currency || 'INR'} /> : null}
       </TripCover>
       <View style={{ padding: 14, paddingTop: 10 }}>
         <Text style={{ color: colors.onSurfaceVariant, fontSize: 13 }} numberOfLines={2}>

@@ -118,6 +118,8 @@ const entryToRemote = (e: LocalEntry, userId: string) => ({
   latitude: e.latitude,
   longitude: e.longitude,
   altitude_m: e.altitude_m,
+  region: e.region ?? null,
+  country_code: e.country_code ?? null,
   updated_at: e.updated_at,
 });
 
@@ -132,6 +134,8 @@ const entryFromRemote = (r: Record<string, any>): LocalEntry => ({
   latitude: r.latitude ?? null,
   longitude: r.longitude ?? null,
   altitude_m: r.altitude_m ?? null,
+  region: r.region ?? null,
+  country_code: r.country_code ?? null,
   sync_status: 'synced',
   updated_at: r.updated_at,
 });

@@ -1,6 +1,6 @@
 /** Aggregates the on-device journal into traveller stats (pure: feed it rows, get numbers). */
 import { getDestination } from '../content/destinations';
-import { elevationStats, trackDistanceKm, type TrackPoint } from './geo';
+import { elevationStats, haversineM, trackDistanceKm, type TrackPoint } from './geo';
 import { dayCount, parseDay, toDayString } from './format';
 
 export type StatsTrip = {
@@ -19,6 +19,10 @@ export type StatsEntry = {
   mood: string | null;
   place_name: string | null;
   weather: string | null;
+  region?: string | null;
+  country_code?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
 };
 
 export type StatsExpense = { trip_id: string; amount: number; currency: string; spent_on: string | null };
@@ -39,10 +43,16 @@ export type TravelStats = {
   photos: number;
   voiceNotes: number;
   km: number;
+  /** Distance travelled: per journey, the longer of its recorded route and the path between located moments. */
+  kmTravelled: number;
   maxAltitudeM: number;
   elevationGainM: number;
   destinations: number;
   countries: number;
+  /** ISO codes of countries visited (catalog destinations and places looked up for moments), sorted. */
+  countryCodes: string[];
+  /** States / provinces visited, as "Kerala" (or "Kerala, IN" style keys collapsed to the name), sorted. */
+  states: string[];
   longestTripDays: number;
   longestStreakDays: number;
   earlyBirdEntries: number;
@@ -76,21 +86,52 @@ export function computeTravelStats(input: StatsInput): TravelStats {
   let km = 0;
   let maxAlt = 0;
   let gain = 0;
-  for (const points of Object.values(input.trackPointsByTrip)) {
+  const routeKmByTrip: Record<string, number> = {};
+  for (const [tripId, points] of Object.entries(input.trackPointsByTrip)) {
     if (points.length < 2) continue;
-    km += trackDistanceKm(points);
+    const tripKm = trackDistanceKm(points);
+    routeKmByTrip[tripId] = tripKm;
+    km += tripKm;
     const elev = elevationStats(points);
     gain += elev.gainM;
     if (elev.maxM != null) maxAlt = Math.max(maxAlt, elev.maxM);
   }
   const placeKeys = new Set<string>();
   const countries = new Set<string>();
+  const states = new Set<string>();
   for (const t of input.trips) {
     const key = t.place_key || t.destination?.trim().toLowerCase() || null;
     if (key) placeKeys.add(key);
     const d = getDestination(t.place_key);
-    if (d) countries.add(d.countryCode);
+    if (d) {
+      countries.add(d.countryCode);
+      states.add(d.region);
+    }
   }
+  for (const e of input.entries) {
+    if (e.country_code) countries.add(e.country_code.toUpperCase());
+    if (e.region) states.add(e.region.trim());
+  }
+  // Path between a journey's located moments, in time order (jumps under 50 m are GPS noise).
+  const momentKmByTrip: Record<string, number> = {};
+  const located = input.entries
+    .filter(e => e.latitude != null && e.longitude != null)
+    .sort((a, b) => a.recorded_at.localeCompare(b.recorded_at));
+  const lastByTrip: Record<string, { latitude: number; longitude: number }> = {};
+  for (const e of located) {
+    const here = { latitude: e.latitude as number, longitude: e.longitude as number };
+    const prev = lastByTrip[e.trip_id];
+    if (prev) {
+      const m = haversineM(prev, here);
+      if (m >= 50) momentKmByTrip[e.trip_id] = (momentKmByTrip[e.trip_id] ?? 0) + m / 1000;
+    }
+    lastByTrip[e.trip_id] = here;
+  }
+  let kmTravelled = 0;
+  for (const tripId of new Set([...Object.keys(routeKmByTrip), ...Object.keys(momentKmByTrip)])) {
+    kmTravelled += Math.max(routeKmByTrip[tripId] ?? 0, momentKmByTrip[tripId] ?? 0);
+  }
+
   let early = 0;
   let night = 0;
   let snow = 0;
@@ -110,10 +151,13 @@ export function computeTravelStats(input: StatsInput): TravelStats {
     photos: input.photos,
     voiceNotes: input.voiceNotes,
     km: Math.round(km * 10) / 10,
+    kmTravelled: Math.round(kmTravelled * 10) / 10,
     maxAltitudeM: Math.round(maxAlt),
     elevationGainM: Math.round(gain),
     destinations: placeKeys.size,
     countries: countries.size,
+    countryCodes: [...countries].sort(),
+    states: [...states].filter(Boolean).sort((a, b) => a.localeCompare(b)),
     longestTripDays: input.trips.reduce((m, t) => Math.max(m, tripDays(t, input.entries)), 0),
     longestStreakDays: longestStreak(input.entries.map(e => e.recorded_at)),
     earlyBirdEntries: early,
@@ -121,4 +165,29 @@ export function computeTravelStats(input: StatsInput): TravelStats {
     snowEntries: snow,
     rainEntries: rain,
   };
+}
+
+/** Money spent in a calendar year (by the day it was spent), per currency. */
+export function spendInYear(expenses: StatsExpense[], year: number) {
+  const out: { amount: number; currency: string }[] = [];
+  for (const e of expenses) {
+    const day = e.spent_on || '';
+    if (day.slice(0, 4) === String(year) && e.amount > 0) out.push({ amount: e.amount, currency: e.currency });
+  }
+  return out;
+}
+
+/** A flag emoji for an ISO country code ("IN" → 🇮🇳). */
+export function flagEmoji(code: string) {
+  return /^[A-Z]{2}$/.test(code) ? String.fromCodePoint(...[...code].map(c => 0x1f1e6 + c.charCodeAt(0) - 65)) : '🏳️';
+}
+
+/** A readable country name, from the device's language data when available. */
+export function countryName(code: string) {
+  try {
+    const names = new (Intl as any).DisplayNames(['en'], { type: 'region' });
+    return names.of(code) || code;
+  } catch {
+    return code;
+  }
 }

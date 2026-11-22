@@ -1,17 +1,24 @@
 import { Image } from 'expo-image';
 import { useCallback, useEffect, useState } from 'react';
-import { Alert, Pressable, ScrollView, View } from 'react-native';
+import { Alert, Pressable, ScrollView, View, type LayoutChangeEvent, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
+import { Text } from 'react-native-paper';
 import { deleteEntryMedia, listEntryMedia, type LocalEntryMedia } from '../lib/localDb';
 import { isAudio, resolveMediaUri } from '../lib/media';
+import { useAppTheme } from '../theme';
+import { Icon } from '../ui/Icon';
 import { PhotoViewer } from '../ui/PhotoGrid';
 
 /**
- * A moment's photos: the first one fills the width of the card, any others sit below as small
- * thumbnails. Tap to view full screen; long-press to remove. Renders nothing when there are no photos.
+ * A moment's photos in one fixed 4:3 window. With several photos the window looks like a small stack
+ * (two cards peek out behind it) with a "1/3" counter, and you swipe sideways through them. Tap to view
+ * full screen; long-press to remove. Renders nothing when there are no photos.
  */
 export function MomentPhotos({ entryId, refreshKey = 0, onChanged }: { entryId: string; refreshKey?: number; onChanged?: () => void }) {
+  const { colors } = useAppTheme();
   const [items, setItems] = useState<{ media: LocalEntryMedia; uri: string }[]>([]);
   const [open, setOpen] = useState<number | null>(null);
+  const [page, setPage] = useState(0);
+  const [width, setWidth] = useState(0);
 
   const load = useCallback(async () => {
     const all = (await listEntryMedia(entryId)).filter(m => !isAudio(m.mime_type));
@@ -21,6 +28,7 @@ export function MomentPhotos({ entryId, refreshKey = 0, onChanged }: { entryId: 
       if (uri) resolved.push({ media, uri });
     }
     setItems(resolved);
+    setPage(p => Math.min(p, Math.max(0, resolved.length - 1)));
   }, [entryId]);
 
   useEffect(() => {
@@ -43,22 +51,49 @@ export function MomentPhotos({ entryId, refreshKey = 0, onChanged }: { entryId: 
       },
     ]);
 
-  const [first, ...rest] = items;
+  const many = items.length > 1;
+  const onLayout = (e: LayoutChangeEvent) => setWidth(e.nativeEvent.layout.width);
+  const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    if (width) setPage(Math.round(e.nativeEvent.contentOffset.x / width));
+  };
+
   return (
-    <>
-      <Pressable onPress={() => setOpen(0)} onLongPress={() => remove(first.media)} accessibilityLabel="Photo. Tap to enlarge, long press to remove.">
-        <Image source={{ uri: first.uri }} style={{ width: '100%', aspectRatio: 4 / 3 }} contentFit="cover" transition={150} />
-      </Pressable>
-      {rest.length ? (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6, padding: 8 }}>
-          {rest.map((item, i) => (
-            <Pressable key={item.media.id} onPress={() => setOpen(i + 1)} onLongPress={() => remove(item.media)} accessibilityLabel={`Photo ${i + 2}`}>
-              <Image source={{ uri: item.uri }} style={{ width: 64, height: 64, borderRadius: 10 }} contentFit="cover" transition={120} />
-            </Pressable>
-          ))}
-        </ScrollView>
+    <View style={{ paddingHorizontal: 12, paddingTop: many ? 12 : 4 }}>
+      {many ? (
+        <>
+          {/* The stack: two cards peeking out behind the photo say "there are more". */}
+          <View style={{ position: 'absolute', top: 0, left: 28, right: 28, height: 24, borderRadius: 14, backgroundColor: colors.surfaceVariant, opacity: 0.6 }} />
+          <View style={{ position: 'absolute', top: 6, left: 20, right: 20, height: 24, borderRadius: 14, backgroundColor: colors.surfaceVariant }} />
+        </>
       ) : null}
+      <View onLayout={onLayout} style={{ borderRadius: 14, overflow: 'hidden', aspectRatio: 4 / 3, backgroundColor: colors.surfaceVariant }}>
+        {width ? (
+          <ScrollView horizontal pagingEnabled showsHorizontalScrollIndicator={false} onScroll={onScroll} scrollEventThrottle={32} scrollEnabled={many}>
+            {items.map((item, i) => (
+              <Pressable
+                key={item.media.id}
+                onPress={() => setOpen(i)}
+                onLongPress={() => remove(item.media)}
+                accessibilityLabel={`Photo ${i + 1} of ${items.length}. Tap to enlarge, long press to remove.`}
+              >
+                <Image source={{ uri: item.uri }} style={{ width, aspectRatio: 4 / 3 }} contentFit="cover" transition={150} />
+              </Pressable>
+            ))}
+          </ScrollView>
+        ) : null}
+        {many ? (
+          <View
+            pointerEvents="none"
+            style={{ position: 'absolute', top: 10, right: 10, flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(0,0,0,0.55)', borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3 }}
+          >
+            <Icon name="image-multiple-outline" size={13} color="#fff" />
+            <Text style={{ color: '#fff', fontSize: 12, fontWeight: '700' }}>
+              {page + 1}/{items.length}
+            </Text>
+          </View>
+        ) : null}
+      </View>
       <PhotoViewer uris={items.map(i => i.uri)} index={open} onClose={() => setOpen(null)} />
-    </>
+    </View>
   );
 }

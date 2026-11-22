@@ -4,7 +4,7 @@ import { setAppBadge } from '../lib/notifications';
 import { myConversations, subscribeToInbox } from '../social/chat';
 import { unreadNotificationCount } from '../social/notifications';
 import type { ConversationSummary } from '../social/types';
-import { useAuth, useCanConnect } from './AuthContext';
+import { useAuth, useCanConnect, useSocial } from './AuthContext';
 
 type Ctx = {
   conversations: ConversationSummary[];
@@ -20,7 +20,8 @@ const InboxContext = createContext<Ctx | null>(null);
 
 export function InboxProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
-  const canConnect = useCanConnect();
+  // No chats or social notifications while social features are off.
+  const canConnect = useSocial();
   const [conversations, setConversations] = useState<ConversationSummary[]>([]);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
   const [loading, setLoading] = useState(false);

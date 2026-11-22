@@ -24,7 +24,7 @@ export default function LoginScreen() {
           Offline journal mode
         </Text>
         <Text style={{ marginVertical: 12, color: colors.muted, lineHeight: 21 }}>
-          Cloud features are not configured in this build. You can still journal on this device. Sync and community activate when
+          Cloud features are not configured in this build. You can still journal on this device. Backup and sync activate when
           EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY are set.
         </Text>
         <Button mode="contained" onPress={() => router.replace('/(tabs)')}>
@@ -95,7 +95,7 @@ export default function LoginScreen() {
           Just journal for now (no account)
         </Button>
         <Text style={{ color: colors.muted, fontSize: 12, textAlign: 'center', marginTop: 4 }}>
-          Without an account your journal stays on this phone. Sign up any time to back it up and meet travellers.
+          Without an account your journal stays on this phone. Sign up any time to back it up and share trips with the people you travel with.
         </Text>
       </View>
     </Screen>

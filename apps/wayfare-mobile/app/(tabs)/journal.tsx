@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useState } from 'react';
 import { View } from 'react-native';
 import { ActivityIndicator, Button, Text } from 'react-native-paper';
-import { useSync } from '../src/context/SyncContext';
-import { JournalTab } from '../src/features/trip/JournalTab';
-import { ensureEverydayTrip } from '../src/lib/everyday';
-import type { LocalTrip } from '../src/lib/localDb';
-import { useAppTheme } from '../src/theme';
-import { Icon } from '../src/ui/Icon';
-import { Screen } from '../src/ui/Screen';
+import { useSync } from '../../src/context/SyncContext';
+import { JournalTab } from '../../src/features/trip/JournalTab';
+import { ensureEverydayTrip } from '../../src/lib/everyday';
+import type { LocalTrip } from '../../src/lib/localDb';
+import { useAppTheme } from '../../src/theme';
+import { Icon } from '../../src/ui/Icon';
+import { Screen } from '../../src/ui/Screen';
 
 /** The private journal for ordinary days: same composer as a journey, no trip needed. */
 export default function EverydayJournalScreen() {

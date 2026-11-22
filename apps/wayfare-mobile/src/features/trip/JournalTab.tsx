@@ -6,7 +6,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, View } from 'react-native';
 import { Button, Text } from 'react-native-paper';
 import { uuid } from '../../lib/id';
-import { useCanConnect } from '../../context/AuthContext';
+import { useCanConnect, useSocial } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { formatDay, toDayString } from '../../lib/format';
 import { deleteEntry, listEntries, listExpenses, upsertEntry, upsertEntryMedia, upsertExpense, type LocalEntry, type LocalExpense, type LocalTrip } from '../../lib/localDb';
@@ -20,6 +20,8 @@ import { EmptyState } from '../../ui/EmptyState';
 import { MomentCard } from './MomentCard';
 import { MomentComposer, type MomentMoney } from './MomentComposer';
 import { pickPhotos, type PickedPhoto } from './photoPicker';
+import { Pill } from '../../ui/Pill';
+import { placeFromCoords, type FoundPlace } from '../../lib/reverseGeocode';
 
 /** `everyday` is the private journal for ordinary days: no "Day n" counter, a daily prompt. */
 const DAYS_PER_PAGE = 30;
@@ -38,6 +40,7 @@ export function JournalTab({ trip, onChanged, everyday = false }: Props) {
   const { colors } = useAppTheme();
   const toast = useToast();
   const canConnect = useCanConnect();
+  const social = useSocial();
   const [entries, setEntries] = useState<LocalEntry[]>([]);
   const [text, setText] = useState('');
   const [mood, setMood] = useState('');
@@ -112,10 +115,19 @@ export function JournalTab({ trip, onChanged, everyday = false }: Props) {
     const now = new Date().toISOString();
     let weather: string | null = null;
     let coords: Location.LocationObjectCoords | null = null;
+    let place: FoundPlace | null = null;
     if (attachContext) {
       try {
         coords = await currentFix();
-        if (coords) weather = await fetchWeatherSummary(coords.latitude, coords.longitude);
+        if (coords) {
+          // Weather and the place (city, state, country) are looked up together.
+          const [w, p] = await Promise.all([
+            fetchWeatherSummary(coords.latitude, coords.longitude).catch(() => null),
+            placeFromCoords(coords.latitude, coords.longitude),
+          ]);
+          weather = w;
+          place = p;
+        }
       } catch {
         // offline / no fix — the entry still saves
       }
@@ -126,8 +138,10 @@ export function JournalTab({ trip, onChanged, everyday = false }: Props) {
       recorded_at: now,
       body,
       mood: mood || null,
-      place_name: null,
+      place_name: place?.name ?? null,
       weather,
+      region: place?.region ?? null,
+      country_code: place?.countryCode ?? null,
       latitude: coords?.latitude ?? null,
       longitude: coords?.longitude ?? null,
       altitude_m: coords?.altitude ?? null,
@@ -231,18 +245,20 @@ export function JournalTab({ trip, onChanged, everyday = false }: Props) {
     ]);
 
   // Newest first, grouped by calendar day with "Day n" relative to the trip start.
+  // Oldest first, like reading a diary. Journeys group by "Day 1, Day 2…" from the start date (or the
+  // first moment); the everyday journal groups by date. Each moment shows its own date and time.
   const groups = useMemo(() => {
     const byDay = new Map<string, LocalEntry[]>();
-    for (const e of [...entries].reverse()) {
+    for (const e of entries) {
       const day = toDayString(new Date(e.recorded_at));
       byDay.set(day, [...(byDay.get(day) ?? []), e]);
     }
     const start = everyday ? null : trip.starts_on ? new Date(`${trip.starts_on}T00:00:00`) : entries[0] ? new Date(toDayString(new Date(entries[0].recorded_at)) + 'T00:00:00') : null;
     return [...byDay.entries()].map(([day, list]) => {
       const n = start ? Math.round((new Date(`${day}T00:00:00`).getTime() - start.getTime()) / 86400000) + 1 : null;
-      // A journal that spans years needs the year on older pages, or two "20 Nov" pages look alike.
       const year = day.slice(0, 4) !== String(new Date().getFullYear());
-      return { day, label: `${n && n > 0 ? `Day ${n} · ` : ''}${formatDay(day, { weekday: true, year })}`, list };
+      const label = n == null ? formatDay(day, { weekday: true, year }) : n > 0 ? `Day ${n}` : 'Before the trip';
+      return { day, label, list };
     });
   }, [entries, trip.starts_on, everyday]);
 
@@ -284,11 +300,17 @@ export function JournalTab({ trip, onChanged, everyday = false }: Props) {
         />
       ) : null}
 
-      {groups.slice(0, shownDays).map(g => (
+      {groups.length > shownDays ? (
+        <Button mode="outlined" onPress={() => setShownDays(n => n + DAYS_PER_PAGE)} style={{ alignSelf: 'center', marginBottom: 12 }}>
+          Show earlier days ({groups.length - shownDays} more)
+        </Button>
+      ) : null}
+      {groups.slice(-shownDays).map(g => (
         <View key={g.day}>
-          <Text style={{ color: colors.secondary, fontWeight: '800', fontSize: 12, letterSpacing: 0.6, marginBottom: 8, marginTop: 4 }}>
-            {g.label.toUpperCase()}
-          </Text>
+          {/* The same pill as the Journal / Plan / Budget tabs above. */}
+          <View style={{ marginBottom: 10, marginTop: 4 }} accessibilityRole="header">
+            <Pill label={g.label} icon="calendar-blank-outline" selected />
+          </View>
           {g.list.map(e => (
             <MomentCard
               key={e.id}
@@ -296,7 +318,7 @@ export function JournalTab({ trip, onChanged, everyday = false }: Props) {
               money={moneyByMoment.get(e.id)}
               currencySymbol={symbol}
               mediaKey={mediaKey}
-              canShare={canConnect}
+              canShare={social}
               tripId={trip.id}
               onChanged={onChanged}
               onAddPhotos={() => addPhotosToEntry(e.id)}
@@ -305,11 +327,6 @@ export function JournalTab({ trip, onChanged, everyday = false }: Props) {
           ))}
         </View>
       ))}
-      {groups.length > shownDays ? (
-        <Button mode="outlined" onPress={() => setShownDays(n => n + DAYS_PER_PAGE)} style={{ alignSelf: 'center', marginTop: 4 }}>
-          Show earlier days ({groups.length - shownDays} more)
-        </Button>
-      ) : null}
     </View>
   );
 }

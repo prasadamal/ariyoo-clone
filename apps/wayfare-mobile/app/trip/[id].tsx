@@ -1,10 +1,10 @@
 import { router, Stack, useLocalSearchParams, useFocusEffect } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Alert, View } from 'react-native';
 import { ActivityIndicator, IconButton, Menu, Text } from 'react-native-paper';
 import { tripTypeIcon } from '../../src/components/TripCard';
 import { getDestination } from '../../src/content/destinations';
-import { useAuth, useCanConnect } from '../../src/context/AuthContext';
+import { useAuth, useCanConnect, useSocial } from '../../src/context/AuthContext';
 import { useSync } from '../../src/context/SyncContext';
 import { useToast } from '../../src/context/ToastContext';
 import { BudgetTab } from '../../src/features/trip/BudgetTab';
@@ -22,12 +22,16 @@ import { getActiveTrackingTripId, stopTripTracking } from '../../src/lib/locatio
 import { shareTripLink } from '../../src/lib/shareTrip';
 import { pushTripNow } from '../../src/lib/sync';
 import { exportTripJournalPdf } from '../../src/lib/tripPdf';
-import { computeTripStats, formatSpend, type TripStats } from '../../src/lib/tripStats';
+import { computeTripStats, type TripStats } from '../../src/lib/tripStats';
 import { useAppTheme } from '../../src/theme';
 import { Icon } from '../../src/ui/Icon';
 import { Pill } from '../../src/ui/Pill';
 import { Screen } from '../../src/ui/Screen';
 import { TabStrip, type TabItem } from '../../src/ui/TabStrip';
+import { SOCIAL_ENABLED } from '../../src/lib/features';
+import { BudgetBar } from '../../src/ui/BudgetBar';
+import { getRates, type RatesSnapshot } from '../../src/lib/currency';
+import { sumInCurrency } from '../../src/lib/currencyMath';
 
 type Tab = 'journal' | 'plan' | 'budget' | 'pack' | 'route' | 'crew';
 
@@ -37,7 +41,7 @@ const TABS: TabItem<Tab>[] = [
   { value: 'budget', label: 'Budget', icon: 'wallet-outline' },
   { value: 'pack', label: 'Pack', icon: 'bag-checked' },
   { value: 'route', label: 'Route', icon: 'map-marker-path' },
-  { value: 'crew', label: 'Crew', icon: 'account-group-outline' },
+  ...(SOCIAL_ENABLED ? [{ value: 'crew' as const, label: 'Crew', icon: 'account-group-outline' }] : []),
 ];
 
 export default function TripDetailScreen() {
@@ -46,6 +50,11 @@ export default function TripDetailScreen() {
   const { colors } = useAppTheme();
   const { user } = useAuth();
   const canConnect = useCanConnect();
+  const social = useSocial();
+  const [rates, setRates] = useState<RatesSnapshot | null>(null);
+  useEffect(() => {
+    getRates().then(setRates).catch(() => null);
+  }, []);
   const { refreshPending } = useSync();
   const toast = useToast();
   const [trip, setTrip] = useState<LocalTrip | null | undefined>(undefined);
@@ -94,7 +103,7 @@ export default function TripDetailScreen() {
     await updateTrip(trip.id, { status: done ? 'completed' : 'active' });
     if (done && (await getActiveTrackingTripId()) === trip.id) await stopTripTracking();
     await load();
-    if (done && canConnect) {
+    if (done && social) {
       toast('Journey complete! 🎉', { label: 'Share it', onPress: () => router.push({ pathname: '/post/new', params: { tripId: trip.id, kind: 'trip' } }) });
     }
   };
@@ -138,8 +147,7 @@ export default function TripDetailScreen() {
       <TripCover
         uri={trip.cover_uri}
         gradient={[colors.heroStart, colors.heroEnd]}
-        spent={stats ? formatSpend(stats.spendByCurrency) : undefined}
-        style={{ borderRadius: 22, padding: 16, paddingRight: 6, paddingBottom: trip.cover_uri ? 52 : 16, minHeight: trip.cover_uri ? 190 : undefined }}
+        style={{ borderRadius: 22, padding: 16, paddingRight: 6, minHeight: trip.cover_uri ? 190 : undefined }}
       >
         <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
           <View style={{ flex: 1 }}>
@@ -162,10 +170,10 @@ export default function TripDetailScreen() {
             </Text>
             <Text
               style={{ color: '#ffffffe6', marginTop: 2 }}
-              onPress={trip.place_key ? () => router.push(`/place/${trip.place_key}`) : undefined}
+              onPress={social && trip.place_key ? () => router.push(`/place/${trip.place_key}`) : undefined}
             >
               {[dest?.name ?? trip.destination, formatDateRange(trip.starts_on, trip.ends_on)].filter(Boolean).join(' · ') || 'Add a destination and dates'}
-              {trip.place_key ? '  ›' : ''}
+              {social && trip.place_key ? '  ›' : ''}
             </Text>
           </View>
           <Menu
@@ -175,7 +183,7 @@ export default function TripDetailScreen() {
           >
             <Menu.Item leadingIcon="pencil-outline" title="Edit details" onPress={() => { setMenu(false); router.push(`/trip/edit/${trip.id}`); }} />
             <Menu.Item leadingIcon="image-edit-outline" title={trip.cover_uri ? 'Change cover photo' : 'Add cover photo'} onPress={() => { setMenu(false); void changeCover(); }} />
-            {canConnect ? (
+            {social ? (
               <Menu.Item
                 leadingIcon="share-variant-outline"
                 title="Share to feed"
@@ -203,9 +211,18 @@ export default function TripDetailScreen() {
             <Pill icon="feather" label={`${stats.entryCount} ${stats.entryCount === 1 ? 'moment' : 'moments'}`} color="#fff" background="#ffffff26" />
             {stats.photoCount ? <Pill icon="camera-outline" label={`${stats.photoCount}`} color="#fff" background="#ffffff26" /> : null}
             {stats.distanceKm >= 0.1 ? <Pill icon="map-marker-path" label={formatKm(stats.distanceKm)} color="#fff" background="#ffffff26" /> : null}
-            {formatSpend(stats.spendByCurrency) ? <Pill icon="wallet-outline" label={formatSpend(stats.spendByCurrency)} color="#fff" background="#ffffff26" /> : null}
-            {trip.open_to_meet ? <Pill icon="account-group" label="Open to meet" color="#fff" background="#ffffff26" /> : null}
+            {social && trip.open_to_meet ? <Pill icon="account-group" label="Open to meet" color="#fff" background="#ffffff26" /> : null}
             {trip.visibility === 'link' ? <Pill icon="link-variant" label="Shared link" color="#fff" background="#ffffff26" /> : null}
+          </View>
+        ) : null}
+        {stats ? (
+          <View style={{ paddingRight: 10 }}>
+            <BudgetBar
+              spent={sumInCurrency(Object.entries(stats.spendByCurrency).map(([currency, amount]) => ({ currency, amount })), trip.currency || 'INR', rates?.rates ?? null).total}
+              budget={trip.budget_total}
+              currency={trip.currency || 'INR'}
+              onAddBudget={() => router.push(`/trip/edit/${trip.id}`)}
+            />
           </View>
         ) : null}
       </TripCover>
