@@ -1,4 +1,5 @@
 import * as Print from 'expo-print';
+import { stripRich } from './richText';
 import * as Sharing from 'expo-sharing';
 import { formatDateRange, formatKm } from './format';
 import { listEntries, listExpenses, listItinerary, type LocalTrip } from './localDb';
@@ -15,7 +16,7 @@ export async function exportTripJournalPdf(trip: LocalTrip) {
     listEntries(trip.id),
     listExpenses(trip.id),
     listItinerary(trip.id),
-    computeTripStats(trip.id),
+    computeTripStats(trip.id, trip),
   ]);
 
   const entryHtml = entries
@@ -24,7 +25,7 @@ export async function exportTripJournalPdf(trip: LocalTrip) {
     <section class="entry">
       <time>${esc(new Date(e.recorded_at).toLocaleString('en-IN'))}</time>
       ${e.place_name ? `<div class="place">${esc(e.place_name)}</div>` : ''}
-      <p>${esc(e.body ?? '').replace(/\n/g, '<br/>')}</p>
+      <p>${esc(stripRich(e.body ?? '')).replace(/\n/g, '<br/>')}</p>
       ${e.mood ? `<div class="meta">Mood: ${esc(e.mood)}</div>` : ''}
       ${e.weather ? `<div class="meta">${esc(e.weather)}</div>` : ''}
       ${e.altitude_m != null ? `<div class="meta">Altitude ~${Math.round(e.altitude_m)} m</div>` : ''}

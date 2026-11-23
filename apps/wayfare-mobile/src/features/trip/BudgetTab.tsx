@@ -11,7 +11,6 @@ import { useAppTheme } from '../../theme';
 import { ChipSelect } from '../../ui/ChipSelect';
 import { Icon } from '../../ui/Icon';
 import { Notice } from '../../ui/Notice';
-import { SectionHeader } from '../../ui/SectionHeader';
 import { Meter } from '../../ui/Meter';
 import { capitalizeName, firstName } from '../../lib/names';
 
@@ -56,6 +55,7 @@ export function BudgetTab({ trip, onChanged, readOnly = false }: Props) {
   const [budgetText, setBudgetText] = useState('');
   const [formOpen, setFormOpen] = useState(false);
   const [showSettle, setShowSettle] = useState(false);
+  const [showExpenses, setShowExpenses] = useState(false);
   const [note, setNote] = useState('');
   const [paidBy, setPaidBy] = useState(ME);
   const [splitWith, setSplitWith] = useState<string[]>(people);
@@ -168,8 +168,11 @@ export function BudgetTab({ trip, onChanged, readOnly = false }: Props) {
   return (
     <View>
       <View style={{ backgroundColor: colors.surface, borderRadius: 18, borderWidth: 1, borderColor: colors.border, padding: 16 }}>
+        {/* The money spent is the title; the bar below runs from 0 to the budget. */}
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-          <Text style={{ color: colors.muted, fontSize: 12, fontWeight: '700', flex: 1 }}>SPENT SO FAR</Text>
+          <Text variant="displaySmall" style={{ fontWeight: '900', flex: 1 }} numberOfLines={1} adjustsFontSizeToFit accessibilityLabel={`${formatMoney(total.total, tripCurrency)} spent`}>
+            {formatMoney(total.total, tripCurrency)}
+          </Text>
           {readOnly ? null : (
             <Button
               compact
@@ -183,18 +186,17 @@ export function BudgetTab({ trip, onChanged, readOnly = false }: Props) {
             </Button>
           )}
         </View>
-        <Text variant="displaySmall" style={{ fontWeight: '900' }}>
-          {formatMoney(total.total, tripCurrency)}
-        </Text>
         {budget > 0 ? (
-          <>
+          <View
+            accessible
+            accessibilityLabel={used > 1 ? `${formatMoney(total.total - budget, tripCurrency)} over the ${formatMoney(budget, tripCurrency)} budget` : `${formatMoney(budget - total.total, tripCurrency)} left of the ${formatMoney(budget, tripCurrency)} budget`}
+          >
             <Meter progress={Math.min(1, used)} color={used > 1 ? colors.danger : used > 0.85 ? colors.warning : colors.primary} height={8} style={{ marginTop: 10 }} />
-            <Text style={{ color: used > 1 ? colors.danger : colors.muted, marginTop: 6, fontSize: 13 }}>
-              {used > 1
-                ? `${formatMoney(total.total - budget, tripCurrency)} over your ${formatMoney(budget, tripCurrency)} expected budget`
-                : `${formatMoney(budget - total.total, tripCurrency)} left of your ${formatMoney(budget, tripCurrency)} expected budget`}
-            </Text>
-          </>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 6, marginRight: byCategory.length ? 36 : 0 }}>
+              <Text style={{ color: colors.muted, fontSize: 13, fontWeight: '600' }}>{formatMoney(0, tripCurrency)}</Text>
+              <Text style={{ color: used > 1 ? colors.danger : colors.muted, fontSize: 13, fontWeight: '600' }}>{formatMoney(budget, tripCurrency)}</Text>
+            </View>
+          </View>
         ) : null}
         {budget <= 0 ? (
           <Text style={{ color: colors.muted, marginTop: 8, fontSize: 13 }}>{readOnly ? 'No budget set for this journey.' : 'No budget set yet. Set one to see what is left.'}</Text>
@@ -265,37 +267,53 @@ export function BudgetTab({ trip, onChanged, readOnly = false }: Props) {
         </View>
       ) : null}
 
-      {expenses.length ? <SectionHeader title="Expenses" subtitle={readOnly ? undefined : 'Long-press one to delete'} /> : null}
-      {/* Grouped by day, newest first, so the list reads like a statement. */}
-      {byDay.map(([day, list]) => (
-        <View key={day} style={{ marginBottom: 6 }}>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 8, marginBottom: 2 }}>
-            <Text style={{ color: colors.muted, fontSize: 12, fontWeight: '700', letterSpacing: 0.4 }}>{dayHeading(day).toUpperCase()}</Text>
-            <Text style={{ color: colors.muted, fontSize: 12, fontWeight: '700' }}>
-              {formatMoney(sumInCurrency(list.map(e => ({ amount: e.amount, currency: e.currency })), tripCurrency, rates?.rates ?? null).total, tripCurrency)}
-            </Text>
-          </View>
-          {list.map(e => {
-            const split = parseSplitWith(e.split_with);
-            return (
-              <Pressable key={e.id} disabled={readOnly} onLongPress={() => remove(e)} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.border }}>
-                <View style={{ width: 36, height: 36, borderRadius: 12, backgroundColor: colors.primaryContainer, alignItems: 'center', justifyContent: 'center' }}>
-                  <Icon name={categoryIcon(e.category)} size={18} color={colors.onPrimaryContainer} />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={{ fontWeight: '600', textTransform: 'capitalize' }} numberOfLines={1}>{e.note || e.category}</Text>
-                  <Text style={{ color: colors.muted, fontSize: 12 }}>
-                    {e.paid_by || companions.length || !e.note ? '' : categoryLabel(e.category)}
-                    {e.paid_by ? `Paid by ${firstName(capitalizeName(e.paid_by))}` : companions.length ? 'Paid by you' : ''}
-                    {split.length > 1 ? ` · split ${split.length} ways` : ''}
+      {expenses.length ? (
+        <View style={{ backgroundColor: colors.surfaceVariant, borderRadius: 18, padding: 16, marginTop: 16 }}>
+          <Pressable onPress={() => setShowExpenses(v => !v)} accessibilityRole="button" accessibilityState={{ expanded: showExpenses }} style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontWeight: '800', fontSize: 16 }}>Expenses</Text>
+              <Text style={{ color: colors.muted, fontSize: 12 }}>
+                {expenses.length} {expenses.length === 1 ? 'expense' : 'expenses'}{readOnly ? '' : ' · long-press one to delete'}
+              </Text>
+            </View>
+            <Icon name={showExpenses ? 'chevron-up' : 'chevron-down'} size={22} color={colors.muted} />
+          </Pressable>
+          {showExpenses ? (
+            <View style={{ marginTop: 6 }}>
+            {/* Grouped by day, newest first, so the list reads like a statement. */}
+            {byDay.map(([day, list]) => (
+              <View key={day} style={{ marginBottom: 6 }}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 8, marginBottom: 2 }}>
+                  <Text style={{ color: colors.muted, fontSize: 12, fontWeight: '700', letterSpacing: 0.4 }}>{dayHeading(day).toUpperCase()}</Text>
+                  <Text style={{ color: colors.muted, fontSize: 12, fontWeight: '700' }}>
+                    {formatMoney(sumInCurrency(list.map(e => ({ amount: e.amount, currency: e.currency })), tripCurrency, rates?.rates ?? null).total, tripCurrency)}
                   </Text>
                 </View>
-                <Text style={{ fontWeight: '800' }}>{formatMoney(e.amount, e.currency)}</Text>
-              </Pressable>
-            );
-          })}
+                {list.map(e => {
+                  const split = parseSplitWith(e.split_with);
+                  return (
+                    <Pressable key={e.id} disabled={readOnly} onLongPress={() => remove(e)} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.border }}>
+                      <View style={{ width: 36, height: 36, borderRadius: 12, backgroundColor: colors.primaryContainer, alignItems: 'center', justifyContent: 'center' }}>
+                        <Icon name={categoryIcon(e.category)} size={18} color={colors.onPrimaryContainer} />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ fontWeight: '600', textTransform: 'capitalize' }} numberOfLines={1}>{e.note || e.category}</Text>
+                        <Text style={{ color: colors.muted, fontSize: 12 }}>
+                          {e.paid_by || companions.length || !e.note ? '' : categoryLabel(e.category)}
+                          {e.paid_by ? `Paid by ${firstName(capitalizeName(e.paid_by))}` : companions.length ? 'Paid by you' : ''}
+                          {split.length > 1 ? ` · split ${split.length} ways` : ''}
+                        </Text>
+                      </View>
+                      <Text style={{ fontWeight: '800' }}>{formatMoney(e.amount, e.currency)}</Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            ))}
+            </View>
+          ) : null}
         </View>
-      ))}
+      ) : null}
       <Portal>
         <Dialog visible={formOpen} onDismiss={() => setFormOpen(false)} style={{ maxHeight: '88%' }}>
           <Dialog.Title>Add expense</Dialog.Title>

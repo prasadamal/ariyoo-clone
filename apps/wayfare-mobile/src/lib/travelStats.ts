@@ -53,6 +53,8 @@ export type TravelStats = {
   countryCodes: string[];
   /** States / provinces visited, as "Kerala" (or "Kerala, IN" style keys collapsed to the name), sorted. */
   states: string[];
+  /** States visited, grouped by country code (sorted); "" holds states whose country isn't known. */
+  statesByCountry: Record<string, string[]>;
   longestTripDays: number;
   longestStreakDays: number;
   earlyBirdEntries: number;
@@ -99,6 +101,12 @@ export function computeTravelStats(input: StatsInput): TravelStats {
   const placeKeys = new Set<string>();
   const countries = new Set<string>();
   const states = new Set<string>();
+  const byCountry = new Map<string, Set<string>>();
+  const addState = (country: string, state: string) => {
+    if (!state) return;
+    if (!byCountry.has(country)) byCountry.set(country, new Set());
+    byCountry.get(country)!.add(state);
+  };
   for (const t of input.trips) {
     const key = t.place_key || t.destination?.trim().toLowerCase() || null;
     if (key) placeKeys.add(key);
@@ -106,11 +114,13 @@ export function computeTravelStats(input: StatsInput): TravelStats {
     if (d) {
       countries.add(d.countryCode);
       states.add(d.region);
+      addState(d.countryCode, d.region);
     }
   }
   for (const e of input.entries) {
     if (e.country_code) countries.add(e.country_code.toUpperCase());
     if (e.region) states.add(e.region.trim());
+    if (e.region) addState(e.country_code ? e.country_code.toUpperCase() : '', e.region.trim());
   }
   // Path between a journey's located moments, in time order (jumps under 50 m are GPS noise).
   const momentKmByTrip: Record<string, number> = {};
@@ -158,6 +168,9 @@ export function computeTravelStats(input: StatsInput): TravelStats {
     countries: countries.size,
     countryCodes: [...countries].sort(),
     states: [...states].filter(Boolean).sort((a, b) => a.localeCompare(b)),
+    statesByCountry: Object.fromEntries(
+      [...byCountry].map(([c, set]) => [c, [...set].sort((a, b) => a.localeCompare(b))])
+    ),
     longestTripDays: input.trips.reduce((m, t) => Math.max(m, tripDays(t, input.entries)), 0),
     longestStreakDays: longestStreak(input.entries.map(e => e.recorded_at)),
     earlyBirdEntries: early,

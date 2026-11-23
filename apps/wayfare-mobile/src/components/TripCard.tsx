@@ -9,7 +9,6 @@ import type { LocalTrip } from '../lib/localDb';
 import { useAppTheme } from '../theme';
 import { Icon } from '../ui/Icon';
 import { Pill } from '../ui/Pill';
-import { Meter } from '../ui/Meter';
 import { SOCIAL_ENABLED } from '../lib/features';
 import { BudgetBar } from '../ui/BudgetBar';
 
@@ -54,14 +53,14 @@ export function TripCard({ trip, synopsis, packingRatio, tracking, spentAmount =
   return (
     <Pressable
       onPress={() => router.push(`/trip/${trip.id}`)}
-      style={({ pressed }) => ({ marginBottom: 14, borderRadius: 20, overflow: 'hidden', opacity: pressed ? 0.9 : 1, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border })}
+      style={({ pressed }) => ({ marginBottom: 14, borderRadius: 22, overflow: 'hidden', opacity: pressed ? 0.92 : 1 })}
       accessibilityRole="button"
       accessibilityLabel={`${trip.title}, ${phaseLabel}`}
     >
-      <TripCover uri={cover} gradient={gradient} style={{ padding: 16, minHeight: cover ? 150 : 104 }}>
+      {/* Same look as the Next up card: the cover (or brand gradient) with everything laid over it. */}
+      <TripCover uri={cover} gradient={gradient} style={{ borderRadius: 22, padding: 18, minHeight: cover ? 180 : 140, justifyContent: 'flex-end' }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <Icon name={tripTypeIcon(trip.trip_type)} size={18} color="#fff" />
-          <Text style={{ color: '#ffffffcc', fontSize: 12, fontWeight: '700', letterSpacing: 0.5, flex: 1 }}>
+          <Text style={{ color: '#ffffffcc', fontSize: 12, fontWeight: '700', letterSpacing: 1, flex: 1 }}>
             {phaseLabel.toUpperCase()}
           </Text>
           {tracking ? <Pill icon="record-circle" label="Recording" color="#fff" background="#dc2626" /> : null}
@@ -74,11 +73,11 @@ export function TripCard({ trip, synopsis, packingRatio, tracking, spentAmount =
           ) : null}
           {showUpload && trip.sync_status === 'pending' ? <Icon name="cloud-upload-outline" size={16} color="#ffffffaa" /> : null}
         </View>
-        <Text variant="titleLarge" style={{ color: '#fff', fontWeight: '800', marginTop: 10 }} numberOfLines={2}>
+        <Text variant="titleLarge" style={{ color: '#fff', fontWeight: '800', marginTop: 4 }} numberOfLines={2}>
           {trip.title}
         </Text>
-        <Text style={{ color: '#ffffffd9', marginTop: 2 }} numberOfLines={1}>
-          {[dest?.name ?? trip.destination, formatDateRange(trip.starts_on, trip.ends_on)].filter(Boolean).join(' · ') || 'Add a destination and dates'}
+        <Text style={{ color: '#ffffffd9', marginTop: 4 }} numberOfLines={2}>
+          {synopsis || [dest?.name ?? trip.destination, formatDateRange(trip.starts_on, trip.ends_on)].filter(Boolean).join(' · ') || 'Add a destination and dates'}
         </Text>
         {trip.owner_id && trip.owner_name ? (
           <Text style={{ color: '#ffffffcc', fontSize: 12, marginTop: 2 }} numberOfLines={1}>
@@ -87,18 +86,6 @@ export function TripCard({ trip, synopsis, packingRatio, tracking, spentAmount =
         ) : null}
         {trip.budget_total ? <BudgetBar compact spent={spentAmount} unconverted={unconverted} budget={trip.budget_total} currency={trip.currency || 'INR'} /> : null}
       </TripCover>
-      <View style={{ padding: 14, paddingTop: 10 }}>
-        <Text style={{ color: colors.onSurfaceVariant, fontSize: 13 }} numberOfLines={2}>
-          {synopsis}
-        </Text>
-        {packingRatio > 0 && trip.status !== 'completed' ? (
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 10 }}>
-            <Icon name="bag-checked" size={16} color={colors.secondary} />
-            <Meter progress={packingRatio} color={colors.secondary} height={6} style={{ flex: 1 }} />
-            <Text style={{ fontSize: 12, color: colors.muted }}>{Math.round(packingRatio * 100)}%</Text>
-          </View>
-        ) : null}
-      </View>
     </Pressable>
   );
 }
