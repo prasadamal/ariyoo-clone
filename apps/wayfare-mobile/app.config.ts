@@ -4,7 +4,7 @@ import { ExpoConfig, ConfigContext } from 'expo/config';
 import { ConfigPlugin, withInfoPlist } from 'expo/config-plugins';
 
 const BUNDLE_ID = 'com.wayfare.app';
-const BG = '#1c1917';
+const BG = '#ffffff';
 const googleMapsApiKey = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY ?? '';
 // Android push (FCM): google-services.json from the Firebase console, saved next to this file or
 // uploaded as the EAS file variable GOOGLE_SERVICES_JSON.
@@ -114,7 +114,7 @@ export default ({ config }: ConfigContext): ExpoConfig =>
       [
         'expo-splash-screen',
         {
-          // The icon has the same background colour, so only the mark shows.
+          // White behind the logo, matching the icon, so only the mark shows.
           image: './assets/icon.png',
           imageWidth: 200,
           resizeMode: 'contain',
