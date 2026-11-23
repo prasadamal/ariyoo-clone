@@ -12,6 +12,10 @@ import { formatKm } from '../src/lib/format';
 import { loadStatsInput } from '../src/lib/useTravelStats';
 import { buildWrapped, type WrappedSummary } from '../src/lib/wrapped';
 import { Icon } from '../src/ui/Icon';
+import { flagEmoji } from '../src/lib/travelStats';
+import { Image } from 'expo-image';
+
+const LOGO = require('../assets/logo-mark.png');
 import { Pill } from '../src/ui/Pill';
 
 function BigStat({ value, label }: { value: string; label: string }) {
@@ -38,15 +42,29 @@ export default function WrappedScreen() {
     loadStatsInput().then(({ input, media }) => setSummary(buildWrapped(year, input, media)));
   }, [year]);
 
-  const spend = useMemo(
-    () =>
-      summary
-        ? Object.entries(summary.spendByCurrency)
-            .map(([c, v]) => formatMoney(v, c, { compact: true }))
-            .join(' + ')
-        : '',
-    [summary]
-  );
+  // Spending in your home currency (or the biggest one), with a note when there were others.
+  const spend = useMemo(() => {
+    if (!summary) return null;
+    const entries = Object.entries(summary.spendByCurrency).filter(([, v]) => v > 0);
+    if (!entries.length) return null;
+    const main = entries.find(([c]) => c === 'INR') ?? entries[0];
+    const others = entries.length - 1;
+    return {
+      value: formatMoney(main[1], main[0], { compact: true }),
+      note: others ? `+ ${others} other ${others === 1 ? 'currency' : 'currencies'}` : undefined,
+    };
+  }, [summary]);
+
+  // Mood, busiest month, longest trip and spending: one short value each (no long sentences).
+  const tiles = useMemo(() => {
+    if (!summary) return [] as { label: string; value: string; note?: string }[];
+    const out: { label: string; value: string; note?: string }[] = [];
+    if (summary.topMood) out.push({ label: 'Mood of the year', value: summary.topMood });
+    if (summary.busiestMonth) out.push({ label: 'Busiest month', value: summary.busiestMonth });
+    if (summary.stats.longestTripDays >= 2) out.push({ label: 'Longest trip', value: `${summary.stats.longestTripDays} days` });
+    if (spend) out.push({ label: 'Spent on travel', ...spend });
+    return out.slice(0, 4);
+  }, [summary, spend]);
 
   const share = async () => {
     if (!summary) return;
@@ -104,30 +122,56 @@ export default function WrappedScreen() {
                   <BigStat value={String(summary.stats.photos)} label={summary.stats.photos === 1 ? 'photo' : 'photos'} />
                   <BigStat value={String(summary.stats.destinations)} label={summary.stats.destinations === 1 ? 'destination' : 'destinations'} />
                 </View>
-                {summary.destinations.length ? (
-                  <Text style={{ color: '#fff', marginTop: 10, lineHeight: 21 }}>
-                    <Text style={{ fontWeight: '900' }}>Went to </Text>
-                    {summary.destinations.slice(0, 6).join(' · ')}
-                  </Text>
-                ) : null}
-                {summary.topMood || summary.busiestMonth ? (
-                  <Text style={{ color: '#ffffffd9', marginTop: 8 }}>
-                    {[summary.topMood ? `Mood of the year: ${summary.topMood}` : null, summary.busiestMonth ? `Busiest month: ${summary.busiestMonth}` : null]
-                      .filter(Boolean)
-                      .join(' · ')}
-                  </Text>
-                ) : null}
-                {summary.highlights.length ? (
-                  <View style={{ marginTop: 12, gap: 4 }}>
-                    {summary.highlights.map(h => (
-                      <Text key={h} style={{ color: '#fff' }}>
-                        ✦ {h}
+                {/* Where you went: flags, then the places as chips. */}
+                {summary.destinations.length || summary.stats.countryCodes.length ? (
+                  <View style={{ marginTop: 14, padding: 14, borderRadius: 18, backgroundColor: '#ffffff14' }}>
+                    <Text style={{ color: '#ffffffcc', fontSize: 12, fontWeight: '800', letterSpacing: 1 }} numberOfLines={1}>
+                      WHERE YOU WENT
+                      {summary.stats.countries >= 2 ? ` · ${summary.stats.countries} COUNTRIES` : ''}
+                    </Text>
+                    {summary.stats.countryCodes.length ? (
+                      <Text style={{ fontSize: 22, marginTop: 8, letterSpacing: 2 }} accessibilityLabel={`${summary.stats.countryCodes.length} countries`}>
+                        {summary.stats.countryCodes.slice(0, 8).map(flagEmoji).join(' ')}
                       </Text>
+                    ) : null}
+                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 10 }}>
+                      {summary.destinations.slice(0, 6).map(d => (
+                        <View key={d} style={{ paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999, backgroundColor: '#ffffff22' }}>
+                          <Text style={{ color: '#fff', fontSize: 13, fontWeight: '600' }}>{d}</Text>
+                        </View>
+                      ))}
+                      {summary.destinations.length > 6 ? (
+                        <View style={{ paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999, borderWidth: 1, borderColor: '#ffffff44' }}>
+                          <Text style={{ color: '#fff', fontSize: 13 }}>+{summary.destinations.length - 6}</Text>
+                        </View>
+                      ) : null}
+                    </View>
+                  </View>
+                ) : null}
+
+                {/* The year's character in four small tiles. */}
+                {tiles.length ? (
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
+                    {tiles.map(t => (
+                      <View key={t.label} style={{ width: '48.5%', flexGrow: 1, padding: 12, borderRadius: 16, backgroundColor: '#ffffff14' }}>
+                        <Text style={{ color: '#ffffffb3', fontSize: 11, fontWeight: '800', letterSpacing: 0.8 }}>{t.label.toUpperCase()}</Text>
+                        <Text style={{ color: '#fff', fontSize: 18, fontWeight: '900', marginTop: 4 }} numberOfLines={1} adjustsFontSizeToFit>
+                          {t.value}
+                        </Text>
+                        {t.note ? (
+                          <Text style={{ color: '#ffffffb3', fontSize: 11, marginTop: 1 }} numberOfLines={1}>
+                            {t.note}
+                          </Text>
+                        ) : null}
+                      </View>
                     ))}
                   </View>
                 ) : null}
-                {spend ? <Text style={{ color: '#ffffffb3', marginTop: 10, fontSize: 12 }}>Spent on adventures: {spend}</Text> : null}
-                <Text style={{ color: '#ffffff99', marginTop: 18, fontSize: 11, fontWeight: '700', letterSpacing: 1 }}>YOUR JOURNEY, JOURNALED · WAYFARE</Text>
+
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 18 }}>
+                  <Image source={LOGO} style={{ width: 30, height: 17 }} contentFit="contain" tintColor="#ffffff" />
+                  <Text style={{ color: '#ffffffb3', fontSize: 11, fontWeight: '800', letterSpacing: 1.2 }}>JOURNALED ON WAYFARE</Text>
+                </View>
               </LinearGradient>
             </View>
             <Button mode="contained" icon="share-variant" buttonColor="#fff" textColor="#3f0263" style={{ marginTop: 18 }} onPress={share} loading={sharing} disabled={sharing}>

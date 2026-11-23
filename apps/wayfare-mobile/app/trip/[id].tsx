@@ -234,7 +234,7 @@ export default function TripDetailScreen() {
               style={{ color: '#ffffffe6', marginTop: 2 }}
               onPress={social && trip.place_key ? () => router.push(`/place/${trip.place_key}`) : undefined}
             >
-              {[dest?.name ?? trip.destination, formatDateRange(trip.starts_on, trip.ends_on)].filter(Boolean).join(' · ') || 'Add a destination and dates'}
+              {[dest?.name ?? trip.destination, formatDateRange(trip.starts_on, trip.ends_on).replace(/ /g, '\u00a0').replace(/–/g, '\u2060–\u2060')].filter(Boolean).join(' · ') || 'Add a destination and dates'}
               {social && trip.place_key ? '  ›' : ''}
             </Text>
           </View>

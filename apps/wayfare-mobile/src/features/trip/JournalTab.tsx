@@ -397,8 +397,8 @@ export function JournalTab({ trip, onChanged, everyday = false, crewNames = {}, 
           Show earlier days ({groups.length - shownDays} more)
         </Button>
       ) : null}
-      {pills.length ? (
-        // Date pills: tap one to show just that day's moments (the pills stay where they are).
+      {pills.length && allDays.length ? (
+        // Date pills (only once there are moments to filter): tap one to show just that day's moments (the pills stay where they are).
         // A fixed height keeps the sideways list from stretching inside the page on Android.
         <View style={{ height: 44, marginBottom: 6 }}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0 }} contentContainerStyle={{ gap: 8, alignItems: 'center' }} accessibilityRole="tablist" accessibilityLabel="Days of this journey">

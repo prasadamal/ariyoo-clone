@@ -1780,16 +1780,20 @@
           "text": "import { useEffect, useMemo, useRef, useState } from 'react';"
         },
         {
-          "line": 31,
+          "line": 35,
           "text": "const [year, setYear] = useState(thisYear);"
         },
         {
-          "line": 32,
+          "line": 36,
           "text": "const [summary, setSummary] = useState<WrappedSummary | null>(null);"
         },
         {
-          "line": 33,
+          "line": 37,
           "text": "const [sharing, setSharing] = useState(false);"
+        },
+        {
+          "line": 58,
+          "text": "// Mood, busiest month, longest trip and spending: one short value each (no long sentences)."
         }
       ]
     },
@@ -2755,31 +2759,35 @@
           "text": "const [menuDay, setMenuDay] = useState<number | null>(null);"
         },
         {
-          "line": 31,
-          "text": "const [editing, setEditing] = useState<LocalItineraryItem | null>(null);"
-        },
-        {
           "line": 32,
-          "text": "const [editTitle, setEditTitle] = useState('');"
+          "text": "const [openDay, setOpenDay] = useState<number | null>(null);"
         },
         {
           "line": 33,
+          "text": "const [editing, setEditing] = useState<LocalItineraryItem | null>(null);"
+        },
+        {
+          "line": 34,
+          "text": "const [editTitle, setEditTitle] = useState('');"
+        },
+        {
+          "line": 35,
           "text": "const [editTime, setEditTime] = useState('');"
         },
         {
-          "line": 81,
+          "line": 83,
           "text": "sync_status: 'pending',"
         },
         {
-          "line": 90,
+          "line": 92,
           "text": "await upsertItineraryItem({ ...item, done: item.done ? 0 : 1, sync_status: 'pending', updated_at: new Date().toISOString() });"
         },
         {
-          "line": 122,
+          "line": 124,
           "text": "await upsertItineraryItem({ ...editing, title: editTitle.trim(), start_time: time, sync_status: 'pending', updated_at: new Date().toISOString() });"
         },
         {
-          "line": 207,
+          "line": 209,
           "text": "<Checkbox.Android status={item.done ? 'checked' : 'unchecked'} disabled={readOnly} onPress={() => toggle(item)} />"
         }
       ]
@@ -2932,11 +2940,11 @@
       "path": "apps/wayfare-mobile/src/lib/currencyMath.ts",
       "evidence": [
         {
-          "line": 70,
+          "line": 72,
           "text": "const pending: MoneyAmount[] = unconverted"
         },
         {
-          "line": 80,
+          "line": 82,
           "text": "export function formatPendingMoney(pending: MoneyAmount[], opts: { compact?: boolean } = {}) {"
         }
       ]

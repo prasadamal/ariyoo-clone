@@ -16,7 +16,7 @@ import { getRates } from '../../src/lib/currency';
 import { backupLabel, backupState } from '../../src/lib/backupStatus';
 import { splitSpend, type MoneyAmount } from '../../src/lib/currencyMath';
 import { tripCoverUri } from '../../src/lib/tripCover';
-import { featuredTrips, recentFirst } from '../../src/lib/tripList';
+import { featuredTrips, recentFirst, tripStatus } from '../../src/lib/tripList';
 import { useAppTheme } from '../../src/theme';
 import { EmptyState } from '../../src/ui/EmptyState';
 import { Icon } from '../../src/ui/Icon';
@@ -48,7 +48,7 @@ async function prepare(list: LocalTrip[]): Promise<TripRow[]> {
       const spend = splitSpend(stats.spendByCurrency, t.currency || 'INR', rates?.rates ?? null);
       return {
         ...t,
-        synopsis: buildTripSynopsis(t.title, stats),
+        synopsis: buildTripSynopsis(t.title, stats, tripStatus(t) === 'completed'),
         packingRatio: stats.packingTotal ? stats.packingDone / stats.packingTotal : 0,
         spentAmount: spend.total,
         unconverted: spend.pending,
@@ -166,10 +166,18 @@ export default function JourneysTab() {
     <View style={{ paddingBottom: 6 }}>
       <View style={{ flexDirection: 'row', alignItems: 'center' }}>
         <View style={{ flex: 1 }}>
-          <Text variant="headlineSmall" style={{ fontWeight: '800' }} numberOfLines={1}>
-            {greeting()}
-            {firstName ? `, ${firstName}` : ''}
-          </Text>
+          {firstName ? (
+            <>
+              <Text style={{ color: colors.muted, fontWeight: '600' }}>{greeting()},</Text>
+              <Text variant="headlineSmall" style={{ fontWeight: '800' }} numberOfLines={1}>
+                {firstName}
+              </Text>
+            </>
+          ) : (
+            <Text variant="headlineSmall" style={{ fontWeight: '800' }} numberOfLines={1}>
+              {greeting()}
+            </Text>
+          )}
           {/* Shown after tapping the cloud, or when something needs your attention. */}
           {showStatus || syncing || lastErrors.length || guest || !user ? (
             <Pressable onPress={guest || !user ? () => router.push('/register') : backUp} accessibilityRole="button">
@@ -191,7 +199,7 @@ export default function JourneysTab() {
         <Pill icon="party-popper" label={`${new Date().getFullYear()} so far`} onPress={() => router.push('/wrapped')} />
       </View>
 
-      <OnThisDayCard />
+      <OnThisDayCard refreshKey={lastSyncAt} />
 
       {recordingTrip ? (
         <Pressable onPress={() => router.push(`/trip/${recordingTrip.id}`)} accessibilityRole="button">

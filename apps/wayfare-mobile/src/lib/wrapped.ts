@@ -54,10 +54,19 @@ function inYear(iso: string | null | undefined, year: number) {
 
 export type DatedMedia = { at: string; audio: boolean };
 
-export function buildWrapped(year: number, input: StatsInput, media: DatedMedia[] = []): WrappedSummary {
+export function buildWrapped(
+  year: number,
+  input: StatsInput,
+  media: DatedMedia[] = [],
+  today: string = new Date().toISOString().slice(0, 10)
+): WrappedSummary {
   const entries = input.entries.filter(e => inYear(e.recorded_at, year));
   const tripIds = new Set(entries.map(e => e.trip_id));
-  const trips = input.trips.filter(t => tripIds.has(t.id) || inYear(t.starts_on, year) || inYear(t.ends_on, year));
+  // A journey you haven't set off on yet isn't part of the year you travelled.
+  const started = (t: { starts_on?: string | null }) => !t.starts_on || t.starts_on.slice(0, 10) <= today;
+  const trips = input.trips.filter(
+    t => tripIds.has(t.id) || (started(t) && (inYear(t.starts_on, year) || inYear(t.ends_on, year)))
+  );
   const tripIdSet = new Set(trips.map(t => t.id));
   const trackPointsByTrip: StatsInput['trackPointsByTrip'] = {};
   for (const [tripId, points] of Object.entries(input.trackPointsByTrip)) {

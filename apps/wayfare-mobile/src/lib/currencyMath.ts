@@ -34,7 +34,9 @@ export function formatMoney(amount: number, currency: string, opts: { compact?: 
   const abs = Math.abs(amount);
   let body: string;
   if (opts.compact && abs >= 100000) {
-    body = code === 'INR' && abs < 10000000 ? `${(abs / 100000).toFixed(abs >= 1000000 ? 0 : 1)}L` : `${(abs / 1000).toFixed(0)}k`;
+    const trim = (n: number) => (n >= 10 ? n.toFixed(0) : n.toFixed(1).replace(/\.0$/, ''));
+    if (code === 'INR') body = abs < 10000000 ? `${trim(abs / 100000)}L` : `${trim(abs / 10000000)}Cr`;
+    else body = abs < 1e6 ? `${trim(abs / 1000)}k` : abs < 1e9 ? `${trim(abs / 1e6)}M` : `${trim(abs / 1e9)}B`;
   } else {
     const decimals = ZERO_DECIMAL.has(code) || abs >= 1000 || Number.isInteger(abs) ? 0 : 2;
     body = abs.toLocaleString('en-IN', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });

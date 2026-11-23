@@ -156,3 +156,10 @@ test('places visited are grouped by country', () => {
   });
   assert.deepEqual(stats.statesByCountry, { IN: ['Karnataka', 'Kerala'], NP: ['Bagmati'], '': ['Somewhere'] });
 });
+
+test('wrapped leaves out journeys that have not started yet', () => {
+  const upcoming = { id: 'soon', title: 'Ha Giang', destination: 'Ha Giang', place_key: null, starts_on: '2026-12-10', ends_on: '2026-12-16', status: 'planning' };
+  const w = buildWrapped(2026, { ...input, trips: [...input.trips, upcoming] }, [], '2026-11-23');
+  assert.ok(!w.destinations.includes('Ha Giang'));
+  assert.equal(buildWrapped(2026, { ...input, trips: [...input.trips, upcoming] }, [], '2026-12-11').destinations.includes('Ha Giang'), true);
+});

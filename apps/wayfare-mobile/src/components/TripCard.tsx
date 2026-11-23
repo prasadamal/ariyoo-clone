@@ -57,7 +57,7 @@ type Props = {
 
 /**
  * A journey tile: its cover photo (or an illustration for its type) with a status chip, the title
- * and one line of details; upcoming and ongoing journeys show the day count on the right.
+ * and a line or two of details; upcoming and ongoing journeys show the day count on the right.
  */
 export function TripCard({ trip, synopsis, tracking, coverUri, showUpload = true, large = false }: Props) {
   const cover = coverUri === undefined ? trip.cover_uri : coverUri;
@@ -102,7 +102,7 @@ export function TripCard({ trip, synopsis, tracking, coverUri, showUpload = true
             </Text>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 6 }}>
               <Icon name="calendar-month-outline" size={16} color="#ffffffd9" />
-              <Text style={{ color: '#ffffffe6', flexShrink: 1 }} numberOfLines={1}>
+              <Text style={{ color: '#ffffffe6', flexShrink: 1 }} numberOfLines={2}>
                 {details}
               </Text>
             </View>

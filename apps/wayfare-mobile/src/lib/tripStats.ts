@@ -69,14 +69,15 @@ export function formatSpend(spendByCurrency: Record<string, number>) {
   return parts.join(' + ');
 }
 
-export function buildTripSynopsis(title: string, stats: TripStats) {
+/** The one-line summary on a journey tile. Packing only shows before and during the trip. */
+export function buildTripSynopsis(title: string, stats: TripStats, done = false) {
   const parts: string[] = [];
   if (stats.entryCount) parts.push(`${stats.entryCount} moment${stats.entryCount === 1 ? '' : 's'}`);
   if (stats.photoCount) parts.push(`${stats.photoCount} photo${stats.photoCount === 1 ? '' : 's'}`);
   if (stats.distanceKm >= 0.5) parts.push(`${formatKm(stats.distanceKm)} tracked`);
   const spend = formatSpend(stats.spendByCurrency);
   if (spend) parts.push(`${spend} spent`);
-  if (stats.packingTotal) parts.push(`${stats.packingDone}/${stats.packingTotal} packed`);
+  if (stats.packingTotal && !done) parts.push(`${stats.packingDone}/${stats.packingTotal} packed`);
   if (!parts.length) return `Your ${title} journal is ready for its first moment.`;
   return parts.join(' · ');
 }
