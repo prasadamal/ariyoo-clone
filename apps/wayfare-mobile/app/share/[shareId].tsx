@@ -1,4 +1,5 @@
 import { useLocalSearchParams } from 'expo-router';
+import { stripRich } from '../../src/lib/richText';
 import { useEffect, useState } from 'react';
 import { View } from 'react-native';
 import { ActivityIndicator, Text } from 'react-native-paper';
@@ -58,7 +59,7 @@ export default function SharedTripScreen() {
         <View key={idx} style={{ backgroundColor: colors.surface, borderRadius: 16, borderWidth: 1, borderColor: colors.border, padding: 14, marginTop: 12 }}>
           <Text style={{ color: colors.muted, fontSize: 12 }}>{new Date(e.recorded_at).toLocaleString('en-IN')}</Text>
           {e.place_name ? <Text style={{ color: colors.secondary, fontWeight: '700' }}>{e.place_name}</Text> : null}
-          {e.body ? <Text style={{ marginTop: 6, lineHeight: 21 }}>{e.body}</Text> : null}
+          {e.body ? <Text style={{ marginTop: 6, lineHeight: 21 }}>{stripRich(e.body)}</Text> : null}
           {e.mood || e.weather ? (
             <Text style={{ marginTop: 6, color: colors.muted, fontSize: 12 }}>{[e.mood, e.weather].filter(Boolean).join(' · ')}</Text>
           ) : null}

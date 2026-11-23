@@ -2,12 +2,10 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { uuid } from '../../src/lib/id';
 import { getDestination } from '../../src/content/destinations';
-import { packingTemplate } from '../../src/content/tripTypes';
 import { useAuth } from '../../src/context/AuthContext';
 import { useToast } from '../../src/context/ToastContext';
 import { TripForm, emptyTripForm, type TripFormValues } from '../../src/features/trip/TripForm';
-import { parseDay } from '../../src/lib/format';
-import { seedPackingTemplate, setTripCover, upsertTrip } from '../../src/lib/localDb';
+import { setTripCover, upsertTrip } from '../../src/lib/localDb';
 import { placeKeyFor } from '../../src/lib/places';
 import { pushTripNow } from '../../src/lib/sync';
 import { Screen } from '../../src/ui/Screen';
@@ -58,11 +56,7 @@ export default function NewTripScreen() {
         updated_at: new Date().toISOString(),
       });
       if (v.coverUri) await setTripCover(id, v.coverUri);
-      const start = parseDay(v.startsOn);
-      await seedPackingTemplate(
-        id,
-        packingTemplate(v.tripType, { maxAltitudeM: d?.maxAltitudeM, startMonth: start ? start.getMonth() + 1 : null })
-      );
+      // Packing comes from your personal lists (short / long / custom) in the Pack tab.
       if (v.openToMeet && user) {
         // Upload now so matching (and match notifications) work immediately.
         await pushTripNow(user.id, id).catch(() => toast('Saved offline — matching starts once you are online.'));

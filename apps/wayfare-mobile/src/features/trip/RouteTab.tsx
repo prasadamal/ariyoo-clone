@@ -1,4 +1,5 @@
 import * as FileSystem from 'expo-file-system/legacy';
+import { stripRich } from '../../lib/richText';
 import { router } from 'expo-router';
 import * as Sharing from 'expo-sharing';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -62,7 +63,7 @@ export function RouteTab({ trip, onChanged }: Props) {
           latitude: e.latitude as number,
           longitude: e.longitude as number,
           title: e.place_name || new Date(e.recorded_at).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }),
-          description: (e.body ?? '').slice(0, 80),
+          description: stripRich(e.body ?? '').slice(0, 80),
         })),
     [entries]
   );

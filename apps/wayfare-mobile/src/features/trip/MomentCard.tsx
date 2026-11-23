@@ -1,4 +1,5 @@
 import { router } from 'expo-router';
+import { stripRich } from '../../lib/richText';
 import { useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { IconButton, Menu, Text } from 'react-native-paper';
@@ -45,7 +46,7 @@ export function MomentCard({ entry: e, money, currencySymbol, mediaKey, canShare
   const time = at.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
   const when = `${formatDay(toDayString(at), { year: at.getFullYear() !== new Date().getFullYear() })} · ${time}`;
   const hasLocation = Boolean(e.place_name) || (e.latitude != null && e.longitude != null);
-  const body = e.body && !PLACEHOLDER_BODIES.has(e.body) ? e.body : '';
+  const body = e.body && !PLACEHOLDER_BODIES.has(e.body) ? stripRich(e.body) : '';
   const long = body.length > FOLD_CHARS || body.split('\n').length > FOLD_LINES;
   const emoji = e.mood ? e.mood.split(' ')[0] : null;
   const moodWord = e.mood ? e.mood.split(' ').slice(1).join(' ') : '';
