@@ -8,6 +8,8 @@ import { typingMention } from '../../lib/mentions';
 import { useAppTheme } from '../../theme';
 import { ChipSelect } from '../../ui/ChipSelect';
 import { Icon } from '../../ui/Icon';
+import { PlaceField } from '../../ui/PlaceField';
+import type { Destination } from '../../content/destinations';
 import { EXPENSE_CATEGORIES } from './BudgetTab';
 import type { PickedPhoto } from './photoPicker';
 
@@ -24,6 +26,9 @@ type Props = {
   onAddPhotos: () => void;
   money: MomentMoney | null;
   onMoney: (m: MomentMoney | null) => void;
+  /** A place typed or picked from the list (no GPS): it adds the moment to "Places visited". */
+  place?: { name: string | null; region: string | null; countryCode: string | null } | null;
+  onPlace?: (p: { name: string | null; region: string | null; countryCode: string | null } | null) => void;
   currencySymbol: string;
   recording: boolean;
   /** Voice notes recorded for this moment, waiting for Save. */
@@ -66,11 +71,14 @@ export function MomentComposer(p: Props) {
   const { colors } = useAppTheme();
   const [moodOpen, setMoodOpen] = useState(false);
   const [moneyOpen, setMoneyOpen] = useState(false);
+  const [placeOpen, setPlaceOpen] = useState(false);
+  const [placeText, setPlaceText] = useState('');
+  const [placeMatch, setPlaceMatch] = useState<Destination | undefined>(undefined);
   const [amountText, setAmountText] = useState('');
   const [category, setCategory] = useState('food');
   const amount = parseAmount(amountText);
   const voiceCount = p.voiceCount ?? 0;
-  const hasTray = p.photos.length > 0 || Boolean(p.money) || p.recording || voiceCount > 0;
+  const hasTray = p.photos.length > 0 || Boolean(p.money) || Boolean(p.place) || p.recording || voiceCount > 0;
   // The chosen mood's emoji replaces the smiley button itself (no extra chip).
   const moodEmoji = p.mood ? p.mood.split(' ')[0] : '';
 
@@ -110,6 +118,9 @@ export function MomentComposer(p: Props) {
               </Pressable>
             </View>
           ))}
+          {p.place ? (
+            <TrayPill icon="map-marker" label={p.place.name ?? 'Place'} onPress={() => { setPlaceText(p.place?.name ?? ''); setPlaceOpen(true); }} onRemove={() => p.onPlace?.(null)} removeLabel="Remove place" />
+          ) : null}
           {p.money ? (
             <TrayPill
               icon="currency-inr"
@@ -186,6 +197,7 @@ export function MomentComposer(p: Props) {
         </Menu>
         {tool('camera-outline', 'Add photos', p.onAddPhotos, p.photos.length > 0, p.recording)}
         {tool(p.recording ? 'stop-circle' : 'microphone-outline', p.recording ? 'Stop recording' : 'Record a voice note', p.onToggleVoice, p.recording, p.voiceBusy)}
+        {p.onPlace ? tool(p.place ? 'map-marker' : 'map-marker-plus-outline', 'Add a place', () => { setPlaceText(p.place?.name ?? ''); setPlaceOpen(true); }, Boolean(p.place), p.recording) : null}
         {tool('currency-inr', 'Add money spent', openMoney, Boolean(p.money), p.recording)}
         <View style={{ flex: 1 }} />
         <IconButton
@@ -203,6 +215,33 @@ export function MomentComposer(p: Props) {
       </View>
 
       <Portal>
+        <Dialog visible={placeOpen} onDismiss={() => setPlaceOpen(false)}>
+          <Dialog.Title>Where was this?</Dialog.Title>
+          <Dialog.Content>
+            <PlaceField
+              label="Place"
+              value={placeText}
+              onChange={(t, d) => {
+                setPlaceText(t);
+                setPlaceMatch(d);
+              }}
+            />
+            <Text style={{ color: colors.muted, marginTop: 8, fontSize: 12 }}>Pick from the list to add it to Places visited. No GPS is used.</Text>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setPlaceOpen(false)}>Cancel</Button>
+            <Button
+              mode="contained"
+              disabled={!placeText.trim()}
+              onPress={() => {
+                p.onPlace?.({ name: placeText.trim(), region: placeMatch?.region ?? null, countryCode: placeMatch?.countryCode ?? null });
+                setPlaceOpen(false);
+              }}
+            >
+              Add
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
         <Dialog visible={moneyOpen} onDismiss={() => setMoneyOpen(false)}>
           <Dialog.Title>Money spent here</Dialog.Title>
           <Dialog.Content>

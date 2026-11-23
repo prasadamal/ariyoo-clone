@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { SOCIAL_ENABLED } from '../lib/features';
 import { View } from 'react-native';
 import { Chip, Text, TextInput } from 'react-native-paper';
 import type { Destination } from '../content/destinations';
@@ -36,7 +37,7 @@ export function PlaceField({ label = 'Destination', value, onChange }: Props) {
       />
       {matched ? (
         <Text style={{ color: colors.secondary, fontSize: 12, marginTop: 4 }}>
-          {matched.name} · {matched.region}, {matched.country} — travellers heading here can find you
+          {matched.name} · {matched.region}, {matched.country}{SOCIAL_ENABLED ? ' — travellers heading here can find you' : ''}
         </Text>
       ) : null}
       {showSuggestions ? (

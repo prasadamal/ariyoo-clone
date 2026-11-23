@@ -21,6 +21,11 @@ export function getLiveShareBaseUrl() {
   return envValue(process.env.EXPO_PUBLIC_WAYFARE_LIVE_BASE) ?? `${PAGES_BASE}/wayfare-live/index.html`;
 }
 
+/** Page a crew invite link opens; it hands the invite to the app (wayfare://invite/<token>). */
+export function inviteLinkUrl(token: string) {
+  return `${PAGES_BASE}/wayfare-invite/index.html?t=${encodeURIComponent(token)}`;
+}
+
 export const PRIVACY_URL = `${PAGES_BASE}/privacy/wayfare.html`;
 export const TERMS_URL = `${PAGES_BASE}/privacy/wayfare-terms.html`;
 export const SUPPORT_EMAIL = 'amalprasadappu@gmail.com';

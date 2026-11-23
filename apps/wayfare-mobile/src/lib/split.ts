@@ -4,6 +4,15 @@ import { capitalizeName } from './names';
 
 export const ME = 'Me';
 
+/** A "paid back" record from Settle up: it moves money between people but isn't trip spending. */
+export const SETTLEMENT = 'settlement';
+export const isSpending = (e: { category?: string | null }) => e.category !== SETTLEMENT;
+
+/** The expense that records "from paid to back": from pays, only `to` shares it, so the debt nets to zero. */
+export function settlementFor(t: { from: string; to: string; amount: number }) {
+  return { paidBy: t.from === ME ? null : t.from, splitWith: [t.to], amount: t.amount };
+}
+
 export type SplitExpense = {
   amount: number;
   /** Payer name; null/'' means "Me". */

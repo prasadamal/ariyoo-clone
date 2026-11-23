@@ -1,4 +1,5 @@
 import { formatMoney } from './currencyMath';
+import { isSpending } from './split';
 import { formatKm } from './format';
 import { elevationStats, trackDistanceKm } from './geo';
 import { listEntries, listExpenses, listItinerary, listPacking, listTrackPoints, listTripMedia } from './localDb';
@@ -39,7 +40,7 @@ export async function computeTripStats(tripId: string, dates?: { starts_on: stri
   const pack = packCounts(lists, chosen ?? defaultListFor(dates?.starts_on ?? null, dates?.ends_on ?? null), packing);
   const elev = elevationStats(points);
   const spendByCurrency: Record<string, number> = {};
-  for (const e of expenses) spendByCurrency[e.currency] = (spendByCurrency[e.currency] ?? 0) + e.amount;
+  for (const e of expenses.filter(isSpending)) spendByCurrency[e.currency] = (spendByCurrency[e.currency] ?? 0) + e.amount;
   const moodCounts = new Map<string, number>();
   for (const e of entries) if (e.mood) moodCounts.set(e.mood, (moodCounts.get(e.mood) ?? 0) + 1);
   const topMood = [...moodCounts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
