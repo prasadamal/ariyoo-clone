@@ -8,7 +8,7 @@ import { useAuth, useCanConnect } from '../../src/context/AuthContext';
 import { computeBadges, sortBadges } from '../../src/lib/badges';
 import { displayName, formatKm } from '../../src/lib/format';
 import { fillMissingPlaces } from '../../src/lib/reverseGeocode';
-import { computeTravelStats, countryName, flagEmoji, type TravelStats } from '../../src/lib/travelStats';
+import { computeTravelStats, countryName, countryPlaces, countrySummary, flagEmoji, type TravelStats } from '../../src/lib/travelStats';
 import { loadMemberNumber } from '../../src/social/memberNumber';
 import { Pill } from '../../src/ui/Pill';
 import { loadStatsInput } from '../../src/lib/useTravelStats';
@@ -125,10 +125,13 @@ export default function ProfileTab() {
   const allBadges = allBadgeList.length;
   const km = Math.max(stats?.km ?? 0, profile?.verified_km ?? 0);
   const byCountry = stats?.statesByCountry ?? {};
-  // Countries with the most places first; places without a known country go last.
-  const countries = [...(stats?.countryCodes ?? []), ...(byCountry[''] ? [''] : [])].sort(
-    (a, b) => (a === '' ? 1 : b === '' ? -1 : (byCountry[b]?.length ?? 0) - (byCountry[a]?.length ?? 0))
-  );
+  // Country → its states → the places you went in each. Most places first; unknown country last.
+  const placesOf = (c: string) => (stats ? countryPlaces(stats, c) : { states: [], placeCount: 0 });
+  const countries = [...(stats?.countryCodes ?? []), ...(byCountry[''] ? [''] : [])].sort((a, b) => {
+    if (a === '' || b === '') return a === '' ? 1 : -1;
+    const pa = placesOf(a), pb = placesOf(b);
+    return pb.placeCount - pa.placeCount || pb.states.length - pa.states.length;
+  });
   const expanded = openCountry ?? (countries.length === 1 ? countries[0] : null);
   const home = signedIn ? [profile!.home_region, profile!.home_country].filter(Boolean).join(', ') : '';
 
@@ -212,12 +215,13 @@ export default function ProfileTab() {
             // One card per country (flag, name, how many places); tap to see its states.
             <View style={{ gap: 8 }}>
               {countries.map(c => {
-                const states = byCountry[c] ?? [];
+                const { states, placeCount } = placesOf(c);
                 const open = expanded === c;
                 return (
                   <View key={c || 'other'} style={{ backgroundColor: colors.surface, borderRadius: 16, overflow: 'hidden' }}>
                     <Pressable
                       onPress={() => setOpenCountry(open ? '__none__' : c)}
+                      disabled={!states.length}
                       accessibilityRole="button"
                       accessibilityState={{ expanded: open }}
                       style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12 }}
@@ -227,18 +231,22 @@ export default function ProfileTab() {
                         <Text style={{ fontWeight: '800', fontSize: 15 }} numberOfLines={1}>
                           {c ? countryName(c) : 'Other places'}
                         </Text>
-                        <Text style={{ color: colors.muted, fontSize: 12 }}>
-                          {states.length ? `${states.length} ${states.length === 1 ? 'place' : 'places'}` : 'Visited'}
-                        </Text>
+                        <Text style={{ color: colors.muted, fontSize: 12 }}>{countrySummary(c, states.length, placeCount)}</Text>
                       </View>
                       {states.length ? <Icon name={open ? 'chevron-up' : 'chevron-down'} size={20} color={colors.muted} /> : null}
                     </Pressable>
                     {open && states.length ? (
-                      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, paddingHorizontal: 12, paddingBottom: 12 }}>
+                      // Each state with the places you went there, as plain lines.
+                      <View style={{ paddingHorizontal: 12, paddingBottom: 12, gap: 10 }}>
                         {states.map(st => (
-                          <View key={st} style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999, backgroundColor: colors.primaryContainer }}>
-                            <Icon name="map-marker" size={13} color={colors.primary} />
-                            <Text style={{ fontSize: 13, color: colors.onPrimaryContainer }}>{st}</Text>
+                          <View key={st.name} style={{ flexDirection: 'row', gap: 10 }}>
+                            <View style={{ width: 3, borderRadius: 2, backgroundColor: colors.primaryContainer }} />
+                            <View style={{ flex: 1 }}>
+                              <Text style={{ fontWeight: '700' }}>{st.name}</Text>
+                              {st.places.length ? (
+                                <Text style={{ color: colors.muted, fontSize: 13, lineHeight: 19, marginTop: 1 }}>{st.places.join(' · ')}</Text>
+                              ) : null}
+                            </View>
                           </View>
                         ))}
                       </View>

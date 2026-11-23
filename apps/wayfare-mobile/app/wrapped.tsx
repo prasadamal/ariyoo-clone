@@ -7,11 +7,14 @@ import { Button, IconButton, Text } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { captureRef } from 'react-native-view-shot';
 import { useAuth } from '../src/context/AuthContext';
-import { formatMoney } from '../src/lib/currencyMath';
 import { formatKm } from '../src/lib/format';
 import { loadStatsInput } from '../src/lib/useTravelStats';
-import { buildWrapped, type WrappedSummary } from '../src/lib/wrapped';
+import { buildWrapped, whereYouWent, type WrappedSummary } from '../src/lib/wrapped';
 import { Icon } from '../src/ui/Icon';
+import { countryName, flagEmoji } from '../src/lib/travelStats';
+import { Image } from 'expo-image';
+
+const LOGO = require('../assets/logo-mark.png');
 import { Pill } from '../src/ui/Pill';
 
 function BigStat({ value, label }: { value: string; label: string }) {
@@ -38,15 +41,20 @@ export default function WrappedScreen() {
     loadStatsInput().then(({ input, media }) => setSummary(buildWrapped(year, input, media)));
   }, [year]);
 
-  const spend = useMemo(
-    () =>
-      summary
-        ? Object.entries(summary.spendByCurrency)
-            .map(([c, v]) => formatMoney(v, c, { compact: true }))
-            .join(' + ')
-        : '',
-    [summary]
-  );
+  // The year's character: one short value each (no long sentences, no money).
+  const tiles = useMemo(() => {
+    if (!summary) return [] as { label: string; value: string }[];
+    const out: { label: string; value: string }[] = [];
+    const st = summary.stats;
+    if (summary.topMood) out.push({ label: 'Mood of the year', value: summary.topMood });
+    if (summary.busiestMonth) out.push({ label: 'Busiest month', value: summary.busiestMonth });
+    if (st.longestTripDays >= 2) out.push({ label: 'Longest trip', value: `${st.longestTripDays} days` });
+    if (st.longestStreakDays >= 2) out.push({ label: 'Writing streak', value: `${st.longestStreakDays} days` });
+    else if (st.voiceNotes) out.push({ label: 'Voice notes', value: String(st.voiceNotes) });
+    return out.slice(0, 4); // a lone last tile stretches to the full width
+  }, [summary]);
+
+  const went = useMemo(() => (summary ? whereYouWent(summary, { flag: flagEmoji, country: countryName }) : null), [summary]);
 
   const share = async () => {
     if (!summary) return;
@@ -104,30 +112,37 @@ export default function WrappedScreen() {
                   <BigStat value={String(summary.stats.photos)} label={summary.stats.photos === 1 ? 'photo' : 'photos'} />
                   <BigStat value={String(summary.stats.destinations)} label={summary.stats.destinations === 1 ? 'destination' : 'destinations'} />
                 </View>
-                {summary.destinations.length ? (
-                  <Text style={{ color: '#fff', marginTop: 10, lineHeight: 21 }}>
-                    <Text style={{ fontWeight: '900' }}>Went to </Text>
-                    {summary.destinations.slice(0, 6).join(' · ')}
-                  </Text>
+                {/* Where you went: a statement to show off, not a list to tap. */}
+                {went ? (
+                  <View style={{ marginTop: 14, padding: 16, borderRadius: 18, backgroundColor: '#ffffff14' }}>
+                    <Text style={{ color: '#ffffffb3', fontSize: 11, fontWeight: '800', letterSpacing: 1 }}>WHERE YOU WENT</Text>
+                    <Text style={{ color: '#fff', fontSize: 26, fontWeight: '900', marginTop: 2 }}>
+                      {went.count} {went.noun}
+                    </Text>
+                    <Text style={{ color: '#ffffffe6', fontSize: 15, lineHeight: 24, marginTop: 6 }}>
+                      {went.items.map(i => (i.flag ? `${i.flag}\u00a0${i.name.replace(/ /g, '\u00a0')}` : i.name.replace(/ /g, '\u00a0'))).join('   ')}
+                    </Text>
+                  </View>
                 ) : null}
-                {summary.topMood || summary.busiestMonth ? (
-                  <Text style={{ color: '#ffffffd9', marginTop: 8 }}>
-                    {[summary.topMood ? `Mood of the year: ${summary.topMood}` : null, summary.busiestMonth ? `Busiest month: ${summary.busiestMonth}` : null]
-                      .filter(Boolean)
-                      .join(' · ')}
-                  </Text>
-                ) : null}
-                {summary.highlights.length ? (
-                  <View style={{ marginTop: 12, gap: 4 }}>
-                    {summary.highlights.map(h => (
-                      <Text key={h} style={{ color: '#fff' }}>
-                        ✦ {h}
-                      </Text>
+
+                {/* The year's character in four small tiles. */}
+                {tiles.length ? (
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
+                    {tiles.map(t => (
+                      <View key={t.label} style={{ width: '48.5%', flexGrow: 1, padding: 12, borderRadius: 16, backgroundColor: '#ffffff14' }}>
+                        <Text style={{ color: '#ffffffb3', fontSize: 11, fontWeight: '800', letterSpacing: 0.8 }}>{t.label.toUpperCase()}</Text>
+                        <Text style={{ color: '#fff', fontSize: 18, fontWeight: '900', marginTop: 4 }} numberOfLines={1} adjustsFontSizeToFit>
+                          {t.value}
+                        </Text>
+                      </View>
                     ))}
                   </View>
                 ) : null}
-                {spend ? <Text style={{ color: '#ffffffb3', marginTop: 10, fontSize: 12 }}>Spent on adventures: {spend}</Text> : null}
-                <Text style={{ color: '#ffffff99', marginTop: 18, fontSize: 11, fontWeight: '700', letterSpacing: 1 }}>YOUR JOURNEY, JOURNALED · WAYFARE</Text>
+
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 18 }}>
+                  <Image source={LOGO} style={{ width: 30, height: 17 }} contentFit="contain" tintColor="#ffffff" />
+                  <Text style={{ color: '#ffffffb3', fontSize: 11, fontWeight: '800', letterSpacing: 1.2 }}>JOURNALED ON WAYFARE</Text>
+                </View>
               </LinearGradient>
             </View>
             <Button mode="contained" icon="share-variant" buttonColor="#fff" textColor="#3f0263" style={{ marginTop: 18 }} onPress={share} loading={sharing} disabled={sharing}>

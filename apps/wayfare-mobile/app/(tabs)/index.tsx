@@ -1,12 +1,13 @@
-import { router, useFocusEffect } from 'expo-router';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, FlatList, Pressable, RefreshControl, View } from 'react-native';
+import { router, useFocusEffect, useNavigation } from 'expo-router';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, View } from 'react-native';
 import { IconButton, Text } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { OnThisDayCard } from '../../src/components/OnThisDayCard';
 import { TripCard } from '../../src/components/TripCard';
 import { useAuth } from '../../src/context/AuthContext';
 import { useSync } from '../../src/context/SyncContext';
-import { timeAgo } from '../../src/lib/format';
+import { timeAgoPhrase } from '../../src/lib/format';
 import { journeysOnly } from '../../src/lib/everydayMemories';
 import { listTrips, type LocalTrip } from '../../src/lib/localDb';
 import { getActiveTrackingTripId } from '../../src/lib/locationTask';
@@ -15,7 +16,7 @@ import { getRates } from '../../src/lib/currency';
 import { backupLabel, backupState } from '../../src/lib/backupStatus';
 import { splitSpend, type MoneyAmount } from '../../src/lib/currencyMath';
 import { tripCoverUri } from '../../src/lib/tripCover';
-import { featuredTrips, recentFirst } from '../../src/lib/tripList';
+import { featuredTrips, recentFirst, statusCounts, tripStatus, type TripStatus } from '../../src/lib/tripList';
 import { useAppTheme } from '../../src/theme';
 import { EmptyState } from '../../src/ui/EmptyState';
 import { Icon } from '../../src/ui/Icon';
@@ -47,7 +48,7 @@ async function prepare(list: LocalTrip[]): Promise<TripRow[]> {
       const spend = splitSpend(stats.spendByCurrency, t.currency || 'INR', rates?.rates ?? null);
       return {
         ...t,
-        synopsis: buildTripSynopsis(t.title, stats),
+        synopsis: buildTripSynopsis(t.title, stats, tripStatus(t) === 'completed'),
         packingRatio: stats.packingTotal ? stats.packingDone / stats.packingTotal : 0,
         spentAmount: spend.total,
         unconverted: spend.pending,
@@ -65,6 +66,10 @@ export default function JourneysTab() {
   const [all, setAll] = useState<LocalTrip[]>([]);
   const [rows, setRows] = useState<TripRow[]>([]);
   const [featured, setFeatured] = useState<TripRow[]>([]);
+  const [counts, setCounts] = useState<Record<TripStatus, number>>({ ongoing: 0, upcoming: 0, completed: 0 });
+  // Where the full list starts, and whether you've scrolled into it (the floating pill then says "Top").
+  const [listTop, setListTop] = useState(0);
+  const [inList, setInList] = useState(false);
   const [recordingTripId, setRecordingTripId] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -76,6 +81,7 @@ export default function JourneysTab() {
   const shown = useRef(PAGE_SIZE);
   const listRef = useRef<FlatList<TripRow>>(null);
   const insets = useSafeAreaInsets();
+  const navigation = useNavigation();
 
   const load = useCallback(async () => {
     const list = journeysOnly(await listTrips());
@@ -89,6 +95,7 @@ export default function JourneysTab() {
     setAll(list);
     setRows(page);
     setFeatured(topRows);
+    setCounts(statusCounts(list));
     setRecordingTripId(await getActiveTrackingTripId());
     setLoaded(true);
     refreshPending();
@@ -149,6 +156,21 @@ export default function JourneysTab() {
     if (statusTimer.current) clearTimeout(statusTimer.current);
   }, []);
 
+  // Backup, search and SOS sit in the bar next to the logo, so your name has the whole line.
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginRight: 4 }}>
+          {user ? (
+            <IconButton icon={syncing ? 'cloud-sync' : 'cloud-sync-outline'} onPress={backUp} disabled={syncing} accessibilityLabel="Back up now" />
+          ) : null}
+          <IconButton icon="magnify" onPress={() => router.push('/find' as never)} accessibilityLabel="Search your journal" />
+          <IconButton icon="shield-alert-outline" iconColor={colors.danger} onPress={() => router.push('/safety')} accessibilityLabel="Safety and SOS" />
+        </View>
+      ),
+    });
+  });
+
   const recordingTrip = all.find(t => t.id === recordingTripId);
   const firstName = (profile?.display_name ?? '').split(' ')[0];
 
@@ -158,17 +180,28 @@ export default function JourneysTab() {
     : guest || !user
       ? 'Journal saved on this phone · sign up to back it up'
       : backupState(backup) === 'verified' && lastSyncAt
-        ? `Backed up ${timeAgo(lastSyncAt)}`
+        ? `Backed up ${timeAgoPhrase(lastSyncAt)}`
         : backupLabel(backup);
+
+  const showList = all.length > featured.length || all.length > 1;
+  const fabBottom = Math.max(insets.bottom, 10) + 84;
 
   const header = (
     <View style={{ paddingBottom: 6 }}>
       <View style={{ flexDirection: 'row', alignItems: 'center' }}>
         <View style={{ flex: 1 }}>
-          <Text variant="headlineSmall" style={{ fontWeight: '800' }} numberOfLines={1}>
-            {greeting()}
-            {firstName ? `, ${firstName}` : ''}
-          </Text>
+          {firstName ? (
+            <>
+              <Text style={{ color: colors.muted, fontWeight: '600' }}>{greeting()},</Text>
+              <Text variant="headlineMedium" style={{ fontWeight: '800' }} numberOfLines={1} adjustsFontSizeToFit>
+                {firstName}
+              </Text>
+            </>
+          ) : (
+            <Text variant="headlineSmall" style={{ fontWeight: '800' }} numberOfLines={1}>
+              {greeting()}
+            </Text>
+          )}
           {/* Shown after tapping the cloud, or when something needs your attention. */}
           {showStatus || syncing || lastErrors.length || guest || !user ? (
             <Pressable onPress={guest || !user ? () => router.push('/register') : backUp} accessibilityRole="button">
@@ -178,16 +211,14 @@ export default function JourneysTab() {
             </Pressable>
           ) : null}
         </View>
-        {user ? (
-          <IconButton icon={syncing ? 'cloud-sync' : 'cloud-sync-outline'} onPress={backUp} disabled={syncing} accessibilityLabel="Back up now" />
-        ) : null}
-        <IconButton icon="shield-alert-outline" iconColor={colors.danger} onPress={() => router.push('/safety')} accessibilityLabel="Safety and SOS" />
       </View>
 
       {/* Your year so far (the year in travel recap). */}
       <View style={{ flexDirection: 'row', marginTop: 6 }}>
         <Pill icon="party-popper" label={`${new Date().getFullYear()} so far`} onPress={() => router.push('/wrapped')} />
       </View>
+
+      <OnThisDayCard refreshKey={lastSyncAt} />
 
       {recordingTrip ? (
         <Pressable onPress={() => router.push(`/trip/${recordingTrip.id}`)} accessibilityRole="button">
@@ -205,22 +236,26 @@ export default function JourneysTab() {
       {featured.length ? (
         <View style={{ marginTop: 14 }}>
           {featured.map(t => (
-            <TripCard key={t.id} trip={t} synopsis={t.synopsis} large tracking={t.id === recordingTripId} coverUri={t.cover} showUpload={Boolean(user)} />
+            <TripCard
+              key={t.id}
+              trip={t}
+              synopsis={t.synopsis}
+              large
+              groupCount={counts[tripStatus(t)]}
+              tracking={t.id === recordingTripId}
+              coverUri={t.cover}
+              showUpload={Boolean(user)}
+            />
           ))}
         </View>
       ) : null}
 
-      {/* A small tab into the full list, most recent first. */}
-      {all.length > featured.length || all.length > 1 ? (
-        <Pressable
-          onPress={() => listRef.current?.scrollToIndex({ index: 0, viewOffset: 8, animated: true })}
-          accessibilityRole="button"
-          accessibilityLabel="All trips, most recent first"
-          style={({ pressed }) => ({ alignSelf: 'center', alignItems: 'center', paddingHorizontal: 18, paddingVertical: 6, borderRadius: 16, backgroundColor: colors.surfaceVariant, marginTop: 4, marginBottom: 12, opacity: pressed ? 0.8 : 1 })}
-        >
-          <Text style={{ fontSize: 12, fontWeight: '800', color: colors.onSurfaceVariant, letterSpacing: 0.4 }}>All trips</Text>
-          <Icon name="chevron-down" size={18} color={colors.primary} />
-        </Pressable>
+      {/* Where the full list begins (the floating "All trips" pill brings you here). */}
+      {showList ? (
+        <View onLayout={e => setListTop(e.nativeEvent.layout.y)} style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6, marginTop: 10, marginBottom: 10 }}>
+          <Text style={{ fontSize: 13, fontWeight: '800', color: colors.onSurfaceVariant, letterSpacing: 0.6 }}>ALL TRIPS</Text>
+          <Text style={{ fontSize: 13, color: colors.muted }}>{all.length}</Text>
+        </View>
       ) : null}
     </View>
   );
@@ -229,7 +264,9 @@ export default function JourneysTab() {
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <FlatList
         ref={listRef}
-        data={all.length > featured.length || all.length > 1 ? rows : []}
+        data={showList ? rows : []}
+        onScroll={e => setInList(listTop > 0 && e.nativeEvent.contentOffset.y > listTop - 60)}
+        scrollEventThrottle={64}
         onScrollToIndexFailed={() => listRef.current?.scrollToOffset({ offset: 0, animated: true })}
         keyExtractor={t => t.id}
         ListHeaderComponent={header}
@@ -271,13 +308,31 @@ export default function JourneysTab() {
           />
         )}
       />
+      {/* All trips: a glass pill left of the + button; jumps to the full list, or back to the top. */}
+      {loaded && showList ? (
+        <Pressable
+          onPress={() =>
+            inList
+              ? listRef.current?.scrollToOffset({ offset: 0, animated: true })
+              : listRef.current?.scrollToOffset({ offset: listTop + 8, animated: true }) // the list's 16 px padding, less a little air
+          }
+          accessibilityRole="button"
+          accessibilityLabel={inList ? 'Back to the top' : `All trips, ${all.length}`}
+          style={({ pressed }) => ({ position: 'absolute', right: 18 + 60 + 10, bottom: fabBottom + 8, transform: [{ scale: pressed ? 0.95 : 1 }] })}
+        >
+          <Glass radius={22} interactive style={{ height: 44, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border }}>
+            <Icon name={inList ? 'arrow-up' : 'format-list-bulleted'} size={18} color={colors.primary} />
+            <Text style={{ fontWeight: '700', color: colors.onSurface }}>{inList ? 'Top' : 'All trips'}</Text>
+          </Glass>
+        </Pressable>
+      ) : null}
       {/* New journey: a brand-coloured glass button floating above the tab bar (the empty screen has its own button). */}
       {loaded && !all.length ? null : (
       <Pressable
         onPress={() => router.push('/trip/new')}
         accessibilityRole="button"
         accessibilityLabel="Start a new journey"
-        style={({ pressed }) => ({ position: 'absolute', right: 18, bottom: Math.max(insets.bottom, 10) + 84, transform: [{ scale: pressed ? 0.94 : 1 }] })}
+        style={({ pressed }) => ({ position: 'absolute', right: 18, bottom: fabBottom, transform: [{ scale: pressed ? 0.94 : 1 }] })}
       >
         <Glass
           tint={colors.primary}

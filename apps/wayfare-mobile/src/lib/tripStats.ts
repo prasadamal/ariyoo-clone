@@ -1,4 +1,5 @@
 import { formatMoney } from './currencyMath';
+import { isSpending } from './split';
 import { formatKm } from './format';
 import { elevationStats, trackDistanceKm } from './geo';
 import { listEntries, listExpenses, listItinerary, listPacking, listTrackPoints, listTripMedia } from './localDb';
@@ -39,7 +40,7 @@ export async function computeTripStats(tripId: string, dates?: { starts_on: stri
   const pack = packCounts(lists, chosen ?? defaultListFor(dates?.starts_on ?? null, dates?.ends_on ?? null), packing);
   const elev = elevationStats(points);
   const spendByCurrency: Record<string, number> = {};
-  for (const e of expenses) spendByCurrency[e.currency] = (spendByCurrency[e.currency] ?? 0) + e.amount;
+  for (const e of expenses.filter(isSpending)) spendByCurrency[e.currency] = (spendByCurrency[e.currency] ?? 0) + e.amount;
   const moodCounts = new Map<string, number>();
   for (const e of entries) if (e.mood) moodCounts.set(e.mood, (moodCounts.get(e.mood) ?? 0) + 1);
   const topMood = [...moodCounts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
@@ -68,14 +69,15 @@ export function formatSpend(spendByCurrency: Record<string, number>) {
   return parts.join(' + ');
 }
 
-export function buildTripSynopsis(title: string, stats: TripStats) {
+/** The one-line summary on a journey tile. Packing only shows before and during the trip. */
+export function buildTripSynopsis(title: string, stats: TripStats, done = false) {
   const parts: string[] = [];
   if (stats.entryCount) parts.push(`${stats.entryCount} moment${stats.entryCount === 1 ? '' : 's'}`);
   if (stats.photoCount) parts.push(`${stats.photoCount} photo${stats.photoCount === 1 ? '' : 's'}`);
   if (stats.distanceKm >= 0.5) parts.push(`${formatKm(stats.distanceKm)} tracked`);
   const spend = formatSpend(stats.spendByCurrency);
   if (spend) parts.push(`${spend} spent`);
-  if (stats.packingTotal) parts.push(`${stats.packingDone}/${stats.packingTotal} packed`);
+  if (stats.packingTotal && !done) parts.push(`${stats.packingDone}/${stats.packingTotal} packed`);
   if (!parts.length) return `Your ${title} journal is ready for its first moment.`;
   return parts.join(' · ');
 }

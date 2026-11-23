@@ -111,12 +111,15 @@ export function RouteTab({ trip, onChanged }: Props) {
       <View onLayout={e => setWidth(e.nativeEvent.layout.width)} style={{ height: SKETCH_H, borderRadius: 22, overflow: 'hidden', backgroundColor: colors.surfaceVariant }}>
         <LinearGradient colors={[colors.primaryContainer, colors.surfaceVariant]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
         {sketch ? (
+          // Its own layer, so the background gradient never paints over the line.
+          <View style={StyleSheet.absoluteFill} pointerEvents="none">
           <Svg width={width} height={SKETCH_H} accessibilityLabel={`Route of ${formatKm(km)}`}>
             <Path d={sketch.d} stroke={colors.primary} strokeOpacity={0.25} strokeWidth={10} fill="none" strokeLinecap="round" strokeLinejoin="round" />
             <Path d={sketch.d} stroke={colors.primary} strokeWidth={4} fill="none" strokeLinecap="round" strokeLinejoin="round" />
             <Circle cx={sketch.start.x} cy={sketch.start.y} r={7} fill="#16a34a" stroke="#fff" strokeWidth={2.5} />
             <Circle cx={sketch.end.x} cy={sketch.end.y} r={8} fill={colors.secondary} stroke="#fff" strokeWidth={2.5} />
           </Svg>
+          </View>
         ) : (
           <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 }}>
             <Icon name="map-marker-path" size={36} color={colors.primary} />

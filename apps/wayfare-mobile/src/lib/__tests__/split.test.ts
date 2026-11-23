@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { computeBalances, ME, parseCompanions, parseSplitWith, settleUp, sharePerPerson } from '../split';
+import { computeBalances, isSpending, ME, parseCompanions, parseSplitWith, SETTLEMENT, settlementFor, settleUp, sharePerPerson } from '../split';
 
 test('parseCompanions trims, dedupes and drops "Me"', () => {
   assert.deepEqual(parseCompanions(' Asha, Ravi;asha\nMe ,  Kabir  Singh '), ['Asha', 'Ravi', 'Kabir Singh']);
@@ -54,4 +54,17 @@ test('sharePerPerson splits shared costs and keeps personal costs with the payer
     ]),
     { A: 30, B: 30, C: 30, Me: 40 }
   );
+});
+
+test('marking a settle-up payment as paid clears that debt, and it is not spending', () => {
+  const trip = [{ amount: 900, paidBy: null, splitWith: [ME, 'Arif', 'Akshay'] }];
+  const transfers = settleUp(computeBalances(trip));
+  assert.equal(transfers.length, 2);
+  const paid = transfers.map(t => ({ ...settlementFor(t) }));
+  const after = settleUp(computeBalances([...trip, ...paid]));
+  assert.deepEqual(after, [], 'everyone is square once both have paid');
+  const half = settleUp(computeBalances([...trip, paid[0]]));
+  assert.equal(half.length, 1, 'one payment clears one debt');
+  assert.equal(isSpending({ category: SETTLEMENT }), false);
+  assert.equal(isSpending({ category: 'food' }), true);
 });

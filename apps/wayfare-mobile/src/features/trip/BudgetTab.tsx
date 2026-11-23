@@ -1,12 +1,13 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { track } from '../../lib/telemetry';
 import { Alert, Pressable, ScrollView, View } from 'react-native';
 import { Button, Dialog, IconButton, Portal, Text, TextInput } from 'react-native-paper';
 import { uuid } from '../../lib/id';
 import { getRates, type RatesSnapshot } from '../../lib/currency';
 import { formatMoney, sumInCurrency } from '../../lib/currencyMath';
-import { formatDay, timeAgo } from '../../lib/format';
+import { formatDay, timeAgoPhrase } from '../../lib/format';
 import { deleteExpense, listExpenses, updateTrip, upsertExpense, type LocalExpense, type LocalTrip } from '../../lib/localDb';
-import { computeBalances, ME, parseCompanions, parseSplitWith, settleUp } from '../../lib/split';
+import { computeBalances, isSpending, ME, parseCompanions, parseSplitWith, SETTLEMENT, settlementFor, settleUp } from '../../lib/split';
 import { useAppTheme } from '../../theme';
 import { ChipSelect } from '../../ui/ChipSelect';
 import { Icon } from '../../ui/Icon';
@@ -67,19 +68,21 @@ export function BudgetTab({ trip, onChanged, readOnly = false }: Props) {
   }, [load]);
   useEffect(() => setSplitWith(people), [people]);
 
+  // "Paid back" records from Settle up move money between people; they aren't trip spending.
+  const spending = useMemo(() => expenses.filter(isSpending), [expenses]);
   const total = useMemo(
-    () => sumInCurrency(expenses.map(e => ({ amount: e.amount, currency: e.currency })), tripCurrency, rates?.rates ?? null),
-    [expenses, tripCurrency, rates]
+    () => sumInCurrency(spending.map(e => ({ amount: e.amount, currency: e.currency })), tripCurrency, rates?.rates ?? null),
+    [spending, tripCurrency, rates]
   );
 
   const byCategory = useMemo(() => {
     const out: Record<string, number> = {};
-    for (const e of expenses) {
+    for (const e of spending) {
       const v = sumInCurrency([{ amount: e.amount, currency: e.currency }], tripCurrency, rates?.rates ?? null).total;
       out[e.category] = (out[e.category] ?? 0) + v;
     }
     return Object.entries(out).sort((a, b) => b[1] - a[1]);
-  }, [expenses, tripCurrency, rates]);
+  }, [spending, tripCurrency, rates]);
 
   // Settle up separately per currency — never silently mix exchange rates into debts.
   const settlements = useMemo(() => {
@@ -122,9 +125,45 @@ export function BudgetTab({ trip, onChanged, readOnly = false }: Props) {
     setNote('');
     setCategory('other');
     setFormOpen(false);
+    void track('expense_added');
     await load();
     onChanged();
   };
+
+  // Settle up: record that someone paid their share back (one tap, confirmed; can't be sent twice).
+  const paying = useRef(false);
+  const markPaid = (t: { from: string; to: string; amount: number }, cur: string) =>
+    Alert.alert('Mark as paid?', `${personLabel(t.from)} paid ${personLabel(t.to)} ${formatMoney(t.amount, cur)}.`, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Mark paid',
+        onPress: async () => {
+          if (paying.current) return;
+          paying.current = true;
+          try {
+            const s = settlementFor(t);
+            const now = new Date().toISOString();
+            await upsertExpense({
+              id: uuid(),
+              trip_id: trip.id,
+              category: SETTLEMENT,
+              amount: s.amount,
+              currency: cur,
+              note: `${personLabel(t.from)} paid ${personLabel(t.to)} back`,
+              spent_on: now.slice(0, 10),
+              paid_by: s.paidBy,
+              split_with: JSON.stringify(s.splitWith),
+              sync_status: 'pending',
+              updated_at: now,
+            });
+            await load();
+            onChanged();
+          } finally {
+            paying.current = false;
+          }
+        },
+      },
+    ]);
 
   const remove = (e: LocalExpense) =>
     Alert.alert('Delete expense?', `${e.category} · ${formatMoney(e.amount, e.currency)}`, [
@@ -216,7 +255,7 @@ export function BudgetTab({ trip, onChanged, readOnly = false }: Props) {
           <Notice tone="warning" text={`${total.unconverted.join(', ')} not included — connect once to download exchange rates.`} />
         ) : rates && expenses.some(e => e.currency !== tripCurrency) ? (
           <Text style={{ color: colors.muted, fontSize: 11, marginTop: 6 }}>
-            Converted with {rates.source} rates from {timeAgo(rates.fetchedAt)} ago.
+            Converted with {rates.source} rates from {timeAgoPhrase(rates.fetchedAt)}.
           </Text>
         ) : null}
         {byCategory.length && showCategories ? (
@@ -262,6 +301,11 @@ export function BudgetTab({ trip, onChanged, readOnly = false }: Props) {
                 <Icon name="arrow-right" size={16} color={colors.muted} />
                 <Text style={{ fontWeight: '700', flex: 1 }} numberOfLines={1}>{personLabel(t.to)}</Text>
                 <Text style={{ fontWeight: '800', color: colors.secondary }}>{formatMoney(t.amount, s.currency)}</Text>
+                {readOnly ? null : (
+                  <Button compact mode="contained-tonal" onPress={() => markPaid(t, s.currency)} accessibilityLabel={`Mark ${personLabel(t.from)} paid ${personLabel(t.to)}`}>
+                    Paid
+                  </Button>
+                )}
               </View>
             ))
           )}
@@ -287,7 +331,7 @@ export function BudgetTab({ trip, onChanged, readOnly = false }: Props) {
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 8, marginBottom: 2 }}>
                   <Text style={{ color: colors.muted, fontSize: 12, fontWeight: '700', letterSpacing: 0.4 }}>{dayHeading(day).toUpperCase()}</Text>
                   <Text style={{ color: colors.muted, fontSize: 12, fontWeight: '700' }}>
-                    {formatMoney(sumInCurrency(list.map(e => ({ amount: e.amount, currency: e.currency })), tripCurrency, rates?.rates ?? null).total, tripCurrency)}
+                    {formatMoney(sumInCurrency(list.filter(isSpending).map(e => ({ amount: e.amount, currency: e.currency })), tripCurrency, rates?.rates ?? null).total, tripCurrency)}
                   </Text>
                 </View>
                 {list.map(e => {
@@ -295,7 +339,7 @@ export function BudgetTab({ trip, onChanged, readOnly = false }: Props) {
                   return (
                     <Pressable key={e.id} disabled={readOnly} onLongPress={() => remove(e)} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.border }}>
                       <View style={{ width: 36, height: 36, borderRadius: 12, backgroundColor: colors.primaryContainer, alignItems: 'center', justifyContent: 'center' }}>
-                        <Icon name={categoryIcon(e.category)} size={18} color={colors.onPrimaryContainer} />
+                        <Icon name={e.category === SETTLEMENT ? 'handshake-outline' : categoryIcon(e.category)} size={18} color={colors.onPrimaryContainer} />
                       </View>
                       <View style={{ flex: 1 }}>
                         <Text style={{ fontWeight: '600', textTransform: 'capitalize' }} numberOfLines={1}>{e.note || e.category}</Text>

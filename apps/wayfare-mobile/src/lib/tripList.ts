@@ -58,3 +58,10 @@ export function recentFirst<T extends DatedTrip>(trips: T[]): T[] {
   const key = (t: T) => t.starts_on ?? (t.updated_at ?? '').slice(0, 10);
   return [...trips].sort((a, b) => key(b).localeCompare(key(a)));
 }
+
+/** How many journeys are in each group (the featured tiles show a stack when there's more than one). */
+export function statusCounts<T extends TripLike>(trips: T[], today = new Date()): Record<TripStatus, number> {
+  const out: Record<TripStatus, number> = { ongoing: 0, upcoming: 0, completed: 0 };
+  for (const t of trips) out[tripStatus(t, today)]++;
+  return out;
+}

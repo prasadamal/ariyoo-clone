@@ -1,4 +1,7 @@
 import { router } from 'expo-router';
+import { getDiaryReminder, hourLabel, REMINDER_HOURS, setDiaryReminder, type DiaryReminder } from '../src/lib/diaryReminder';
+import { setTelemetryEnabled, telemetryEnabled } from '../src/lib/telemetry';
+import { ChipSelect } from '../src/ui/ChipSelect';
 import { useEffect, useState } from 'react';
 import { Alert, Linking, View } from 'react-native';
 import { Button, Dialog, Portal, SegmentedButtons, Switch, Text, TextInput } from 'react-native-paper';
@@ -8,7 +11,7 @@ import { useAuth, useCanConnect } from '../src/context/AuthContext';
 import { useSync } from '../src/context/SyncContext';
 import { useWayfareTheme, type ThemeMode } from '../src/context/ThemeContext';
 import { useToast } from '../src/context/ToastContext';
-import { timeAgo } from '../src/lib/format';
+import { timeAgoPhrase } from '../src/lib/format';
 import { stopDeviceActivity } from '../src/lib/deviceActivity';
 import { wipeDevice } from '../src/lib/wipeDevice';
 import { backupLabel, backupState, signOutMessage } from '../src/lib/backupStatus';
@@ -39,6 +42,23 @@ function ToggleRow({ icon, title, body, value, onChange, disabled }: { icon: str
 export default function SettingsScreen() {
   const { colors } = useAppTheme();
   const toast = useToast();
+  const [reminder, setReminder] = useState<DiaryReminder>({ on: false, hour: 21 });
+  const [telemetryOn, setTelemetryOn] = useState(true);
+  useEffect(() => {
+    getDiaryReminder().then(setReminder).catch(() => undefined);
+    telemetryEnabled().then(setTelemetryOn).catch(() => undefined);
+  }, []);
+  const changeReminder = async (next: DiaryReminder) => {
+    const before = reminder;
+    setReminder(next);
+    try {
+      await setDiaryReminder(next);
+      if (next.on) toast(`Reminder set for ${hourLabel(next.hour)} every day`);
+    } catch (e) {
+      setReminder(before);
+      toast(e instanceof Error ? e.message : 'Could not set the reminder');
+    }
+  };
   const { user, profile, offlineMode, guest, signOut, refreshProfile } = useAuth();
   const canConnect = useCanConnect();
   const { mode, setMode } = useWayfareTheme();
@@ -221,7 +241,7 @@ export default function SettingsScreen() {
         <>
           <Text style={{ color: colors.onSurfaceVariant }}>
             {backupLabel(backup)}
-            {lastSyncAt ? ` · last sync ${timeAgo(lastSyncAt)} ago` : ''}
+            {lastSyncAt ? ` · last sync ${timeAgoPhrase(lastSyncAt)}` : ''}
           </Text>
           {lastErrors.length ? <Notice tone="error" text={lastErrors.slice(0, 2).join(' · ')} /> : null}
           <Button mode="outlined" icon="cloud-sync-outline" style={{ marginTop: 8, alignSelf: 'flex-start' }} onPress={() => syncNow()} loading={syncing} disabled={syncing}>
@@ -231,6 +251,34 @@ export default function SettingsScreen() {
       )}
       <Button icon="cellphone-remove" textColor={colors.muted} style={{ alignSelf: 'flex-start', marginTop: 4 }} onPress={clearDeviceData}>
         Remove journals from this phone
+      </Button>
+
+      <SectionHeader title="Diary" />
+      <ToggleRow
+        icon="notebook-edit-outline"
+        title="Daily reminder"
+        body={reminder.on ? `Every day at ${hourLabel(reminder.hour)}, a nudge to write today's page.` : 'A gentle nudge each evening to write today\'s page.'}
+        value={reminder.on}
+        onChange={on => changeReminder({ ...reminder, on })}
+      />
+      {reminder.on ? (
+        <ChipSelect
+          options={REMINDER_HOURS.map(h => ({ value: String(h), label: hourLabel(h) }))}
+          value={String(reminder.hour)}
+          onChange={h => changeReminder({ ...reminder, hour: Number(h) })}
+        />
+      ) : null}
+
+      <SectionHeader title="Help us improve" />
+      <ToggleRow
+        icon="chart-box-outline"
+        title="Share usage & crash reports"
+        body="Anonymous counts (like “a moment was added”) and error reports. Never your words, photos or places."
+        value={telemetryOn}
+        onChange={async on => { setTelemetryOn(on); await setTelemetryEnabled(on); }}
+      />
+      <Button icon="message-text-outline" style={{ alignSelf: 'flex-start' }} onPress={() => router.push('/feedback' as never)}>
+        Send feedback
       </Button>
 
       <SectionHeader title="About" />

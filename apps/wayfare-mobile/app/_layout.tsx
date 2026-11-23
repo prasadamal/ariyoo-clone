@@ -1,8 +1,12 @@
 // Registers the background location task as early as possible (background relaunches need it).
 import '../src/lib/locationTask';
+import { flushTelemetry, installGlobalErrorReporting, reportError, track } from '../src/lib/telemetry';
+
+// Errors nobody caught are reported (scrubbed, opt-out in Settings) before the app handles them.
+installGlobalErrorReporting();
 import { Stack, DarkTheme, DefaultTheme, ThemeProvider as NavigationThemeProvider, router, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { View } from 'react-native';
+import { AppState, View } from 'react-native';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Button, Dialog, Provider as PaperProvider, Portal, Text } from 'react-native-paper';
 import { AppLockProvider } from '../src/context/AppLockContext';
@@ -61,6 +65,21 @@ function OwnerConflictDialog() {
   );
 }
 
+/** Counts that the app was opened today (once a day) and sends waiting reports when it comes back. */
+function UsageTracker() {
+  useEffect(() => {
+    void track('app_open');
+    const sub = AppState.addEventListener('change', state => {
+      if (state === 'active') {
+        void track('app_open');
+        void flushTelemetry();
+      }
+    });
+    return () => sub.remove();
+  }, []);
+  return null;
+}
+
 function PushRegistrar() {
   const { user } = useAuth();
   useEffect(() => {
@@ -96,6 +115,10 @@ function RootStack() {
       <Stack.Screen name="register" options={{ title: 'Join Wayfare' }} />
       <Stack.Screen name="forgot-password" options={{ title: 'Reset password' }} />
       <Stack.Screen name="reset-password" options={{ title: 'New password' }} />
+      <Stack.Screen name="feedback" options={{ title: 'Send feedback' }} />
+      <Stack.Screen name="find" options={{ title: 'Search' }} />
+      <Stack.Screen name="invite/[token]" options={{ title: 'Journey invite' }} />
+      <Stack.Screen name="trip/recap/[id]" options={{ title: 'Journey recap', presentation: 'modal' }} />
       <Stack.Screen name="guidelines" options={{ title: 'Community guidelines', presentation: 'modal' }} />
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen name="trip/new" options={{ title: 'New journey', presentation: 'modal' }} />
@@ -163,6 +186,7 @@ function ThemedRoot() {
                 <AppLockProvider>
                   <StatusBar style={isDark ? 'light' : 'dark'} />
                   <PushRegistrar />
+                  <UsageTracker />
                   <RootStack />
                   <OwnerConflictDialog />
                 </AppLockProvider>
@@ -180,6 +204,9 @@ function ThemedRoot() {
  * (expo-router calls this for errors under the root layout.)
  */
 export function ErrorBoundary({ error, retry }: { error: Error; retry: () => Promise<void> }) {
+  useEffect(() => {
+    void reportError(error, 'screen');
+  }, [error]);
   return (
     <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, backgroundColor: '#ffffff' }}>
       <Text style={{ fontSize: 18, fontWeight: '800', color: '#1c1917', textAlign: 'center' }}>Something went wrong</Text>

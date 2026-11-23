@@ -55,6 +55,8 @@ export type TravelStats = {
   states: string[];
   /** States visited, grouped by country code (sorted); "" holds states whose country isn't known. */
   statesByCountry: Record<string, string[]>;
+  /** Named places you went (a moment's place, a journey's destination), per "COUNTRY|State" key, sorted. */
+  placesByRegion: Record<string, string[]>;
   longestTripDays: number;
   longestStreakDays: number;
   earlyBirdEntries: number;
@@ -107,6 +109,17 @@ export function computeTravelStats(input: StatsInput): TravelStats {
     if (!byCountry.has(country)) byCountry.set(country, new Set());
     byCountry.get(country)!.add(state);
   };
+  // Places under their state; the same place spelled with different case counts once.
+  const places = new Map<string, Map<string, string>>();
+  const addPlace = (country: string, state: string, place: string | null | undefined) => {
+    const name = place?.trim();
+    // "Goa" inside Goa or "Ladakh" inside Ladakh adds nothing: the state already says it.
+    if (!state || !name || name.toLowerCase() === state.toLowerCase()) return;
+    const key = `${country}|${state}`;
+    if (!places.has(key)) places.set(key, new Map());
+    const m = places.get(key)!;
+    if (!m.has(name.toLowerCase())) m.set(name.toLowerCase(), name);
+  };
   for (const t of input.trips) {
     const key = t.place_key || t.destination?.trim().toLowerCase() || null;
     if (key) placeKeys.add(key);
@@ -115,12 +128,14 @@ export function computeTravelStats(input: StatsInput): TravelStats {
       countries.add(d.countryCode);
       states.add(d.region);
       addState(d.countryCode, d.region);
+      addPlace(d.countryCode, d.region, d.name);
     }
   }
   for (const e of input.entries) {
     if (e.country_code) countries.add(e.country_code.toUpperCase());
     if (e.region) states.add(e.region.trim());
     if (e.region) addState(e.country_code ? e.country_code.toUpperCase() : '', e.region.trim());
+    if (e.region) addPlace(e.country_code ? e.country_code.toUpperCase() : '', e.region.trim(), e.place_name);
   }
   // Path between a journey's located moments, in time order (jumps under 50 m are GPS noise).
   const momentKmByTrip: Record<string, number> = {};
@@ -171,6 +186,9 @@ export function computeTravelStats(input: StatsInput): TravelStats {
     statesByCountry: Object.fromEntries(
       [...byCountry].map(([c, set]) => [c, [...set].sort((a, b) => a.localeCompare(b))])
     ),
+    placesByRegion: Object.fromEntries(
+      [...places].map(([k, m]) => [k, [...m.values()].sort((a, b) => a.localeCompare(b))])
+    ),
     longestTripDays: input.trips.reduce((m, t) => Math.max(m, tripDays(t, input.entries)), 0),
     longestStreakDays: longestStreak(input.entries.map(e => e.recorded_at)),
     earlyBirdEntries: early,
@@ -203,4 +221,30 @@ export function countryName(code: string) {
   } catch {
     return code;
   }
+}
+
+/** What a country calls its first-level areas, so "6 states" in India and "3 provinces" in Sri Lanka. */
+const STATE_WORD: Record<string, string> = {
+  IN: 'state', US: 'state', AU: 'state', MY: 'state', MX: 'state', BR: 'state', DE: 'state', NG: 'state', AT: 'state',
+  CA: 'province', LK: 'province', TH: 'province', VN: 'province', ID: 'province', NP: 'province', CN: 'province',
+  PH: 'province', KH: 'province', LA: 'province', ZA: 'province', AR: 'province', IT: 'region', ES: 'region', FR: 'region',
+  JP: 'prefecture', GB: 'nation', AE: 'emirate', CH: 'canton', KR: 'province', TR: 'province', PK: 'province',
+};
+export function stateWord(code: string, n: number) {
+  const w = STATE_WORD[code.toUpperCase()] ?? 'region';
+  return n === 1 ? w : `${w}s`;
+}
+
+/** Places you went in one country: its states (with the places in each) and how many places in all. */
+export function countryPlaces(stats: Pick<TravelStats, 'statesByCountry' | 'placesByRegion'>, code: string) {
+  const states = (stats.statesByCountry[code] ?? []).map(name => ({ name, places: stats.placesByRegion[`${code}|${name}`] ?? [] }));
+  return { states, placeCount: states.reduce((n, s) => n + s.places.length, 0) };
+}
+
+/** "6 states · 24 places" (whichever parts there are). */
+export function countrySummary(code: string, stateCount: number, placeCount: number) {
+  const parts: string[] = [];
+  if (stateCount) parts.push(`${stateCount} ${stateWord(code || 'XX', stateCount)}`);
+  if (placeCount) parts.push(`${placeCount} ${placeCount === 1 ? 'place' : 'places'}`);
+  return parts.join(' · ') || 'Visited';
 }

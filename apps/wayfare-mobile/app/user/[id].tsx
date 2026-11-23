@@ -8,7 +8,7 @@ import { PostCard } from '../../src/components/PostCard';
 import { ProfileHeader } from '../../src/components/ProfileHeader';
 import { ReportDialog } from '../../src/components/ReportDialog';
 import { useToast } from '../../src/context/ToastContext';
-import { displayName, timeAgo } from '../../src/lib/format';
+import { displayName, timeAgoPhrase } from '../../src/lib/format';
 import { startDirect } from '../../src/social/chat';
 import { block, getProfile, removeFollower } from '../../src/social/profiles';
 import type { PublicProfile } from '../../src/social/types';
@@ -139,7 +139,7 @@ function ProfileBody({ idParam }: { idParam: string }) {
       ) : null}
       {profile.last_active_at ? (
         <Button compact disabled style={{ alignSelf: 'flex-start' }} textColor={colors.muted} icon="clock-outline">
-          Active {timeAgo(profile.last_active_at)} ago
+          Active {timeAgoPhrase(profile.last_active_at)}
         </Button>
       ) : null}
       <SectionHeader title="Journeys & moments" />

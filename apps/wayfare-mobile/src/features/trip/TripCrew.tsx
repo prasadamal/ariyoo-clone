@@ -1,12 +1,14 @@
 import { router } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
-import { Alert, Pressable, View } from 'react-native';
+import { track } from '../../lib/telemetry';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Alert, Pressable, Share, View } from 'react-native';
 import { ActivityIndicator, Button, Menu, SegmentedButtons, Text, TextInput } from 'react-native-paper';
 import { useAuth, useCanConnect } from '../../context/AuthContext';
 import { useSync } from '../../context/SyncContext';
 import { useToast } from '../../context/ToastContext';
 import {
   addCrew,
+  createInviteLink,
   canEditTrip,
   cleanHandle,
   crewError,
@@ -171,6 +173,24 @@ export function TripCrew({ trip, onChanged, onCrew }: Props) {
       },
     ]);
 
+  const [inviting, setInviting] = useState(false);
+  const inviteBusy = useRef(false);
+  const shareInvite = async () => {
+    if (inviteBusy.current) return;
+    inviteBusy.current = true;
+    setInviting(true);
+    try {
+      const url = await createInviteLink(trip.id);
+      await Share.share({ message: `Join my journey “${trip.title}” on Wayfare: ${url}` });
+      void track('invite_sent');
+    } catch (e) {
+      toast(crewError(e));
+    } finally {
+      inviteBusy.current = false;
+      setInviting(false);
+    }
+  };
+
   return (
     <View>
       <Text style={{ color: colors.muted, lineHeight: 20, marginBottom: 12 }}>
@@ -221,6 +241,11 @@ export function TripCrew({ trip, onChanged, onCrew }: Props) {
           <Button mode="contained" icon="account-plus" onPress={add} loading={busy} disabled={busy || !found} style={{ marginTop: 10 }}>
             Add to journey
           </Button>
+          {/* Friends without Wayfare (or whose username you don't know): send them a link instead. */}
+          <Button mode="outlined" icon="link-variant" onPress={shareInvite} loading={inviting} disabled={inviting} style={{ marginTop: 8 }}>
+            Invite with a link
+          </Button>
+          <Text style={{ color: colors.muted, fontSize: 12, marginTop: 6 }}>The link works for 7 days and up to 10 people, who join as members.</Text>
         </View>
       ) : (
         <Notice text="You're a member: you can see everything. An admin can make you an admin so you can add moments too." />

@@ -45,3 +45,11 @@ test('partial spend keeps unconverted amounts visible', () => {
   assert.deepEqual(withRates.pending, []);
   assert.deepEqual(splitSpend({}, 'INR', null), { total: 0, pending: [] });
 });
+
+test('compact amounts read naturally in every currency', () => {
+  assert.equal(formatMoney(4515000, 'IDR', { compact: true }), 'Rp4.5M');
+  assert.equal(formatMoney(250000, 'INR', { compact: true }), '₹2.5L');
+  assert.equal(formatMoney(25000000, 'INR', { compact: true }), '₹2.5Cr');
+  assert.equal(formatMoney(120000, 'LKR', { compact: true }), 'Rs120k');
+  assert.equal(formatMoney(12000000, 'VND', { compact: true }), '₫12M');
+});

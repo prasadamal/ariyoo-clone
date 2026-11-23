@@ -8,6 +8,7 @@ import {
   formatKm,
   initials,
   timeAgo,
+  timeAgoPhrase,
   tripPhase,
 } from '../format';
 import { computeTier, nextTierProgress } from '../tiers';
@@ -59,4 +60,11 @@ test('small formatters', () => {
   assert.equal(compactNumber(25000), '25k');
   assert.equal(initials('asha rao singh'), 'AS');
   assert.equal(initials(''), '?');
+});
+
+test('time-ago phrases never say "just now ago"', () => {
+  const now = new Date('2026-11-23T12:00:00Z');
+  assert.equal(timeAgoPhrase('2026-11-23T11:59:50Z', now), 'just now');
+  assert.equal(timeAgoPhrase('2026-11-23T11:55:00Z', now), '5m ago');
+  assert.equal(timeAgoPhrase(null, now), '');
 });
