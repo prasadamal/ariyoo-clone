@@ -192,7 +192,7 @@ export function BudgetTab({ trip, onChanged, readOnly = false }: Props) {
             accessibilityLabel={used > 1 ? `${formatMoney(total.total - budget, tripCurrency)} over the ${formatMoney(budget, tripCurrency)} budget` : `${formatMoney(budget - total.total, tripCurrency)} left of the ${formatMoney(budget, tripCurrency)} budget`}
           >
             <Meter progress={Math.min(1, used)} color={used > 1 ? colors.danger : used > 0.85 ? colors.warning : colors.primary} height={8} style={{ marginTop: 10 }} />
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 6 }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 6, marginRight: byCategory.length ? 36 : 0 }}>
               <Text style={{ color: colors.muted, fontSize: 13, fontWeight: '600' }}>{formatMoney(0, tripCurrency)}</Text>
               <Text style={{ color: used > 1 ? colors.danger : colors.muted, fontSize: 13, fontWeight: '600' }}>{formatMoney(budget, tripCurrency)}</Text>
             </View>

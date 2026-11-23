@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { addToList, defaultListFor, DEFAULT_PACKING_LISTS, packView, parseLists, removeFromList } from '../packingLists';
+import { addToList, packCounts, defaultListFor, DEFAULT_PACKING_LISTS, packView, parseLists, removeFromList } from '../packingLists';
 
 test('adding and removing ignores case and spacing', () => {
   assert.deepEqual(addToList(['Phone charger'], '  phone   CHARGER '), ['Phone charger']);
@@ -34,4 +34,10 @@ test('pack view: list items show this trip\'s ticks, other trip items are extras
   const v = packView(lists, 'short', trip);
   assert.deepEqual(v.rows.map(r => [r.label, r.packed]), [['Charger', true], ['Wallet', false]]);
   assert.deepEqual(v.extras.map(e => e.label), ['Tent'], 'Jacket belongs to the long list, so it is not an extra');
+});
+
+test('pack counts use the chosen list, not just the ticked rows', () => {
+  const lists = { short: ['Charger', 'Wallet', 'ID'], long: [], custom: [] };
+  assert.deepEqual(packCounts(lists, 'short', [{ label: 'Wallet', packed: 1 }]), { done: 1, total: 3 });
+  assert.deepEqual(packCounts(lists, 'short', [{ label: 'Tent', packed: 0 }]), { done: 0, total: 4 });
 });

@@ -3,6 +3,8 @@ import { formatKm } from './format';
 import { elevationStats, trackDistanceKm } from './geo';
 import { listEntries, listExpenses, listItinerary, listPacking, listTrackPoints, listTripMedia } from './localDb';
 import { isAudio } from './media';
+import { defaultListFor, packCounts } from './packingLists';
+import { loadPackingLists, loadTripList } from './packingListsStore';
 
 export type TripStats = {
   entryCount: number;
@@ -21,15 +23,20 @@ export type TripStats = {
   lastEntryAt: string | null;
 };
 
-export async function computeTripStats(tripId: string): Promise<TripStats> {
-  const [entries, expenses, packing, points, plan, media] = await Promise.all([
+/** dates: the journey's start/end, used to pick its default packing list when none was chosen yet. */
+export async function computeTripStats(tripId: string, dates?: { starts_on: string | null; ends_on: string | null }): Promise<TripStats> {
+  const [entries, expenses, packing, points, plan, media, lists, chosen] = await Promise.all([
     listEntries(tripId),
     listExpenses(tripId),
     listPacking(tripId),
     listTrackPoints(tripId),
     listItinerary(tripId),
     listTripMedia(tripId),
+    loadPackingLists(),
+    loadTripList(tripId),
   ]);
+  // Packing is counted against the personal list the journey uses (a journey only stores what's ticked).
+  const pack = packCounts(lists, chosen ?? defaultListFor(dates?.starts_on ?? null, dates?.ends_on ?? null), packing);
   const elev = elevationStats(points);
   const spendByCurrency: Record<string, number> = {};
   for (const e of expenses) spendByCurrency[e.currency] = (spendByCurrency[e.currency] ?? 0) + e.amount;
@@ -45,8 +52,8 @@ export async function computeTripStats(tripId: string): Promise<TripStats> {
     maxAltitudeM: elev.maxM,
     gpsPoints: points.length,
     spendByCurrency,
-    packingDone: packing.filter(p => p.packed).length,
-    packingTotal: packing.length,
+    packingDone: pack.done,
+    packingTotal: pack.total,
     planDone: plan.filter(p => p.done).length,
     planTotal: plan.length,
     topMood,

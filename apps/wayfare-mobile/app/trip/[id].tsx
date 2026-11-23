@@ -91,7 +91,7 @@ export default function TripDetailScreen() {
     const t = await getTrip(tripId);
     setTrip(t);
     if (t) {
-      setStats(await computeTripStats(tripId));
+      setStats(await computeTripStats(tripId, t));
       setCoverUri(await tripCoverUri(t));
     }
     refreshPending();

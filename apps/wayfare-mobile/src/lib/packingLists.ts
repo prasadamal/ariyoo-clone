@@ -64,3 +64,12 @@ export function packView<T extends { label: string; packed: number }>(lists: Pac
   const extras = tripItems.filter(i => !onLists.has(labelKey(i.label)));
   return { rows, extras };
 }
+
+/** Packed / total for a journey, counted against its chosen personal list plus its own extra items. */
+export function packCounts<T extends { label: string; packed: number }>(lists: PackingLists, selected: PackingListId, tripItems: readonly T[]) {
+  const { rows, extras } = packView(lists, selected, tripItems);
+  return {
+    done: rows.filter(r => r.packed).length + extras.filter(e => e.packed).length,
+    total: rows.length + extras.length,
+  };
+}

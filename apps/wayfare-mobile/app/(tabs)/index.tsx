@@ -45,7 +45,7 @@ async function prepare(list: LocalTrip[]): Promise<TripRow[]> {
   const rates = await getRates().catch(() => null);
   return Promise.all(
     list.map(async t => {
-      const stats = await computeTripStats(t.id);
+      const stats = await computeTripStats(t.id, t);
       const spend = splitSpend(stats.spendByCurrency, t.currency || 'INR', rates?.rates ?? null);
       return {
         ...t,
