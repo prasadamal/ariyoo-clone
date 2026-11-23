@@ -144,3 +144,15 @@ test('wrapped only counts the chosen year', () => {
   assert.equal(w.busiestMonth, 'December');
   assert.equal(buildWrapped(2024, input).persona.title, 'The Dreamer');
 });
+
+test('places visited are grouped by country', () => {
+  const e = (region: string | null, country_code: string | null) => ({ trip_id: 'x', recorded_at: '2026-01-01T08:00:00Z', mood: null, place_name: null, weather: null, latitude: null, longitude: null, region, country_code });
+  const stats = computeTravelStats({
+    trips: [{ id: 'x', title: 'Trip', destination: null, place_key: null, starts_on: null, ends_on: null, status: 'active' }],
+    entries: [e('Kerala', 'in'), e('Karnataka', 'IN'), e('Kerala', 'IN'), e('Bagmati', 'NP'), e('Somewhere', null)],
+    trackPointsByTrip: {},
+    photos: 0,
+    voiceNotes: 0,
+  });
+  assert.deepEqual(stats.statesByCountry, { IN: ['Karnataka', 'Kerala'], NP: ['Bagmati'], '': ['Somewhere'] });
+});

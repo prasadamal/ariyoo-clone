@@ -607,7 +607,7 @@ export async function upsertPackingItem(item: LocalPackingItem) {
   );
 }
 
-export async function addPackingItem(tripId: string, label: string) {
+export async function addPackingItem(tripId: string, label: string, packed: 0 | 1 = 0) {
   const database = await getDb();
   const row = await database.getFirstAsync<{ m: number | null }>(
     'SELECT MAX(sort_order) as m FROM packing_items WHERE trip_id = ?',
@@ -617,7 +617,7 @@ export async function addPackingItem(tripId: string, label: string) {
     id: uuid(),
     trip_id: tripId,
     label: label.trim(),
-    packed: 0,
+    packed,
     sort_order: (row?.m ?? -1) + 1,
     sync_status: 'pending',
     updated_at: now(),

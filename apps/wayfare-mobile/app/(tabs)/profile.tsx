@@ -1,39 +1,33 @@
+import { LinearGradient } from 'expo-linear-gradient';
 import { router, useFocusEffect } from 'expo-router';
-import { useCallback, useMemo, useState } from 'react';
-import { Pressable, View } from 'react-native';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Animated, Easing, Modal, Pressable, Share, StyleSheet, View } from 'react-native';
 import { Button, IconButton, Text } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth, useCanConnect } from '../../src/context/AuthContext';
 import { computeBadges, sortBadges } from '../../src/lib/badges';
-import { getRates } from '../../src/lib/currency';
-import { formatMoney, sumInCurrency } from '../../src/lib/currencyMath';
 import { displayName, formatKm } from '../../src/lib/format';
 import { fillMissingPlaces } from '../../src/lib/reverseGeocode';
-import { computeTravelStats, countryName, flagEmoji, spendInYear, type TravelStats } from '../../src/lib/travelStats';
+import { computeTravelStats, flagEmoji, type TravelStats } from '../../src/lib/travelStats';
 import { loadStatsInput } from '../../src/lib/useTravelStats';
 import { useAppTheme } from '../../src/theme';
 import { Avatar } from '../../src/ui/Avatar';
+import { FloatingTabs } from '../../src/ui/FloatingTabs';
 import { Icon } from '../../src/ui/Icon';
 import { Screen } from '../../src/ui/Screen';
 import { TAB_BAR_SPACE } from '../../src/ui/GlassTabBar';
 
-const HOME_CURRENCY = 'INR';
-/** Places beyond this many fold into "+N more". */
-const PLACES_SHOWN = 8;
-
-/** A small heading with an optional link on the right. */
-function Heading({ title, action, onAction }: { title: string; action?: string; onAction?: () => void }) {
+/** A rounded light tile: every block on this page sits in one. */
+function Tile({ title, children }: { title?: string; children: React.ReactNode }) {
   const { colors } = useAppTheme();
   return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 24, marginBottom: 10 }}>
-      <Text style={{ flex: 1, fontSize: 17, fontWeight: '800' }} accessibilityRole="header">
-        {title}
-      </Text>
-      {action ? (
-        <Pressable onPress={onAction} hitSlop={8} accessibilityRole="button">
-          <Text style={{ color: colors.primary, fontWeight: '700' }}>{action}</Text>
-        </Pressable>
+    <View style={{ marginTop: 12, padding: 16, borderRadius: 20, backgroundColor: colors.surfaceVariant }}>
+      {title ? (
+        <Text style={{ fontSize: 16, fontWeight: '800', marginBottom: 12 }} accessibilityRole="header">
+          {title}
+        </Text>
       ) : null}
+      {children}
     </View>
   );
 }
@@ -42,7 +36,7 @@ function Heading({ title, action, onAction }: { title: string; action?: string; 
 function Stat({ value, label }: { value: string; label: string }) {
   const { colors } = useAppTheme();
   return (
-    <View style={{ flex: 1, paddingVertical: 14, borderRadius: 16, backgroundColor: colors.surfaceVariant, alignItems: 'center' }} accessible accessibilityLabel={`${value} ${label}`}>
+    <View style={{ flex: 1, paddingVertical: 14, borderRadius: 18, backgroundColor: colors.surfaceVariant, alignItems: 'center' }} accessible accessibilityLabel={`${value} ${label}`}>
       <Text style={{ fontSize: 22, fontWeight: '900', letterSpacing: -0.5 }} numberOfLines={1} adjustsFontSizeToFit>
         {value}
       </Text>
@@ -51,9 +45,81 @@ function Stat({ value, label }: { value: string; label: string }) {
   );
 }
 
+/** The year in travel: a softly moving brand gradient with the year in the middle; tap to open. */
+function YearTile({ year }: { year: number }) {
+  const { colors } = useAppTheme();
+  const shift = useRef(new Animated.Value(0)).current;
+  const [width, setWidth] = useState(0);
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(shift, { toValue: 1, duration: 6000, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+        Animated.timing(shift, { toValue: 0, duration: 6000, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+      ])
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [shift]);
+  const translateX = shift.interpolate({ inputRange: [0, 1], outputRange: [0, -width * 2] });
+  return (
+    <Pressable
+      onPress={() => router.push('/wrapped')}
+      accessibilityRole="button"
+      accessibilityLabel={`Your ${year} in travel`}
+      style={({ pressed }) => ({ marginTop: 12, transform: [{ scale: pressed ? 0.98 : 1 }] })}
+    >
+      <View
+        onLayout={e => setWidth(e.nativeEvent.layout.width)}
+        style={{ height: 92, borderRadius: 20, overflow: 'hidden', backgroundColor: colors.surfaceVariant, alignItems: 'center', justifyContent: 'center' }}
+      >
+        <Animated.View style={[StyleSheet.absoluteFill, { width: width * 3 || '300%', opacity: 0.38, transform: [{ translateX }] }]}>
+          <LinearGradient
+            colors={[colors.primary, colors.secondary, colors.primary, colors.secondary]}
+            start={{ x: 0, y: 0.3 }}
+            end={{ x: 1, y: 0.7 }}
+            style={StyleSheet.absoluteFill}
+          />
+        </Animated.View>
+        <Text style={{ fontSize: 36, fontWeight: '900', letterSpacing: 1, color: colors.onSurface }}>{year}</Text>
+      </View>
+    </Pressable>
+  );
+}
+
+/** Slide-in menu from the right: Settings and Packing. */
+function SideMenu({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const { colors } = useAppTheme();
+  const insets = useSafeAreaInsets();
+  const go = (path: '/settings' | '/packing') => {
+    onClose();
+    // (the typed-route list is regenerated by the dev server; /packing is a new screen)
+    router.push(path as never);
+  };
+  const Item = ({ icon, label, path }: { icon: string; label: string; path: '/settings' | '/packing' }) => (
+    <Pressable onPress={() => go(path)} accessibilityRole="button" style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 14, paddingHorizontal: 12, borderRadius: 14, backgroundColor: pressed ? colors.surfaceVariant : 'transparent' })}>
+      <Icon name={icon} size={22} color={colors.primary} />
+      <Text style={{ fontSize: 16, fontWeight: '700' }}>{label}</Text>
+    </Pressable>
+  );
+  return (
+    <Modal visible={open} transparent animationType="fade" onRequestClose={onClose}>
+      <Pressable style={{ flex: 1, backgroundColor: '#0005' }} onPress={onClose} accessibilityLabel="Close menu">
+        <Pressable onPress={() => undefined} style={{ position: 'absolute', top: 0, bottom: 0, right: 0, width: 260, backgroundColor: colors.surface, paddingTop: insets.top + 16, paddingHorizontal: 12, borderTopLeftRadius: 24, borderBottomLeftRadius: 24 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8, paddingLeft: 12 }}>
+            <Text style={{ flex: 1, fontSize: 18, fontWeight: '900' }}>Menu</Text>
+            <IconButton icon="close" onPress={onClose} accessibilityLabel="Close menu" />
+          </View>
+          <Item icon="bag-checked" label="Packing" path="/packing" />
+          <Item icon="cog-outline" label="Settings" path="/settings" />
+        </Pressable>
+      </Pressable>
+    </Modal>
+  );
+}
+
 /**
- * You: who you are and where you've been, kept short. Settings sit behind the gear; safety and the
- * currency converter live on the Journeys screen, so they aren't repeated here.
+ * You: who you are and where you've been, in a few calm tiles. Settings and packing lists sit
+ * behind the menu.
  */
 export default function ProfileTab() {
   const { colors } = useAppTheme();
@@ -61,21 +127,16 @@ export default function ProfileTab() {
   const { profile, refreshProfile } = useAuth();
   const signedIn = useCanConnect() && Boolean(profile);
   const [stats, setStats] = useState<TravelStats | null>(null);
-  const [spentThisYear, setSpentThisYear] = useState(0);
-  const [allPlaces, setAllPlaces] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [country, setCountry] = useState<string | null>(null);
   const year = new Date().getFullYear();
 
   const load = useCallback(async () => {
-    const compute = async () => {
-      const { input } = await loadStatsInput();
-      setStats(computeTravelStats(input));
-      const rates = await getRates().catch(() => null);
-      setSpentThisYear(sumInCurrency(spendInYear(input.expenses ?? [], year), HOME_CURRENCY, rates?.rates ?? null).total);
-    };
+    const compute = async () => setStats(computeTravelStats((await loadStatsInput()).input));
     await compute();
     // Older moments with a location get their state and country looked up a few at a time.
     if ((await fillMissingPlaces(10).catch(() => 0)) > 0) await compute();
-  }, [year]);
+  }, []);
 
   useFocusEffect(
     useCallback(() => {
@@ -83,15 +144,22 @@ export default function ProfileTab() {
     }, [load])
   );
 
-  const badges = useMemo(() => (stats ? sortBadges(computeBadges(stats)) : []), [stats]);
-  const earned = badges.filter(b => b.earned).length;
+  const earned = useMemo(() => (stats ? sortBadges(computeBadges(stats)).filter(b => b.earned) : []), [stats]);
   const km = Math.max(stats?.km ?? 0, profile?.verified_km ?? 0);
-  const places = [
-    ...(stats?.countryCodes ?? []).map(c => ({ key: `c-${c}`, label: countryName(c), flag: flagEmoji(c) })),
-    ...(stats?.states ?? []).map(s => ({ key: `s-${s}`, label: s, flag: null as string | null })),
-  ];
-  const shownPlaces = allPlaces ? places : places.slice(0, PLACES_SHOWN);
+  const byCountry = stats?.statesByCountry ?? {};
+  const countryTabs = [...(stats?.countryCodes ?? []), ...(byCountry[''] ? [''] : [])];
+  const activeCountry = country != null && countryTabs.includes(country) ? country : countryTabs[0] ?? null;
+  const statesHere = activeCountry != null ? byCountry[activeCountry] ?? [] : [];
   const home = signedIn ? [profile!.home_region, profile!.home_country].filter(Boolean).join(', ') : '';
+
+  const share = () => {
+    const trips = stats?.trips ?? 0;
+    const countries = stats?.countryCodes.length ?? 0;
+    const who = signedIn ? `${displayName(profile)}${profile!.username ? ` (@${profile!.username})` : ''}` : 'Me';
+    Share.share({
+      message: `${who} on Wayfare: ${trips} ${trips === 1 ? 'journey' : 'journeys'}, ${countries} ${countries === 1 ? 'country' : 'countries'}, ${formatKm(km)} travelled.`,
+    }).catch(() => undefined);
+  };
 
   return (
     <Screen refreshing={false} onRefresh={() => { refreshProfile(); load(); }} padded={false} bottomSpace={TAB_BAR_SPACE}>
@@ -123,14 +191,19 @@ export default function ProfileTab() {
               </View>
             ) : null}
           </View>
-          <IconButton icon="cog-outline" onPress={() => router.push('/settings')} accessibilityLabel="Settings" style={{ margin: 0, alignSelf: 'flex-start' }} />
+          <IconButton icon="menu" onPress={() => setMenuOpen(true)} accessibilityLabel="Open menu" style={{ margin: 0, alignSelf: 'flex-start' }} />
         </View>
 
         {signedIn && profile!.bio ? <Text style={{ marginTop: 12, lineHeight: 21 }}>{profile!.bio}</Text> : null}
         {signedIn ? (
-          <Button mode="outlined" onPress={() => router.push('/profile/edit')} style={{ marginTop: 14 }}>
-            Edit profile
-          </Button>
+          <View style={{ flexDirection: 'row', gap: 10, marginTop: 14 }}>
+            <Button mode="outlined" icon="pencil-outline" onPress={() => router.push('/profile/edit')} style={{ flex: 1 }}>
+              Edit profile
+            </Button>
+            <Button mode="outlined" icon="share-variant-outline" onPress={share} style={{ flex: 1 }}>
+              Share
+            </Button>
+          </View>
         ) : (
           <>
             <Text style={{ color: colors.muted, marginTop: 12, lineHeight: 20 }}>Create a free account to back up your journal and pick a username.</Text>
@@ -141,62 +214,61 @@ export default function ProfileTab() {
         )}
 
         {/* The three numbers that matter */}
-        <View style={{ flexDirection: 'row', gap: 8, marginTop: 20 }}>
+        <View style={{ flexDirection: 'row', gap: 8, marginTop: 18 }}>
           <Stat value={String(stats?.trips ?? 0)} label={(stats?.trips ?? 0) === 1 ? 'Journey' : 'Journeys'} />
           <Stat value={String(stats?.countryCodes.length ?? 0)} label={(stats?.countryCodes.length ?? 0) === 1 ? 'Country' : 'Countries'} />
           <Stat value={formatKm(km)} label="Travelled" />
         </View>
 
-        {/* This year: spending, and the way into the year in travel */}
-        <Pressable onPress={() => router.push('/wrapped')} accessibilityRole="button" accessibilityLabel={`${formatMoney(spentThisYear, HOME_CURRENCY)} spent on travel in ${year}. Open your year in travel`}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8, padding: 16, borderRadius: 16, backgroundColor: colors.surfaceVariant }}>
-            <View style={{ flex: 1 }}>
-              <Text style={{ color: colors.muted, fontSize: 12, fontWeight: '700', letterSpacing: 0.6 }}>YOUR {year}</Text>
-              <Text style={{ fontSize: 22, fontWeight: '900', marginTop: 2 }}>{formatMoney(spentThisYear, HOME_CURRENCY)}</Text>
-              <Text style={{ color: colors.muted, fontSize: 13 }}>spent on travel · see your year in travel</Text>
-            </View>
-            <Icon name="chevron-right" size={22} color={colors.subtle} />
-          </View>
-        </Pressable>
+        <YearTile year={year} />
 
-        {/* Places */}
-        <Heading title="Places you've been" />
-        {places.length ? (
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-            {shownPlaces.map(p => (
-              <View key={p.key} style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999, backgroundColor: colors.surfaceVariant, maxWidth: '100%' }}>
-                {p.flag ? <Text>{p.flag}</Text> : null}
-                <Text style={{ fontWeight: p.flag ? '700' : '500', flexShrink: 1 }} numberOfLines={1}>
-                  {p.label}
-                </Text>
-              </View>
-            ))}
-            {places.length > PLACES_SHOWN ? (
-              <Pressable onPress={() => setAllPlaces(v => !v)} accessibilityRole="button" style={{ paddingHorizontal: 12, paddingVertical: 6 }}>
-                <Text style={{ color: colors.primary, fontWeight: '700' }}>{allPlaces ? 'Show less' : `+${places.length - PLACES_SHOWN} more`}</Text>
-              </Pressable>
-            ) : null}
-          </View>
-        ) : (
-          <Text style={{ color: colors.muted, lineHeight: 20 }}>Turn on the location pin when you add a moment, and the places you visit collect here.</Text>
-        )}
+        <Tile title="Places visited">
+          {countryTabs.length ? (
+            <>
+              <FloatingTabs
+                accessibilityLabel="Countries visited"
+                tabs={countryTabs.map(c => ({ value: c, label: c || 'Other', leading: c ? flagEmoji(c) : '🌍' }))}
+                value={activeCountry ?? ''}
+                onChange={setCountry}
+                style={{ marginBottom: 12 }}
+              />
+              {statesHere.length ? (
+                statesHere.map((st, i) => (
+                  <View key={st} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10, borderTopWidth: i ? 1 : 0, borderTopColor: colors.border }}>
+                    <Icon name="map-marker-outline" size={18} color={colors.primary} />
+                    <Text style={{ flex: 1 }}>{st}</Text>
+                  </View>
+                ))
+              ) : (
+                <Text style={{ color: colors.muted }}>No states recorded here yet.</Text>
+              )}
+            </>
+          ) : (
+            <Text style={{ color: colors.muted, lineHeight: 20 }}>Turn on the location pin when you add a moment, and the places you visit collect here.</Text>
+          )}
+        </Tile>
 
-        {/* Badges */}
-        <Heading title={`Badges · ${earned} of ${badges.length}`} action="See all" onAction={() => router.push('/badges')} />
-        <View style={{ flexDirection: 'row', gap: 10 }}>
-          {badges.slice(0, 4).map(b => (
-            <View key={b.id} style={{ flex: 1, alignItems: 'center', opacity: b.earned ? 1 : 0.45 }} accessible accessibilityLabel={`${b.title}${b.earned ? ', earned' : ''}`}>
-              <View style={{ width: 52, height: 52, borderRadius: 18, backgroundColor: b.earned ? b.color : colors.surfaceVariant, alignItems: 'center', justifyContent: 'center' }}>
-                <Icon name={b.icon} size={26} color={b.earned ? '#fff' : colors.muted} />
-              </View>
-              <Text style={{ fontSize: 11, textAlign: 'center', marginTop: 4 }} numberOfLines={2}>
-                {b.title}
-              </Text>
+        <Tile title="Badges">
+          {earned.length ? (
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', rowGap: 14 }}>
+              {earned.map(b => (
+                <View key={b.id} style={{ width: '25%', alignItems: 'center' }} accessible accessibilityLabel={b.title}>
+                  <View style={{ width: 52, height: 52, borderRadius: 18, backgroundColor: b.color, alignItems: 'center', justifyContent: 'center' }}>
+                    <Icon name={b.icon} size={26} color="#fff" />
+                  </View>
+                  <Text style={{ fontSize: 11, textAlign: 'center', marginTop: 4 }} numberOfLines={2}>
+                    {b.title}
+                  </Text>
+                </View>
+              ))}
             </View>
-          ))}
-        </View>
+          ) : (
+            <Text style={{ color: colors.muted }}>Your first badge is one journey away.</Text>
+          )}
+        </Tile>
         <View style={{ height: 16 }} />
       </View>
+      <SideMenu open={menuOpen} onClose={() => setMenuOpen(false)} />
     </Screen>
   );
 }

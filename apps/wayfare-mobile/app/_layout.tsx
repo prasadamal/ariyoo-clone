@@ -96,6 +96,7 @@ function RootStack() {
       <Stack.Screen name="register" options={{ title: 'Join Wayfare' }} />
       <Stack.Screen name="forgot-password" options={{ title: 'Reset password' }} />
       <Stack.Screen name="reset-password" options={{ title: 'New password' }} />
+      <Stack.Screen name="packing" options={{ title: 'Packing' }} />
       <Stack.Screen name="guidelines" options={{ title: 'Community guidelines', presentation: 'modal' }} />
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen name="trip/new" options={{ title: 'New journey', presentation: 'modal' }} />

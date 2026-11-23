@@ -1,86 +1,76 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, Pressable, View } from 'react-native';
-import { Button, Checkbox, IconButton, Menu, Text, TextInput } from 'react-native-paper';
-import {
-  addPackingItem,
-  copyPackingFrom,
-  deletePackingItem,
-  listPacking,
-  listPackingSources,
-  upsertPackingItem,
-  type LocalPackingItem,
-  type LocalTrip,
-} from '../../lib/localDb';
+import { Button, Checkbox, IconButton, Text, TextInput } from 'react-native-paper';
+import { addPackingItem, deletePackingItem, listPacking, upsertPackingItem, type LocalPackingItem, type LocalTrip } from '../../lib/localDb';
+import { addToList, defaultListFor, labelKey, PACKING_LIST_IDS, PACKING_LIST_NAMES, packView, type PackingListId, type PackingLists } from '../../lib/packingLists';
+import { loadPackingLists, loadTripList, savePackingLists, saveTripList } from '../../lib/packingListsStore';
 import { useAppTheme } from '../../theme';
+import { FloatingTabs } from '../../ui/FloatingTabs';
 import { Meter } from '../../ui/Meter';
 
 type Props = { trip: LocalTrip; onChanged: () => void };
 
+/**
+ * Pack for this journey from one of your personal lists (short trip, long trip, custom). Ticks are
+ * saved per journey; items you add here go onto the chosen list for next time too.
+ */
 export function PackingTab({ trip, onChanged }: Props) {
   const { colors } = useAppTheme();
   const [items, setItems] = useState<LocalPackingItem[]>([]);
+  const [lists, setLists] = useState<PackingLists | null>(null);
+  const [selected, setSelected] = useState<PackingListId>(defaultListFor(trip.starts_on, trip.ends_on));
   const [label, setLabel] = useState('');
-  const [sources, setSources] = useState<{ id: string; title: string; items: number }[]>([]);
-  const [picking, setPicking] = useState(false);
-  const [copying, setCopying] = useState(false);
-  // A ref, not state: two fast taps must not both copy before the first re-render.
-  const copyBusy = useRef(false);
-  const [notice, setNotice] = useState('');
+  // Labels being saved right now: a second tap can't create the same item twice.
+  const busy = useRef(new Set<string>());
 
   const load = useCallback(async () => {
-    const [list, past] = await Promise.all([listPacking(trip.id), listPackingSources(trip.id)]);
+    const [list, personal, chosen] = await Promise.all([listPacking(trip.id), loadPackingLists(), loadTripList(trip.id)]);
     setItems(list);
-    setSources(past);
+    setLists(personal);
+    if (chosen) setSelected(chosen);
   }, [trip.id]);
   useEffect(() => {
     load();
   }, [load]);
 
-  const toggle = async (item: LocalPackingItem) => {
-    setItems(prev => prev.map(i => (i.id === item.id ? { ...i, packed: i.packed ? 0 : 1 } : i)));
-    await upsertPackingItem({ ...item, packed: item.packed ? 0 : 1, sync_status: 'pending', updated_at: new Date().toISOString() });
-    onChanged();
+  const choose = (id: PackingListId) => {
+    setSelected(id);
+    void saveTripList(trip.id, id);
+  };
+
+  const toggleLabel = async (rowLabel: string, item: LocalPackingItem | null) => {
+    const k = labelKey(rowLabel);
+    if (busy.current.has(k)) return;
+    busy.current.add(k);
+    try {
+      if (item) {
+        setItems(prev => prev.map(i => (i.id === item.id ? { ...i, packed: i.packed ? 0 : 1 } : i)));
+        await upsertPackingItem({ ...item, packed: item.packed ? 0 : 1, sync_status: 'pending', updated_at: new Date().toISOString() });
+      } else {
+        await addPackingItem(trip.id, rowLabel, 1);
+      }
+      setItems(await listPacking(trip.id));
+      onChanged();
+    } finally {
+      busy.current.delete(k);
+    }
   };
 
   const add = async () => {
-    if (!label.trim()) return;
-    await addPackingItem(trip.id, label);
+    if (!lists || !label.trim()) return;
+    const next = addToList(lists[selected], label);
     setLabel('');
-    await load();
-    onChanged();
+    if (next.length === lists[selected].length) return;
+    const updated = { ...lists, [selected]: next };
+    setLists(updated);
+    await savePackingLists(updated).catch(() => undefined);
   };
 
-  const remove = (item: LocalPackingItem) =>
+  const removeExtra = (item: LocalPackingItem) =>
     Alert.alert('Remove item?', item.label, [
       { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Remove',
-        style: 'destructive',
-        onPress: async () => {
-          await deletePackingItem(item.id);
-          await load();
-          onChanged();
-        },
-      },
+      { text: 'Remove', style: 'destructive', onPress: async () => { await deletePackingItem(item.id); await load(); onChanged(); } },
     ]);
-
-  const copyFrom = async (source: { id: string; title: string }) => {
-    setPicking(false);
-    if (copyBusy.current) return;
-    copyBusy.current = true;
-    setCopying(true);
-    try {
-      const added = await copyPackingFrom(source.id, trip.id);
-      await load();
-      onChanged();
-      setNotice(added ? `Added ${added} ${added === 1 ? 'item' : 'items'} from “${source.title}”.` : `Everything from “${source.title}” is already on this list.`);
-    } catch {
-      setNotice('Could not copy that list. Please try again.');
-    } finally {
-      copyBusy.current = false;
-      setCopying(false);
-    }
-  };
 
   const uncheckAll = async () => {
     const now = new Date().toISOString();
@@ -89,60 +79,48 @@ export function PackingTab({ trip, onChanged }: Props) {
     onChanged();
   };
 
-  const packed = items.filter(i => i.packed).length;
-  const progress = items.length ? packed / items.length : 0;
+  if (!lists) return null;
+  const { rows, extras } = packView(lists, selected, items);
+  const all = [...rows.map(r => r.packed), ...extras.map(e => Boolean(e.packed))];
+  const packed = all.filter(Boolean).length;
+  const progress = all.length ? packed / all.length : 0;
+
+  const Row = ({ text, checked, onPress, onRemove }: { text: string; checked: boolean; onPress: () => void; onRemove?: () => void }) => (
+    <Pressable onPress={onPress} onLongPress={onRemove} style={{ flexDirection: 'row', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: colors.border }} accessibilityRole="checkbox" accessibilityState={{ checked }}>
+      <Checkbox.Android status={checked ? 'checked' : 'unchecked'} onPress={onPress} />
+      <Text style={{ flex: 1, paddingVertical: 12, textDecorationLine: checked ? 'line-through' : 'none', color: checked ? colors.muted : colors.onSurface }}>{text}</Text>
+      {onRemove ? <IconButton icon="close" size={16} onPress={onRemove} accessibilityLabel={`Remove ${text}`} /> : null}
+    </Pressable>
+  );
 
   return (
     <View>
+      <FloatingTabs
+        accessibilityLabel="Packing list for this journey"
+        tabs={PACKING_LIST_IDS.map(id => ({ value: id, label: PACKING_LIST_NAMES[id] }))}
+        value={selected}
+        onChange={choose}
+        style={{ alignSelf: 'center', marginBottom: 16 }}
+      />
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 }}>
         <Meter progress={progress} color={colors.secondary} height={8} style={{ flex: 1 }} />
         <Text style={{ fontWeight: '700' }}>
-          {packed}/{items.length}
+          {packed}/{all.length}
         </Text>
       </View>
-      {progress === 1 && items.length ? (
-        <Text style={{ color: colors.success, fontWeight: '700', marginBottom: 8 }}>All packed — have a great trip! 🎒</Text>
-      ) : null}
-      {items.map(item => (
-        <Pressable
-          key={item.id}
-          onPress={() => toggle(item)}
-          onLongPress={() => remove(item)}
-          style={{ flexDirection: 'row', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: colors.border }}
-          accessibilityRole="checkbox"
-          accessibilityState={{ checked: !!item.packed }}
-        >
-          <Checkbox.Android status={item.packed ? 'checked' : 'unchecked'} onPress={() => toggle(item)} />
-          <Text style={{ flex: 1, paddingVertical: 12, textDecorationLine: item.packed ? 'line-through' : 'none', color: item.packed ? colors.muted : colors.onSurface }}>
-            {item.label}
-          </Text>
-          <IconButton icon="close" size={16} onPress={() => remove(item)} accessibilityLabel={`Remove ${item.label}`} />
-        </Pressable>
+      {progress === 1 && all.length ? <Text style={{ color: colors.success, fontWeight: '700', marginBottom: 8 }}>All packed — have a great trip! 🎒</Text> : null}
+      {rows.length ? null : <Text style={{ color: colors.muted, marginBottom: 6 }}>This list is empty. Add what you want to carry.</Text>}
+      {rows.map(r => (
+        <Row key={r.label} text={r.label} checked={r.packed} onPress={() => toggleLabel(r.label, r.item)} />
+      ))}
+      {extras.length ? <Text style={{ color: colors.muted, fontSize: 12, fontWeight: '700', marginTop: 16, letterSpacing: 0.4 }}>ALSO ON THIS JOURNEY</Text> : null}
+      {extras.map(e => (
+        <Row key={e.id} text={e.label} checked={Boolean(e.packed)} onPress={() => toggleLabel(e.label, e)} onRemove={() => removeExtra(e)} />
       ))}
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 12 }}>
-        <TextInput dense mode="outlined" placeholder="Add an item" value={label} onChangeText={setLabel} style={{ flex: 1 }} onSubmitEditing={add} returnKeyType="done" />
+        <TextInput dense mode="outlined" placeholder={`Add to ${PACKING_LIST_NAMES[selected].toLowerCase()} list`} value={label} onChangeText={setLabel} style={{ flex: 1 }} onSubmitEditing={add} returnKeyType="done" />
         <IconButton icon="plus-circle" iconColor={colors.primary} onPress={add} accessibilityLabel="Add packing item" />
       </View>
-      {sources.length ? (
-        <Menu
-          visible={picking}
-          onDismiss={() => setPicking(false)}
-          anchor={
-            <Button style={{ marginTop: 8 }} icon="content-copy" onPress={() => setPicking(true)} loading={copying} disabled={copying}>
-              Copy from a past trip
-            </Button>
-          }
-        >
-          {sources.map(source => (
-            <Menu.Item key={source.id} title={`${source.title} (${source.items})`} onPress={() => copyFrom(source)} />
-          ))}
-        </Menu>
-      ) : null}
-      {notice ? (
-        <Text accessibilityLiveRegion="polite" style={{ color: colors.muted, marginTop: 4 }}>
-          {notice}
-        </Text>
-      ) : null}
       {packed ? (
         <Button style={{ marginTop: 8 }} icon="restore" onPress={uncheckAll}>
           Unpack all (reuse for the return)

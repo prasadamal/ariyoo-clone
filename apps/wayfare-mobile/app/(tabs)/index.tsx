@@ -197,12 +197,8 @@ export default function JourneysTab() {
         <IconButton icon="shield-alert-outline" iconColor={colors.danger} onPress={() => router.push('/safety')} accessibilityLabel="Safety and SOS" />
       </View>
 
-      {/* Quick links, with the journey filter at the right end of the row. */}
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 12 }}>
-        <Pill icon="party-popper" label="Year in travel" onPress={() => router.push('/wrapped')} />
-        <Pill icon="medal-outline" label="Badges" onPress={() => router.push('/badges')} />
-        <Pill icon="swap-horizontal" label="Currency" onPress={() => router.push('/tools/currency')} />
-        <View style={{ flex: 1 }} />
+      {/* The journey filter, on its own at the right. */}
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', marginTop: 4 }}>
         {all.length > 1 ? (
           <Menu
             visible={filterOpen}
