@@ -96,7 +96,6 @@ function RootStack() {
       <Stack.Screen name="register" options={{ title: 'Join Wayfare' }} />
       <Stack.Screen name="forgot-password" options={{ title: 'Reset password' }} />
       <Stack.Screen name="reset-password" options={{ title: 'New password' }} />
-      <Stack.Screen name="packing" options={{ title: 'Packing' }} />
       <Stack.Screen name="guidelines" options={{ title: 'Community guidelines', presentation: 'modal' }} />
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen name="trip/new" options={{ title: 'New journey', presentation: 'modal' }} />
@@ -173,6 +172,27 @@ function ThemedRoot() {
         </ToastProvider>
       </NavigationThemeProvider>
     </PaperProvider>
+  );
+}
+
+/**
+ * If any screen throws while rendering, show a calm retry page instead of closing the app.
+ * (expo-router calls this for errors under the root layout.)
+ */
+export function ErrorBoundary({ error, retry }: { error: Error; retry: () => Promise<void> }) {
+  return (
+    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, backgroundColor: '#ffffff' }}>
+      <Text style={{ fontSize: 18, fontWeight: '800', color: '#1c1917', textAlign: 'center' }}>Something went wrong</Text>
+      <Text style={{ color: '#6b6b72', textAlign: 'center', marginTop: 6, lineHeight: 20 }}>
+        Your journals are safe on this phone. Try again, and if it keeps happening, restart the app.
+      </Text>
+      <Text style={{ color: '#a1a1aa', fontSize: 11, marginTop: 10, textAlign: 'center' }} numberOfLines={3}>
+        {error?.message}
+      </Text>
+      <Button mode="contained" onPress={() => { void retry(); }} style={{ marginTop: 16 }} buttonColor="#6a01a3">
+        Try again
+      </Button>
+    </View>
   );
 }
 

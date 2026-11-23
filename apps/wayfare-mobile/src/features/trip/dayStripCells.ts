@@ -48,3 +48,27 @@ export function dayStripCells(startsOn: string | null, endsOn: string | null, mo
   if (after.length) cells.push({ day: after[0], kind: 'after', n: null, hasMoments: true });
   return cells;
 }
+
+export type DatePill = { day: string; label: string };
+
+/**
+ * The date pills above a journey's moments: every day of the trip plus any other day that has
+ * moments, in date order, labelled "Day 2 · 23 Nov" inside the trip and "20 Nov" outside it.
+ * Empty when there's only one day (no need to switch).
+ */
+export function datePills(startsOn: string | null, endsOn: string | null, momentDays: readonly string[]): DatePill[] {
+  const days = new Set(momentDays);
+  const start = startsOn;
+  const end = startsOn && endsOn && endsOn >= startsOn ? endsOn : startsOn;
+  if (start && end) {
+    const span = Math.min(between(start, end) + 1, MAX_STRIP_DAYS);
+    for (let i = 0; i < span; i++) days.add(addDays(start, i));
+  }
+  const sorted = [...days].sort();
+  if (sorted.length <= 1) return [];
+  const short = (d: string) => new Date(`${d}T12:00:00`).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+  return sorted.map(day => {
+    const n = start && end && day >= start && day <= end ? between(start, day) + 1 : null;
+    return { day, label: n ? `Day ${n} · ${short(day)}` : short(day) };
+  });
+}

@@ -532,47 +532,39 @@
           "text": "import { useCallback, useEffect, useMemo, useRef, useState } from 'react';"
         },
         {
-          "line": 67,
+          "line": 65,
           "text": "const [all, setAll] = useState<LocalTrip[]>([]);"
         },
         {
-          "line": 68,
+          "line": 66,
           "text": "const [rows, setRows] = useState<TripRow[]>([]);"
         },
         {
-          "line": 69,
-          "text": "const [nextUp, setNextUp] = useState<TripRow | null>(null);"
+          "line": 67,
+          "text": "const [featured, setFeatured] = useState<TripRow[]>([]);"
         },
         {
-          "line": 70,
-          "text": "const [filter, setFilter] = useState<TripFilter>('all');"
-        },
-        {
-          "line": 71,
-          "text": "const [filterOpen, setFilterOpen] = useState(false);"
-        },
-        {
-          "line": 72,
+          "line": 68,
           "text": "const [recordingTripId, setRecordingTripId] = useState<string | null>(null);"
         },
         {
-          "line": 73,
+          "line": 69,
           "text": "const [loaded, setLoaded] = useState(false);"
         },
         {
-          "line": 74,
+          "line": 70,
           "text": "const [loadingMore, setLoadingMore] = useState(false);"
         },
         {
-          "line": 75,
+          "line": 71,
           "text": "const [refreshing, setRefreshing] = useState(false);"
         },
         {
-          "line": 77,
+          "line": 73,
           "text": "const [showStatus, setShowStatus] = useState(false);"
         },
         {
-          "line": 157,
+          "line": 146,
           "text": "statusTimer.current = setTimeout(() => setShowStatus(false), 6000);"
         }
       ]
@@ -585,84 +577,100 @@
           "text": "import { useCallback, useEffect, useMemo, useRef, useState } from 'react';"
         },
         {
-          "line": 107,
+          "line": 121,
           "text": "const [trip, setTrip] = useState<LocalTrip | null>(null);"
         },
         {
-          "line": 108,
+          "line": 122,
           "text": "const [failed, setFailed] = useState(false);"
         },
         {
-          "line": 109,
+          "line": 123,
           "text": "const [entries, setEntries] = useState<LocalEntry[]>([]);"
         },
         {
-          "line": 110,
+          "line": 124,
           "text": "const [today, setToday] = useState(dayOf(new Date()));"
         },
         {
-          "line": 111,
+          "line": 125,
           "text": "const [themeId, setThemeId] = useState<DiaryThemeId>('diary');"
         },
         {
-          "line": 112,
+          "line": 126,
           "text": "const [formatOpen, setFormatOpen] = useState(false);"
         },
         {
-          "line": 113,
+          "line": 127,
           "text": "const [page, setPage] = useState(0);"
         },
         {
-          "line": 114,
+          "line": 128,
           "text": "const [editingName, setEditingName] = useState(false);"
         },
         {
-          "line": 115,
+          "line": 129,
           "text": "const [name, setName] = useState('');"
         },
         {
-          "line": 116,
+          "line": 130,
           "text": "const [pickerOpen, setPickerOpen] = useState(false);"
         },
         {
-          "line": 117,
+          "line": 131,
           "text": "const [mediaKey, setMediaKey] = useState(0);"
         },
         {
-          "line": 119,
+          "line": 133,
           "text": "const [pageHeight, setPageHeight] = useState(0);"
         },
         {
-          "line": 124,
-          "text": "const [text, setText] = useState('');"
+          "line": 138,
+          "text": "const [todayKeys, setTodayKeys] = useState<string[]>(['new-0']);"
         },
         {
-          "line": 127,
+          "line": 139,
+          "text": "const [drafts, setDrafts] = useState<Record<string, string>>({});"
+        },
+        {
+          "line": 147,
           "text": "const [editorKey, setEditorKey] = useState(0);"
         },
         {
-          "line": 128,
+          "line": 148,
           "text": "const [forcedSelection, setForcedSelection] = useState<Selection | undefined>(undefined);"
         },
         {
-          "line": 178,
-          "text": "const next = { ...current, body, sync_status: 'pending', updated_at: now };"
+          "line": 198,
+          "text": "const next = { ...current, body: body || (hasPhotos ? '📷' : ''), sync_status: 'pending', updated_at: now };"
         },
         {
-          "line": 194,
+          "line": 214,
           "text": "sync_status: 'pending',"
         },
         {
-          "line": 209,
-          "text": "saveTimer.current = setTimeout(() => save(t), SAVE_DELAY_MS);"
+          "line": 229,
+          "text": "timers.current[key] = setTimeout(() => save(key, t), SAVE_DELAY_MS);"
         },
         {
-          "line": 231,
-          "text": "const created: LocalEntry = { id: uuid(), trip_id: trip.id, recorded_at: now, body: text || '📷', mood: null, place_name: null, weather: null, latitude: null, longitude: null, altitude_m: null, sync_status: 'pending', updated_at: now };"
+          "line": 242,
+          "text": "const active = sheets[page] ?? sheets[0];"
         },
         {
-          "line": 238,
-          "text": "await upsertEntryMedia({ id: mediaId, trip_id: trip.id, entry_id: todayEntry.current.id, local_uri: stored.uri, storage_path: null, mime_type: stored.mimeType, sync_status: 'pending', updated_at: new Date().toISOString() });"
+          "line": 259,
+          "text": "setTimeout(() => list.current?.scrollToIndex({ index: 0, animated: true }), 50);"
+        },
+        {
+          "line": 270,
+          "text": "const created: LocalEntry = { id: uuid(), trip_id: trip.id, recorded_at: now, body: drafts[activeKey] || '📷', mood: null, place_name: null, weather: null, latitude: null, longitude: null, altitude_m: null, sync_status: 'pending', updated_a"
+        },
+        {
+          "line": 278,
+          "text": "await upsertEntryMedia({ id: mediaId, trip_id: trip.id, entry_id: entry.id, local_uri: stored.uri, storage_path: null, mime_type: stored.mimeType, sync_status: 'pending', updated_at: new Date().toISOString() });"
+        },
+        {
+          "line": 322,
+          "text": "const t = setTimeout(() => list.current?.scrollToOffset({ offset: page * width, animated: false }), 0);"
         }
       ]
     },
@@ -674,20 +682,20 @@
           "text": "import { useCallback, useEffect, useMemo, useRef, useState } from 'react';"
         },
         {
-          "line": 59,
+          "line": 56,
           "text": "const [width, setWidth] = useState(0);"
         },
         {
-          "line": 136,
+          "line": 100,
           "text": "const [stats, setStats] = useState<TravelStats | null>(null);"
         },
         {
-          "line": 137,
-          "text": "const [menuOpen, setMenuOpen] = useState(false);"
+          "line": 101,
+          "text": "const [openCountry, setOpenCountry] = useState<string | null>(null);"
         },
         {
-          "line": 138,
-          "text": "const [country, setCountry] = useState<string | null>(null);"
+          "line": 102,
+          "text": "const [memberNo, setMemberNo] = useState<number | null>(null);"
         }
       ]
     },
@@ -1082,27 +1090,6 @@
         {
           "line": 33,
           "text": "const [index, setIndex] = useState(0);"
-        }
-      ]
-    },
-    {
-      "path": "apps/wayfare-mobile/app/packing.tsx",
-      "evidence": [
-        {
-          "line": 2,
-          "text": "import { useCallback, useRef, useState } from 'react';"
-        },
-        {
-          "line": 20,
-          "text": "const [lists, setLists] = useState<PackingLists | null>(null);"
-        },
-        {
-          "line": 21,
-          "text": "const [tab, setTab] = useState<PackingListId>('short');"
-        },
-        {
-          "line": 22,
-          "text": "const [label, setLabel] = useState('');"
         }
       ]
     },
@@ -1517,7 +1504,7 @@
       "path": "apps/wayfare-mobile/app/trip/[id].tsx",
       "evidence": [
         {
-          "line": 2,
+          "line": 3,
           "text": "import { useCallback, useEffect, useRef, useState } from 'react';"
         },
         {
@@ -1561,27 +1548,27 @@
           "text": "const spend = stats ? splitSpend(stats.spendByCurrency, trip.currency || 'INR', rates?.rates ?? null) : { total: 0, pending: [] };"
         },
         {
-          "line": 212,
+          "line": 213,
           "text": "{trip.status === 'completed'"
         },
         {
-          "line": 214,
+          "line": 215,
           "text": ": phase === 'upcoming' && until != null"
         },
         {
-          "line": 216,
+          "line": 217,
           "text": ": phase === 'ongoing'"
         },
         {
-          "line": 218,
+          "line": 219,
           "text": ": phase === 'past'"
         },
         {
-          "line": 270,
+          "line": 271,
           "text": "leadingIcon={trip.status === 'completed' ? 'restore' : 'flag-checkered'}"
         },
         {
-          "line": 271,
+          "line": 272,
           "text": "title={trip.status === 'completed' ? 'Reopen journey' : 'Mark complete'}"
         }
       ]
@@ -1809,27 +1796,27 @@
       "path": "apps/wayfare-mobile/src/components/TripCard.tsx",
       "evidence": [
         {
-          "line": 36,
-          "text": "const phase = tripPhase(trip.starts_on, trip.ends_on);"
+          "line": 37,
+          "text": "function StatusChip({ status }: { status: TripStatus }) {"
         },
         {
-          "line": 42,
-          "text": "trip.status === 'completed'"
+          "line": 65,
+          "text": "const status = tripStatus(trip);"
         },
         {
-          "line": 44,
-          "text": ": phase === 'upcoming' && until != null"
+          "line": 71,
+          "text": "status === 'upcoming' && until != null && until > 0"
         },
         {
-          "line": 48,
-          "text": ": phase === 'ongoing'"
+          "line": 73,
+          "text": ": status === 'ongoing' && dayOf"
         },
         {
-          "line": 50,
-          "text": ": phase === 'past'"
+          "line": 86,
+          "text": "<StatusChip status={status} />"
         },
         {
-          "line": 74,
+          "line": 96,
           "text": "{showUpload && trip.sync_status === 'pending' ? <Icon name=\"cloud-upload-outline\" size={16} color=\"#ffffffaa\" /> : null}"
         }
       ]
@@ -2265,7 +2252,7 @@
           "text": "sync_status: 'pending',"
         },
         {
-          "line": 338,
+          "line": 339,
           "text": "onBlur={() => setTimeout(() => setNoteFocused(false), 200)}"
         }
       ]
@@ -2309,15 +2296,6 @@
       ]
     },
     {
-      "path": "apps/wayfare-mobile/src/features/trip/DayStrip.tsx",
-      "evidence": [
-        {
-          "line": 22,
-          "text": "const t = setTimeout(() => ref.current?.scrollTo({ x: Math.max(0, index * (CELL_W + GAP) - CELL_W * 2), animated: true }), 50);"
-        }
-      ]
-    },
-    {
       "path": "apps/wayfare-mobile/src/features/trip/JournalTab.tsx",
       "evidence": [
         {
@@ -2325,96 +2303,96 @@
           "text": "import { useCallback, useEffect, useMemo, useRef, useState } from 'react';"
         },
         {
-          "line": 61,
+          "line": 60,
           "text": "const [entries, setEntries] = useState<LocalEntry[]>([]);"
         },
         {
-          "line": 62,
+          "line": 61,
           "text": "const [text, setText] = useState('');"
         },
         {
-          "line": 63,
+          "line": 62,
           "text": "const [mood, setMood] = useState('');"
         },
         {
-          "line": 65,
-          "text": "const [attachContext, setAttachContext] = useState(false);"
-        },
-        {
           "line": 66,
-          "text": "const [money, setMoney] = useState<MomentMoney | null>(null);"
+          "text": "const [dayFilter, setDayFilter] = useState<string | null>(null);"
         },
         {
           "line": 67,
-          "text": "const [expenses, setExpenses] = useState<LocalExpense[]>([]);"
+          "text": "const [newestFirst, setNewestFirst] = useState(false);"
         },
         {
           "line": 68,
-          "text": "const [photos, setPhotos] = useState<PickedPhoto[]>([]);"
+          "text": "const [sortOpen, setSortOpen] = useState(false);  const [money, setMoney] = useState<MomentMoney | null>(null);"
         },
         {
           "line": 69,
-          "text": "const [saving, setSaving] = useState(false);"
+          "text": "const [expenses, setExpenses] = useState<LocalExpense[]>([]);"
+        },
+        {
+          "line": 70,
+          "text": "const [photos, setPhotos] = useState<PickedPhoto[]>([]);"
         },
         {
           "line": 71,
+          "text": "const [saving, setSaving] = useState(false);"
+        },
+        {
+          "line": 73,
           "text": "const [voiceBusy, setVoiceBusy] = useState(false);"
         },
         {
-          "line": 72,
+          "line": 74,
           "text": "const [recording, setRecording] = useState(false);"
         },
         {
-          "line": 74,
+          "line": 76,
           "text": "const [voices, setVoices] = useState<VoiceDraft[]>([]);"
         },
         {
-          "line": 76,
+          "line": 78,
           "text": "const [mediaKey, setMediaKey] = useState(0);"
         },
         {
-          "line": 78,
+          "line": 80,
           "text": "const [shownDays, setShownDays] = useState(DAYS_PER_PAGE);"
         },
         {
-          "line": 81,
+          "line": 83,
           "text": "const [limit, setLimit] = useState(MOMENTS_PER_PAGE);"
         },
         {
-          "line": 82,
+          "line": 84,
           "text": "const [total, setTotal] = useState(0);"
         },
         {
-          "line": 83,
+          "line": 85,
           "text": "const [loadingMore, setLoadingMore] = useState(false);"
         },
         {
-          "line": 85,
+          "line": 87,
           "text": "const [times, setTimes] = useState<string[]>([]);"
         },
         {
-          "line": 87,
+          "line": 89,
           "text": "const [jumpTo, setJumpTo] = useState<string | null>(null);"
         },
         {
-          "line": 133,
+          "line": 139,
           "text": "sync_status: 'pending',"
         },
         {
-          "line": 154,
+          "line": 160,
           "text": "sync_status: 'pending',"
         },
         {
-          "line": 193,
+          "line": 199,
           "text": "sync_status: 'pending',"
         },
         {
-          "line": 215,
+          "line": 221,
           "text": "sync_status: 'pending',"
-        },
-        {
-          "line": 325,
-          "text": "const [stripDay, setStripDay] = useState<string | null>(null);"
         }
       ]
     },
@@ -2422,15 +2400,15 @@
       "path": "apps/wayfare-mobile/src/features/trip/MomentCard.tsx",
       "evidence": [
         {
-          "line": 3,
+          "line": 4,
           "text": "import { useState } from 'react';"
         },
         {
-          "line": 43,
+          "line": 46,
           "text": "const [menu, setMenu] = useState(false);"
         },
         {
-          "line": 44,
+          "line": 47,
           "text": "const [expanded, setExpanded] = useState(false);"
         }
       ]
@@ -2443,19 +2421,19 @@
           "text": "import { useState } from 'react';"
         },
         {
-          "line": 69,
+          "line": 67,
           "text": "const [moodOpen, setMoodOpen] = useState(false);"
         },
         {
-          "line": 70,
+          "line": 68,
           "text": "const [moneyOpen, setMoneyOpen] = useState(false);"
         },
         {
-          "line": 71,
+          "line": 69,
           "text": "const [amountText, setAmountText] = useState('');"
         },
         {
-          "line": 72,
+          "line": 70,
           "text": "const [category, setCategory] = useState('food');"
         },
         {
@@ -2472,32 +2450,57 @@
           "text": "import { useCallback, useEffect, useRef, useState } from 'react';"
         },
         {
-          "line": 19,
+          "line": 33,
           "text": "const [items, setItems] = useState<LocalPackingItem[]>([]);"
         },
         {
-          "line": 20,
+          "line": 34,
           "text": "const [lists, setLists] = useState<PackingLists | null>(null);"
         },
         {
-          "line": 21,
-          "text": "const [selected, setSelected] = useState<PackingListId>(defaultListFor(trip.starts_on, trip.ends_on));"
+          "line": 35,
+          "text": "const [selected, setSelected] = useState<string>(defaultListFor(trip.starts_on, trip.ends_on));"
         },
         {
-          "line": 22,
+          "line": 36,
           "text": "const [label, setLabel] = useState('');"
         },
         {
-          "line": 48,
+          "line": 37,
+          "text": "const [menu, setMenu] = useState(false);"
+        },
+        {
+          "line": 38,
+          "text": "const [naming, setNaming] = useState(false);"
+        },
+        {
+          "line": 39,
+          "text": "const [newName, setNewName] = useState('');"
+        },
+        {
+          "line": 70,
           "text": "await upsertPackingItem({ ...item, packed: item.packed ? 0 : 1, sync_status: 'pending', updated_at: new Date().toISOString() });"
         },
         {
-          "line": 77,
+          "line": 122,
           "text": "for (const i of items.filter(x => x.packed)) await upsertPackingItem({ ...i, packed: 0, sync_status: 'pending', updated_at: now });"
         },
         {
-          "line": 90,
+          "line": 134,
           "text": "<Checkbox.Android status={checked ? 'checked' : 'unchecked'} onPress={onPress} />"
+        }
+      ]
+    },
+    {
+      "path": "apps/wayfare-mobile/src/features/trip/PlanPackTab.tsx",
+      "evidence": [
+        {
+          "line": 1,
+          "text": "import { useState } from 'react';"
+        },
+        {
+          "line": 12,
+          "text": "const [view, setView] = useState<View_>('plan');"
         }
       ]
     },
@@ -2562,35 +2565,35 @@
       "path": "apps/wayfare-mobile/src/features/trip/RouteTab.tsx",
       "evidence": [
         {
-          "line": 5,
+          "line": 4,
           "text": "import { useCallback, useEffect, useMemo, useState } from 'react';"
         },
         {
-          "line": 33,
+          "line": 45,
           "text": "const [points, setPoints] = useState<LocalTrackPoint[]>([]);"
         },
         {
-          "line": 34,
-          "text": "const [entries, setEntries] = useState<LocalEntry[]>([]);"
-        },
-        {
-          "line": 35,
+          "line": 46,
           "text": "const [tracking, setTracking] = useState(false);"
         },
         {
-          "line": 36,
+          "line": 47,
           "text": "const [mode, setMode] = useState<TrackingMode>('battery');"
         },
         {
-          "line": 37,
+          "line": 48,
           "text": "const [busy, setBusy] = useState(false);"
         },
         {
-          "line": 43,
+          "line": 49,
+          "text": "const [width, setWidth] = useState(0);"
+        },
+        {
+          "line": 54,
           "text": "setTracking(active === trip.id);"
         },
         {
-          "line": 49,
+          "line": 60,
           "text": "const t = setInterval(load, 20_000);"
         }
       ]
@@ -2648,12 +2651,16 @@
           "text": "import { useEffect, useState } from 'react';"
         },
         {
-          "line": 61,
+          "line": 63,
           "text": "const [v, setV] = useState<TripFormValues>(initial);"
         },
         {
-          "line": 62,
+          "line": 64,
           "text": "const [titleTouched, setTitleTouched] = useState(!!initial.title);"
+        },
+        {
+          "line": 66,
+          "text": "const [customType, setCustomType] = useState<string | null>("
         }
       ]
     },
@@ -2834,111 +2841,111 @@
           "text": "const next: LocalTrip = { ...trip, ...patch, id, sync_status: 'pending', updated_at: now() };"
         },
         {
-          "line": 444,
+          "line": 457,
           "text": "sync_status=excluded.sync_status, updated_at=excluded.updated_at`,"
         },
         {
-          "line": 478,
+          "line": 491,
           "text": "`UPDATE entries SET place_name = COALESCE(place_name, ?), region = ?, country_code = ?, sync_status = 'pending', updated_at = ? WHERE id = ?`,"
         },
         {
-          "line": 489,
+          "line": 502,
           "text": "\"UPDATE expenses SET entry_id = NULL, sync_status = 'pending', updated_at = ? WHERE entry_id = ?\","
         },
         {
-          "line": 526,
+          "line": 539,
           "text": "sync_status=excluded.sync_status, updated_at=excluded.updated_at`,"
         },
         {
-          "line": 572,
+          "line": 585,
           "text": "await database.runAsync(\"UPDATE trips SET sync_status = 'synced', updated_at = '1970-01-01T00:00:00.000Z' WHERE id = ? AND sync_status = 'pending'\", [tripId]);"
         },
         {
-          "line": 575,
+          "line": 588,
           "text": "`UPDATE ${table} SET sync_status = 'synced', updated_at = '1970-01-01T00:00:00.000Z' WHERE trip_id = ? AND sync_status = 'pending'`,"
         },
         {
-          "line": 605,
+          "line": 618,
           "text": "sync_status=excluded.sync_status, updated_at=excluded.updated_at`,"
         },
         {
-          "line": 622,
+          "line": 635,
           "text": "sync_status: 'pending',"
         },
         {
-          "line": 642,
+          "line": 655,
           "text": "sync_status: 'pending',"
         },
         {
-          "line": 671,
+          "line": 684,
           "text": "sync_status: 'pending',"
         },
         {
-          "line": 700,
+          "line": 713,
           "text": "sync_status=excluded.sync_status, updated_at=excluded.updated_at`,"
         },
         {
-          "line": 806,
+          "line": 819,
           "text": "author_id=COALESCE(excluded.author_id, author_id), sync_status=excluded.sync_status, updated_at=excluded.updated_at`,"
         },
         {
-          "line": 835,
+          "line": 848,
           "text": "return database.getAllAsync<T>(`SELECT * FROM ${table} WHERE sync_status = 'pending'`);"
         },
         {
-          "line": 841,
+          "line": 854,
           "text": "`SELECT * FROM track_points WHERE sync_status = 'pending' ORDER BY recorded_at ASC LIMIT ?`,"
         },
         {
-          "line": 850,
+          "line": 863,
           "text": "await database.runAsync(`UPDATE ${table} SET sync_status = 'synced' WHERE id = ? AND updated_at = ?`, ["
         },
         {
-          "line": 855,
+          "line": 868,
           "text": "await database.runAsync(`UPDATE ${table} SET sync_status = 'synced' WHERE id = ?`, [id]);"
         },
         {
-          "line": 863,
+          "line": 876,
           "text": "await database.runAsync(`UPDATE track_points SET sync_status = 'synced' WHERE id IN (${placeholders})`, ids);"
         },
         {
-          "line": 886,
+          "line": 899,
           "text": "return database.getFirstAsync<{ sync_status: string; updated_at: string }>("
         },
         {
-          "line": 895,
+          "line": 908,
           "text": "const rows = await database.getAllAsync<{ id: string }>(`SELECT id FROM ${table} WHERE sync_status = 'synced'`);"
         },
         {
-          "line": 925,
+          "line": 938,
           "text": "\"SELECT id FROM trips WHERE sync_status = 'synced' OR owner_id IS NOT NULL\""
         },
         {
-          "line": 940,
+          "line": 953,
           "text": "(SELECT COUNT(*) FROM trips WHERE sync_status = 'pending') +"
         },
         {
-          "line": 941,
+          "line": 954,
           "text": "(SELECT COUNT(*) FROM entries WHERE sync_status = 'pending') +"
         },
         {
-          "line": 942,
+          "line": 955,
           "text": "(SELECT COUNT(*) FROM expenses WHERE sync_status = 'pending') +"
         },
         {
-          "line": 943,
+          "line": 956,
           "text": "(SELECT COUNT(*) FROM packing_items WHERE sync_status = 'pending') +"
         },
         {
-          "line": 944,
+          "line": 957,
           "text": "(SELECT COUNT(*) FROM itinerary_items WHERE sync_status = 'pending') +"
         },
         {
-          "line": 945,
+          "line": 958,
           "text": "(SELECT COUNT(*) FROM track_points WHERE sync_status = 'pending') +"
         },
         {
-          "line": 946,
+          "line": 959,
           "text": "(SELECT COUNT(*) FROM entry_media WHERE sync_status = 'pending') +"
         }
       ]
@@ -3204,6 +3211,22 @@
         {
           "line": 24,
           "text": "return t.status === 'completed' || phase === 'past';"
+        },
+        {
+          "line": 33,
+          "text": "if (t.status === 'completed') return 'completed';"
+        },
+        {
+          "line": 34,
+          "text": "const phase = tripPhase(t.starts_on, t.ends_on, today);"
+        },
+        {
+          "line": 35,
+          "text": "if (phase === 'ongoing') return 'ongoing';"
+        },
+        {
+          "line": 36,
+          "text": "if (phase === 'past') return 'completed';"
         }
       ]
     },

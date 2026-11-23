@@ -55,16 +55,23 @@ type Props = {
   onSubmit: (values: TripFormValues) => void;
 };
 
+const CUSTOM = '__custom__';
+
 export function TripForm({ initial, submitLabel, busy, onSubmit }: Props) {
   const { colors } = useAppTheme();
   const canConnect = useCanConnect();
   const [v, setV] = useState<TripFormValues>(initial);
   const [titleTouched, setTitleTouched] = useState(!!initial.title);
+  // A type that isn't one of the built-in ones is your own ("Custom"): its name, or null.
+  const [customType, setCustomType] = useState<string | null>(
+    initial.tripType && !TRIP_TYPES.some(t => t.value === initial.tripType) ? (initial.tripType === 'custom' ? '' : initial.tripType) : null
+  );
   const set = (patch: Partial<TripFormValues>) => setV(prev => ({ ...prev, ...patch }));
 
   useEffect(() => {
     setV(initial);
     setTitleTouched(!!initial.title);
+    setCustomType(initial.tripType && !TRIP_TYPES.some(t => t.value === initial.tripType) ? (initial.tripType === 'custom' ? '' : initial.tripType) : null);
   }, [initial.title, initial.destination]);
 
   const onDestination = (text: string, match: Destination | undefined) => {
@@ -82,7 +89,6 @@ export function TripForm({ initial, submitLabel, busy, onSubmit }: Props) {
 
   return (
     <View style={{ gap: 12 }}>
-      <PlaceField value={v.destination} onChange={onDestination} label="Where are you going?" />
       <TextInput
         mode="outlined"
         label="Journey title"
@@ -93,9 +99,38 @@ export function TripForm({ initial, submitLabel, busy, onSubmit }: Props) {
         }}
         maxLength={120}
       />
+      <PlaceField value={v.destination} onChange={onDestination} label="Going to" />
       <CoverPicker value={v.coverUri} onChange={uri => set({ coverUri: uri })} />
       <Text style={{ fontWeight: '600', marginTop: 4 }}>Type of journey</Text>
-      <ChipSelect options={TRIP_TYPES} value={v.tripType} onChange={t => set({ tripType: t })} />
+      {/* The last chip is your own type of journey (Wedding, Work trip…). */}
+      <ChipSelect
+        options={[...TRIP_TYPES, { value: CUSTOM, label: customType ? customType : 'Custom', icon: 'plus' }]}
+        value={customType != null ? CUSTOM : v.tripType}
+        onChange={t => {
+          if (t === CUSTOM) {
+            setCustomType(customType ?? '');
+            set({ tripType: (customType ?? '').trim() || 'custom' });
+          } else {
+            setCustomType(null);
+            set({ tripType: t });
+          }
+        }}
+      />
+      {customType != null ? (
+        <TextInput
+          mode="outlined"
+          label="Your type of journey"
+          placeholder="e.g. Wedding, Work trip, Festival"
+          value={customType}
+          onChangeText={t => {
+            const clean = capitalizeWords(t).slice(0, 24);
+            setCustomType(clean);
+            set({ tripType: clean.trim() || 'custom' });
+          }}
+          maxLength={24}
+          autoFocus={!customType}
+        />
+      ) : null}
       <DateRangeField startsOn={v.startsOn} endsOn={v.endsOn} onChange={r => set(r)} />
       {datesInvalid ? <HelperText type="error">The end date is before the start date.</HelperText> : null}
       <TextInput

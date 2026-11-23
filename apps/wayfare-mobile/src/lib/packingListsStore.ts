@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { parseLists, type PackingListId, type PackingLists } from './packingLists';
+import { parseLists, type PackingLists } from './packingLists';
 
 export const PACKING_LISTS_KEY = 'wayfare_packing_lists_v1';
 const tripKey = (tripId: string) => `wayfare_trip_pack_list_v1_${tripId}`;
@@ -12,12 +12,12 @@ export async function savePackingLists(lists: PackingLists) {
   await AsyncStorage.setItem(PACKING_LISTS_KEY, JSON.stringify(lists));
 }
 
-export async function loadTripList(tripId: string): Promise<PackingListId | null> {
+export async function loadTripList(tripId: string): Promise<string | null> {
   const v = await AsyncStorage.getItem(tripKey(tripId)).catch(() => null);
-  return v === 'short' || v === 'long' || v === 'custom' ? v : null;
+  return v && v.length < 80 ? v : null;
 }
 
-export async function saveTripList(tripId: string, id: PackingListId) {
+export async function saveTripList(tripId: string, id: string) {
   await AsyncStorage.setItem(tripKey(tripId), id).catch(() => undefined);
 }
 

@@ -34,3 +34,50 @@ export function pageIndexFor(pages: { day: string }[], day: string): { index: nu
   const older = pages.findIndex(p => p.day < day);
   return { index: older >= 0 ? older : pages.length - 1, exact: false };
 }
+
+/**
+ * One swipeable sheet of the diary. Today can have several pages (each its own entry, editable);
+ * an earlier day is one read-only sheet holding everything written that day.
+ */
+export type DiarySheet<T> = {
+  key: string;
+  day: string;
+  editable: boolean;
+  /** Today's page: the entry it writes to (null while still blank). */
+  entry: T | null;
+  /** An earlier day: its entries. */
+  entries: T[];
+  page: number;
+  pages: number;
+};
+
+/**
+ * Sheets newest first: today's pages (latest page first), then earlier days. todayKeys lists today's
+ * pages oldest → newest by key (an entry id, or "new-…" for a page not written yet).
+ */
+export function diarySheets<T extends Dated & { id: string }>(entries: T[], today: string, todayKeys: string[]): DiarySheet<T>[] {
+  const byId = new Map(entries.map(e => [e.id, e]));
+  const keys = todayKeys.length ? todayKeys : ['new-0'];
+  const todaySheets: DiarySheet<T>[] = keys.map((key, i) => ({
+    key,
+    day: today,
+    editable: true,
+    entry: byId.get(key) ?? null,
+    entries: [],
+    page: i + 1,
+    pages: keys.length,
+  }));
+  const past = diaryPages(entries, today)
+    .slice(1)
+    .map(p => ({ key: `day-${p.day}`, day: p.day, editable: false, entry: null, entries: p.entries, page: 1, pages: 1 }));
+  return [...todaySheets.reverse(), ...past];
+}
+
+/** Today's page keys from today's own entries, oldest first (or one blank page). */
+export function todayPageKeys<T extends Dated & { id: string }>(mine: T[], today: string): string[] {
+  const keys = mine
+    .filter(e => dayOf(e.recorded_at) === today)
+    .sort((a, b) => a.recorded_at.localeCompare(b.recorded_at))
+    .map(e => e.id);
+  return keys.length ? keys : ['new-0'];
+}

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { applyTripFilter, pickNextUp } from '../tripList';
+import { applyTripFilter, featuredTrips, pickNextUp, recentFirst, tripStatus } from '../tripList';
 
 const today = new Date('2026-11-22T10:00:00');
 const trip = (id: string, starts_on: string | null, ends_on: string | null = starts_on, status = 'active') => ({ id, starts_on, ends_on, status });
@@ -22,4 +22,25 @@ test('the list below never repeats the journey on top', () => {
   assert.deepEqual(applyTripFilter(trips, 'all', 'now', today).map(t => t.id), ['past', 'soon', 'later', 'done']);
   assert.deepEqual(applyTripFilter(trips, 'upcoming', 'now', today).map(t => t.id), ['soon', 'later']);
   assert.deepEqual(applyTripFilter(trips, 'past', 'now', today).map(t => t.id), ['past', 'done']);
+});
+
+test('three featured tiles: on the road, next up, most recently finished', () => {
+  const today = new Date(2026, 10, 24);
+  const t = (id: string, s: string | null, e: string | null, status = 'active', updated_at = '2026-11-01T00:00:00Z') => ({ id, status, starts_on: s, ends_on: e, updated_at });
+  const trips = [
+    t('past-old', '2026-01-02', '2026-01-05'),
+    t('past-new', '2026-10-01', '2026-10-04'),
+    t('done-early', '2026-12-20', '2026-12-22', 'completed'),
+    t('now', '2026-11-23', '2026-11-26'),
+    t('soon', '2026-11-30', '2026-11-30'),
+    t('later', '2027-01-10', '2027-01-12'),
+    t('plan', null, null),
+  ];
+  const f = featuredTrips(trips, today);
+  assert.equal(f.ongoing?.id, 'now');
+  assert.equal(f.upcoming?.id, 'soon', 'dated trips before undated plans');
+  assert.equal(f.completed?.id, 'done-early', 'marked completed counts as done');
+  assert.equal(tripStatus(t('x', null, null), today), 'upcoming');
+  assert.deepEqual(featuredTrips([t('plan', null, null)], today), { ongoing: null, upcoming: trips[6], completed: null });
+  assert.deepEqual(recentFirst(trips).map(x => x.id), ['later', 'done-early', 'soon', 'now', 'plan', 'past-new', 'past-old']);
 });

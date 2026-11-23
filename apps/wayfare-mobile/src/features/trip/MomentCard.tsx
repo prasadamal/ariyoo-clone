@@ -1,4 +1,5 @@
 import { router } from 'expo-router';
+import { Image as ExpoImage } from 'expo-image';
 import { stripRich } from '../../lib/richText';
 import { useState } from 'react';
 import { Pressable, View } from 'react-native';
@@ -38,6 +39,8 @@ const PLACEHOLDER_BODIES = new Set(['📷', '🎙 Voice note', '💰']);
  * One moment, like a post without a name: a header (mood and when), the photos in one fixed window,
  * the words (folded when long), voice notes, then where and how much.
  */
+const LOGO = require('../../../assets/logo-mark.png');
+
 export function MomentCard({ entry: e, money, currencySymbol, mediaKey, canShare, canEdit = true, author, tripId, onChanged, onAddPhotos, onDelete }: Props) {
   const { colors } = useAppTheme();
   const [menu, setMenu] = useState(false);
@@ -74,22 +77,19 @@ export function MomentCard({ entry: e, money, currencySymbol, mediaKey, canShare
     <View style={{ backgroundColor: colors.surface, borderRadius: 18, borderWidth: 1, borderColor: colors.border, marginBottom: 14, overflow: 'hidden' }}>
       {/* Header: what a name and handle are to a post, the mood and the moment's date and time are here. */}
       <View style={{ flexDirection: 'row', alignItems: 'center', paddingLeft: 12, paddingRight: 2, paddingTop: 8, paddingBottom: 4, gap: 10 }}>
-        <View
-          accessibilityLabel={e.mood ? `Mood: ${e.mood}` : undefined}
-          style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: colors.surfaceVariant, alignItems: 'center', justifyContent: 'center' }}
-        >
-          {emoji ? <Text style={{ fontSize: 17 }}>{emoji}</Text> : <Icon name="feather" size={16} color={colors.muted} />}
+        {/* The app's mark on every moment; the mood's emoji sits beside the time instead. */}
+        <View style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: colors.surfaceVariant, alignItems: 'center', justifyContent: 'center' }}>
+          <ExpoImage source={LOGO} style={{ width: 22, height: 13 }} contentFit="contain" accessibilityElementsHidden />
         </View>
         <View style={{ flex: 1 }}>
-          {author || moodWord ? (
-            <Text style={{ fontWeight: '700', fontSize: 14 }} numberOfLines={1}>
-              {author ? <Text style={{ color: colors.primary }}>{author}</Text> : null}
-              {author && moodWord ? ' · ' : ''}
-              {moodWord}
+          {author ? (
+            <Text style={{ fontWeight: '700', fontSize: 14, color: colors.primary }} numberOfLines={1}>
+              {author}
             </Text>
           ) : null}
-          <Text style={{ color: colors.muted, fontSize: 13 }}>
+          <Text style={{ color: colors.muted, fontSize: 13 }} accessibilityLabel={e.mood ? `${when}, mood ${moodWord}` : when}>
             {when}
+            {emoji ? <Text style={{ fontSize: 14 }}>{`  ${emoji}`}</Text> : null}
           </Text>
         </View>
         {canEdit ? (

@@ -404,9 +404,22 @@ export async function listEntries(tripId: string) {
 }
 
 /** The first `limit` moments of a journey, oldest first: the journal loads a page at a time. */
-export async function listEntriesPage(tripId: string, limit: number) {
+export async function listEntriesPage(tripId: string, limit: number, newestFirst = false) {
   const database = await getDb();
-  return database.getAllAsync<LocalEntry>('SELECT * FROM entries WHERE trip_id = ? ORDER BY recorded_at ASC LIMIT ?', [tripId, limit]);
+  return database.getAllAsync<LocalEntry>(
+    `SELECT * FROM entries WHERE trip_id = ? ORDER BY recorded_at ${newestFirst ? 'DESC' : 'ASC'} LIMIT ?`,
+    [tripId, limit]
+  );
+}
+
+/** Every moment of one calendar day (local time) in a journey, oldest first. */
+export async function listEntriesOnDay(tripId: string, day: string) {
+  const all = await listEntries(tripId);
+  return all.filter(e => {
+    const d = new Date(e.recorded_at);
+    const p = (x: number) => String(x).padStart(2, '0');
+    return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}` === day;
+  });
 }
 
 /** When each moment of a journey happened (cheap): for the day-jump strip. */
