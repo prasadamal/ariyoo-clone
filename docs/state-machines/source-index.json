@@ -2309,6 +2309,15 @@
       ]
     },
     {
+      "path": "apps/wayfare-mobile/src/features/trip/DayStrip.tsx",
+      "evidence": [
+        {
+          "line": 22,
+          "text": "const t = setTimeout(() => ref.current?.scrollTo({ x: Math.max(0, index * (CELL_W + GAP) - CELL_W * 2), animated: true }), 50);"
+        }
+      ]
+    },
+    {
       "path": "apps/wayfare-mobile/src/features/trip/JournalTab.tsx",
       "evidence": [
         {
@@ -2316,92 +2325,96 @@
           "text": "import { useCallback, useEffect, useMemo, useRef, useState } from 'react';"
         },
         {
-          "line": 59,
+          "line": 61,
           "text": "const [entries, setEntries] = useState<LocalEntry[]>([]);"
         },
         {
-          "line": 60,
+          "line": 62,
           "text": "const [text, setText] = useState('');"
         },
         {
-          "line": 61,
+          "line": 63,
           "text": "const [mood, setMood] = useState('');"
         },
         {
-          "line": 63,
+          "line": 65,
           "text": "const [attachContext, setAttachContext] = useState(false);"
         },
         {
-          "line": 64,
+          "line": 66,
           "text": "const [money, setMoney] = useState<MomentMoney | null>(null);"
         },
         {
-          "line": 65,
+          "line": 67,
           "text": "const [expenses, setExpenses] = useState<LocalExpense[]>([]);"
         },
         {
-          "line": 66,
+          "line": 68,
           "text": "const [photos, setPhotos] = useState<PickedPhoto[]>([]);"
         },
         {
-          "line": 67,
+          "line": 69,
           "text": "const [saving, setSaving] = useState(false);"
         },
         {
-          "line": 69,
+          "line": 71,
           "text": "const [voiceBusy, setVoiceBusy] = useState(false);"
         },
         {
-          "line": 70,
+          "line": 72,
           "text": "const [recording, setRecording] = useState(false);"
         },
         {
-          "line": 72,
+          "line": 74,
           "text": "const [voices, setVoices] = useState<VoiceDraft[]>([]);"
         },
         {
-          "line": 74,
+          "line": 76,
           "text": "const [mediaKey, setMediaKey] = useState(0);"
         },
         {
-          "line": 76,
+          "line": 78,
           "text": "const [shownDays, setShownDays] = useState(DAYS_PER_PAGE);"
         },
         {
-          "line": 79,
+          "line": 81,
           "text": "const [limit, setLimit] = useState(MOMENTS_PER_PAGE);"
         },
         {
-          "line": 80,
+          "line": 82,
           "text": "const [total, setTotal] = useState(0);"
         },
         {
-          "line": 81,
+          "line": 83,
           "text": "const [loadingMore, setLoadingMore] = useState(false);"
         },
         {
-          "line": 83,
+          "line": 85,
           "text": "const [times, setTimes] = useState<string[]>([]);"
         },
         {
-          "line": 85,
+          "line": 87,
           "text": "const [jumpTo, setJumpTo] = useState<string | null>(null);"
         },
         {
-          "line": 131,
+          "line": 133,
           "text": "sync_status: 'pending',"
         },
         {
-          "line": 152,
+          "line": 154,
           "text": "sync_status: 'pending',"
         },
         {
-          "line": 191,
+          "line": 193,
           "text": "sync_status: 'pending',"
         },
         {
-          "line": 213,
+          "line": 215,
           "text": "sync_status: 'pending',"
+        },
+        {
+          "line": 325,
+          "text": "const [stripDay, setStripDay] = useState<string | null>(null);"
         }
       ]
     },
