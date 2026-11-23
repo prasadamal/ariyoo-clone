@@ -3,7 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { isSupabaseConfigured } from '../config';
 import { ENTRY_MEDIA_BUCKET, uploadEntryMedia } from './media';
 import { supabase } from './supabase';
-import { shouldApplyRemote } from './syncRules';
+import { mayReconcile, shouldApplyRemote } from './syncRules';
 import { createSyncFlight } from './syncState';
 import {
   clearTombstone,
@@ -365,7 +365,9 @@ async function pullTable<T>(
   result: SyncResult,
   key: string,
   /** Journeys with crew: other people's rows in them are pulled too. */
-  sharedTripIds: string[] = []
+  sharedTripIds: string[] = [],
+  /** This sync proved the account can read its own rows, so an empty result really means "none left". */
+  accessVerified = false
 ) {
   let rows: Record<string, any>[];
   try {
@@ -383,8 +385,8 @@ async function pullTable<T>(
     await write(fromRemote(r, userId));
     result.pulled[key]++;
   }
-  // An empty remote set is more likely a transient auth problem than "everything deleted".
-  if (rows.length) {
+  // An empty set is trusted only once access is proven (see mayReconcile).
+  if (mayReconcile(rows.length, accessVerified)) {
     result.removed += await removeSyncedRowsNotIn(table, new Set(rows.map(r => r.id as string)));
   }
 }
@@ -539,7 +541,7 @@ async function pushEntryMedia(userId: string, result: SyncResult) {
   }
 }
 
-async function pullEntryMedia(userId: string, result: SyncResult, sharedTripIds: string[] = []) {
+async function pullEntryMedia(userId: string, result: SyncResult, sharedTripIds: string[] = [], accessVerified = false) {
   let rows: Record<string, any>[];
   try {
     rows = await fetchAll('entry_media', '*', userId);
@@ -567,7 +569,17 @@ async function pullEntryMedia(userId: string, result: SyncResult, sharedTripIds:
     });
     result.pulled.media++;
   }
-  if (rows.length) result.removed += await removeSyncedRowsNotIn('entry_media', new Set(rows.map(r => r.id as string)));
+  if (mayReconcile(rows.length, accessVerified)) result.removed += await removeSyncedRowsNotIn('entry_media', new Set(rows.map(r => r.id as string)));
+}
+
+/** True only when the auth server confirms this session's token belongs to this account right now. */
+async function sessionVerified(userId: string) {
+  try {
+    const { data, error } = await supabase!.auth.getUser();
+    return !error && data.user?.id === userId;
+  } catch {
+    return false;
+  }
 }
 
 // --- orchestration --------------------------------------------------------------------
@@ -616,6 +628,9 @@ async function runSync(userId: string): Promise<SyncResult> {
   await pushTable<LocalItineraryItem>('itinerary_items', itineraryToRemote, userId, result, 'itinerary');
   await pushTrackPoints(userId, result);
 
+  // Proof that the reads below run as this account (not an expired or anonymous session).
+  const accessVerified = await sessionVerified(userId);
+
   // Trips first: their children depend on them locally.
   try {
     const ownTrips = await fetchAll('trips', '*', userId);
@@ -635,16 +650,16 @@ async function runSync(userId: string): Promise<SyncResult> {
     const keep = new Set([...ownTrips, ...joinedTrips].map(r => r.id as string));
     // Crew unknown this time: keep shared journeys rather than drop them.
     if (!shares) for (const t of await listTrips()) if (t.owner_id) keep.add(t.id);
-    if (ownTrips.length || joinedTrips.length) result.removed += await removeSyncedTripsNotIn(keep);
+    if (mayReconcile(ownTrips.length + joinedTrips.length, accessVerified)) result.removed += await removeSyncedTripsNotIn(keep);
   } catch (e) {
     result.errors.push((e as Error).message);
   }
-  await pullTable('entries', entryFromRemote, upsertEntry, userId, result, 'entries', sharedTripIds);
-  await pullTable('expenses', expenseFromRemote, upsertExpense, userId, result, 'expenses', sharedTripIds);
-  await pullTable('packing_items', packingFromRemote, upsertPackingItem, userId, result, 'packing');
-  await pullTable('itinerary_items', itineraryFromRemote, upsertItineraryItem, userId, result, 'itinerary', sharedTripIds);
+  await pullTable('entries', entryFromRemote, upsertEntry, userId, result, 'entries', sharedTripIds, accessVerified);
+  await pullTable('expenses', expenseFromRemote, upsertExpense, userId, result, 'expenses', sharedTripIds, accessVerified);
+  await pullTable('packing_items', packingFromRemote, upsertPackingItem, userId, result, 'packing', [], accessVerified);
+  await pullTable('itinerary_items', itineraryFromRemote, upsertItineraryItem, userId, result, 'itinerary', sharedTripIds, accessVerified);
   await pullTrackPoints(userId, result);
-  await pullEntryMedia(userId, result, sharedTripIds);
+  await pullEntryMedia(userId, result, sharedTripIds, accessVerified);
   await pushEntryMedia(userId, result);
 
   // Server-verified stats (distance / altitude / tier) — best effort.

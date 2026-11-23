@@ -29,7 +29,7 @@ export default function ForgotPasswordScreen() {
         Enter the email you signed up with and we will send you a link to set a new password.
       </Text>
       <TextInput mode="outlined" label="Email" value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" />
-      {state === 'sent' ? <Notice tone="success" text="Reset link sent. Check your inbox (and spam folder)." /> : null}
+      {state === 'sent' ? <Notice tone="success" text="Reset link sent. Open it on this phone to choose a new password (check spam too). It works once and expires in an hour." /> : null}
       {state === 'error' ? <Notice tone="error" text={error} /> : null}
       <Button mode="contained" style={{ marginTop: 16 }} onPress={submit} loading={state === 'sending'} disabled={!/.+@.+\..+/.test(email) || state === 'sending'}>
         Send reset link

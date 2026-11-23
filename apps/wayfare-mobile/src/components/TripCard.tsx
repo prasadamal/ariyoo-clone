@@ -1,3 +1,4 @@
+import type { MoneyAmount } from '../lib/currencyMath';
 import { TripCover } from '../ui/TripCover';
 import { router } from 'expo-router';
 import { Pressable, View } from 'react-native';
@@ -28,9 +29,9 @@ export function tripTypeIcon(type: string) {
 }
 
 /** coverUri: the cover to show (your chosen photo, or the newest moment photo). */
-type Props = { trip: LocalTrip; synopsis: string; packingRatio: number; tracking?: boolean; spentAmount?: number; coverUri?: string | null; showUpload?: boolean };
+type Props = { trip: LocalTrip; synopsis: string; packingRatio: number; tracking?: boolean; spentAmount?: number; unconverted?: MoneyAmount[]; coverUri?: string | null; showUpload?: boolean };
 
-export function TripCard({ trip, synopsis, packingRatio, tracking, spentAmount = 0, coverUri, showUpload = true }: Props) {
+export function TripCard({ trip, synopsis, packingRatio, tracking, spentAmount = 0, unconverted, coverUri, showUpload = true }: Props) {
   const cover = coverUri === undefined ? trip.cover_uri : coverUri;
   const { colors } = useAppTheme();
   const phase = tripPhase(trip.starts_on, trip.ends_on);
@@ -84,7 +85,7 @@ export function TripCard({ trip, synopsis, packingRatio, tracking, spentAmount =
             Shared by {trip.owner_name}
           </Text>
         ) : null}
-        {trip.budget_total ? <BudgetBar compact spent={spentAmount} budget={trip.budget_total} currency={trip.currency || 'INR'} /> : null}
+        {trip.budget_total ? <BudgetBar compact spent={spentAmount} unconverted={unconverted} budget={trip.budget_total} currency={trip.currency || 'INR'} /> : null}
       </TripCover>
       <View style={{ padding: 14, paddingTop: 10 }}>
         <Text style={{ color: colors.onSurfaceVariant, fontSize: 13 }} numberOfLines={2}>

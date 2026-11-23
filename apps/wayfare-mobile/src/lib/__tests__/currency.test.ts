@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { convert, currencySymbol, formatMoney, sumInCurrency } from '../currencyMath';
+import { convert, currencySymbol, formatMoney, formatPendingMoney, splitSpend, sumInCurrency } from '../currencyMath';
 
 const rates = { USD: 1, INR: 83, NPR: 132.8, EUR: 0.92 };
 
@@ -33,4 +33,15 @@ test('sumInCurrency reports what it could not convert', () => {
   assert.equal(Math.round(r.total), 1660);
   assert.deepEqual(r.unconverted, ['XYZ']);
   assert.deepEqual(sumInCurrency([{ amount: 5, currency: 'USD' }], 'INR', null).unconverted, ['USD']);
+});
+
+test('partial spend keeps unconverted amounts visible', () => {
+  const noRates = splitSpend({ INR: 1000, USD: 50 }, 'INR', null);
+  assert.equal(noRates.total, 1000);
+  assert.deepEqual(noRates.pending, [{ currency: 'USD', amount: 50 }]);
+  assert.equal(formatPendingMoney(noRates.pending), '$50');
+  const withRates = splitSpend({ INR: 1000, USD: 50 }, 'INR', rates);
+  assert.equal(Math.round(withRates.total), 1000 + 50 * 83);
+  assert.deepEqual(withRates.pending, []);
+  assert.deepEqual(splitSpend({}, 'INR', null), { total: 0, pending: [] });
 });

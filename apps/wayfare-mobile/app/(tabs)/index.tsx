@@ -12,7 +12,8 @@ import { listTrips, type LocalTrip } from '../../src/lib/localDb';
 import { getActiveTrackingTripId } from '../../src/lib/locationTask';
 import { buildTripSynopsis, computeTripStats } from '../../src/lib/tripStats';
 import { getRates } from '../../src/lib/currency';
-import { sumInCurrency } from '../../src/lib/currencyMath';
+import { backupLabel, backupState } from '../../src/lib/backupStatus';
+import { splitSpend, type MoneyAmount } from '../../src/lib/currencyMath';
 import { tripCoverUri } from '../../src/lib/tripCover';
 import { applyTripFilter, pickNextUp, type TripFilter } from '../../src/lib/tripList';
 import { useAppTheme } from '../../src/theme';
@@ -24,7 +25,7 @@ import { SOCIAL_ENABLED } from '../../src/lib/features';
 import { Glass } from '../../src/ui/Glass';
 import { TAB_BAR_SPACE } from '../../src/ui/GlassTabBar';
 
-type TripRow = LocalTrip & { synopsis: string; packingRatio: number; spentAmount: number; cover: string | null };
+type TripRow = LocalTrip & { synopsis: string; packingRatio: number; spentAmount: number; unconverted: MoneyAmount[]; cover: string | null };
 
 /** Journeys are prepared (stats, money, cover) a few at a time as you scroll, not all at once. */
 const PAGE_SIZE = 5;
@@ -45,15 +46,13 @@ async function prepare(list: LocalTrip[]): Promise<TripRow[]> {
   return Promise.all(
     list.map(async t => {
       const stats = await computeTripStats(t.id);
+      const spend = splitSpend(stats.spendByCurrency, t.currency || 'INR', rates?.rates ?? null);
       return {
         ...t,
         synopsis: buildTripSynopsis(t.title, stats),
         packingRatio: stats.packingTotal ? stats.packingDone / stats.packingTotal : 0,
-        spentAmount: sumInCurrency(
-          Object.entries(stats.spendByCurrency).map(([currency, amount]) => ({ currency, amount })),
-          t.currency || 'INR',
-          rates?.rates ?? null
-        ).total,
+        spentAmount: spend.total,
+        unconverted: spend.pending,
         cover: await tripCoverUri(t).catch(() => null),
       };
     })
@@ -164,19 +163,14 @@ export default function JourneysTab() {
   const recordingTrip = all.find(t => t.id === recordingTripId);
   const firstName = (profile?.display_name ?? '').split(' ')[0];
 
+  const backup = { syncing, errors: lastErrors, pending, lastSyncAt };
   const syncLine = offlineMode
     ? 'Offline journal mode'
     : guest || !user
       ? 'Journal saved on this phone · sign up to back it up'
-      : syncing
-        ? 'Syncing…'
-        : lastErrors.length
-          ? `Sync issue: ${lastErrors[0]}`
-          : pending
-            ? `${pending} change${pending === 1 ? '' : 's'} waiting to sync`
-            : lastSyncAt
-              ? `Backed up ${timeAgo(lastSyncAt)}`
-              : 'Backup has not been verified yet';
+      : backupState(backup) === 'verified' && lastSyncAt
+        ? `Backed up ${timeAgo(lastSyncAt)}`
+        : backupLabel(backup);
 
   const days = nextUp ? daysUntil(nextUp.starts_on) : null;
 
@@ -335,6 +329,7 @@ export default function JourneysTab() {
             packingRatio={item.packingRatio}
             tracking={item.id === recordingTripId}
             spentAmount={item.spentAmount}
+            unconverted={item.unconverted}
             coverUri={item.cover}
             showUpload={Boolean(user)}
           />

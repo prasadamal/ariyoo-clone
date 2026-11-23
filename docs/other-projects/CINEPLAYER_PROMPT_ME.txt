@@ -1,0 +1,20 @@
+CINEPLAYER (simple-ios-movie-player) — PROMPT ME
+=================================================
+Last updated: 23 November 2026. Owner: Amal Prasad (company Ariyoo). Status: PARKED.
+
+THE IDEA
+An Infuse-style movie and TV-series player: smart library that auto-organises episodes from
+filenames, continue watching, posters/descriptions from TMDB, subtitles from OpenSubtitles,
+full player controls. Two apps: CinePlayer (iOS, Swift) and CinePlayerAndroid (Kotlin, ExoPlayer).
+
+WHERE IT STANDS (16 Nov analysis)
+- Prototype, no tests.
+- The README promises MKV/AVI on iOS, but the iOS app uses only AVPlayer, which can't open MKV
+  or AVI — the main promise is unmet on iPhone. Android (ExoPlayer) is closer.
+- Users must paste their own TMDB and OpenSubtitles API keys — ordinary users won't.
+- Market: VLC is free on both platforms; Infuse owns the premium end.
+
+WHAT IT WOULD NEED TO BECOME A PRODUCT
+A different playback engine on iOS (e.g. VLCKit/ffmpeg-based) and a small key-proxy server so
+users don't need API keys. Verdict: a good learning project; keep parked.
+Other apps: see github.com/prasadamal/ariyoo-clone PROMPT_ME.txt.

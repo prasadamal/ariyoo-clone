@@ -6,7 +6,8 @@ import { isSupabaseConfigured } from '../config';
 import { stopDeviceActivity, stopLocalDeviceActivity } from '../lib/deviceActivity';
 import { withJournalLock } from '../lib/journalGate';
 import { resolveJournalOwnership } from '../lib/ownership';
-import { countTrips, wipeLocalData } from '../lib/localDb';
+import { countTrips } from '../lib/localDb';
+import { wipeDevice } from '../lib/wipeDevice';
 import { isGuestMode, setGuestMode } from '../lib/session';
 import { supabase } from '../lib/supabase';
 import { getLocalOwner, setLocalOwner } from '../lib/sync';
@@ -178,7 +179,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signOut = useCallback(async (opts?: { wipeLocal?: boolean }) => {
     await stopDeviceActivity();
     if (opts?.wipeLocal) {
-      await wipeLocalData();
+      await wipeDevice();
       await setLocalOwner(null);
     }
     if (supabase) {
@@ -193,7 +194,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const sendPasswordReset = useCallback(async (email: string) => {
     if (!supabase) throw new Error('Cloud is not configured in this build');
-    const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: Linking.createURL('/login') });
+    const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: Linking.createURL('/reset-password') });
     if (error) throw error;
   }, []);
 
@@ -208,7 +209,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (choice === 'wipe' && userId) {
         await stopDeviceActivity();
         if (currentUser.current !== userId) throw new Error('Account changed. Retry with the current account.');
-        await wipeLocalData();
+        await wipeDevice();
         await setLocalOwner(userId);
         retryJournal();
         return;

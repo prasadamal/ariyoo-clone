@@ -10,7 +10,8 @@ import { useWayfareTheme, type ThemeMode } from '../src/context/ThemeContext';
 import { useToast } from '../src/context/ToastContext';
 import { timeAgo } from '../src/lib/format';
 import { stopDeviceActivity } from '../src/lib/deviceActivity';
-import { wipeLocalData } from '../src/lib/localDb';
+import { wipeDevice } from '../src/lib/wipeDevice';
+import { backupLabel, backupState, signOutMessage } from '../src/lib/backupStatus';
 import { disablePush, enablePush, forgetPushToken, getPushPreference, type PushPreference } from '../src/lib/notifications';
 import { setLocalOwner } from '../src/lib/sync';
 import { deleteMyAccount, updateMyProfile } from '../src/social/profiles';
@@ -77,25 +78,45 @@ export default function SettingsScreen() {
     if (on && !ok) toast('Set up Face ID / fingerprint on this device first.');
   };
 
+  const backup = { syncing, errors: lastErrors, pending, lastSyncAt };
+  const backupVerified = backupState(backup) === 'verified';
+
+  const signOutKeep = async () => {
+    try { await forgetPushToken(); await signOut(); }
+    catch (e) { toast(e instanceof Error ? e.message : 'Could not sign out. Retry.'); }
+  };
+
+  // Removing journals is only offered once a backup is verified; otherwise "keep" is the safe choice
+  // and "Sync first" lets the traveller verify before trying again.
   const confirmSignOut = () =>
-    Alert.alert('Sign out?', pending ? `${pending} change${pending === 1 ? ' has' : 's have'} not synced yet and will stay on this phone.` : 'Your journals are backed up to your account.', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Sign out, keep journals here',
-        onPress: async () => {
-          try { await forgetPushToken(); await signOut(); }
-          catch (e) { toast(e instanceof Error ? e.message : 'Could not sign out. Retry.'); }
-        },
-      },
-      {
-        text: 'Sign out & remove from phone',
-        style: 'destructive',
-        onPress: async () => {
-          try { await forgetPushToken(); await signOut({ wipeLocal: true }); }
-          catch (e) { toast(e instanceof Error ? e.message : 'Could not sign out and clear this device. Retry.'); }
-        },
-      },
-    ]);
+    Alert.alert(
+      'Sign out?',
+      signOutMessage(backup),
+      backupVerified
+        ? [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Sign out, keep journals here', onPress: signOutKeep },
+            {
+              text: 'Sign out & remove from phone',
+              style: 'destructive',
+              onPress: async () => {
+                try { await forgetPushToken(); await signOut({ wipeLocal: true }); }
+                catch (e) { toast(e instanceof Error ? e.message : 'Could not sign out and clear this device. Retry.'); }
+              },
+            },
+          ]
+        : [
+            { text: 'Cancel', style: 'cancel' },
+            {
+              text: 'Sync first',
+              onPress: async () => {
+                const r = await syncNow();
+                toast(r && !r.errors.length ? 'Backed up. You can sign out now.' : 'Backup didn’t finish. Your journals are still on this phone.');
+              },
+            },
+            { text: 'Sign out, keep journals here', onPress: signOutKeep },
+          ]
+    );
 
   const deleteAccount = async () => {
     setDeleting(true);
@@ -103,7 +124,7 @@ export default function SettingsScreen() {
       await forgetPushToken();
       await stopDeviceActivity();
       await deleteMyAccount();
-      await wipeLocalData();
+      await wipeDevice();
       await setLocalOwner(null);
       setDeleteOpen(false);
       Alert.alert('Account deleted', 'Your Wayfare account, journals, posts and messages have been permanently deleted.');
@@ -116,7 +137,7 @@ export default function SettingsScreen() {
   };
 
   const clearDeviceData = () =>
-    Alert.alert('Remove journals from this phone?', 'This deletes every trip, photo and voice note stored on this device. Synced data stays in your account.', [
+    Alert.alert('Remove journals from this phone?', backupVerified ? 'This deletes every trip, photo and voice note stored on this device. Your backup stays in your account.' : 'Your backup isn’t verified yet, so anything not synced will be lost for good. This deletes every trip, photo and voice note on this device.', [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Remove',
@@ -124,7 +145,7 @@ export default function SettingsScreen() {
         onPress: async () => {
           try {
             await stopDeviceActivity();
-            await wipeLocalData();
+            await wipeDevice();
             toast('Removed from this phone');
           } catch (e) {
             toast(e instanceof Error ? e.message : 'Could not remove this device’s journals. Retry.');
@@ -199,7 +220,7 @@ export default function SettingsScreen() {
       ) : (
         <>
           <Text style={{ color: colors.onSurfaceVariant }}>
-            {syncing ? 'Syncing…' : lastErrors.length ? 'Backup needs attention — try syncing again' : pending ? `${pending} change${pending === 1 ? '' : 's'} waiting to sync` : lastSyncAt ? 'Everything is backed up' : 'Backup has not been verified yet'}
+            {backupLabel(backup)}
             {lastSyncAt ? ` · last sync ${timeAgo(lastSyncAt)} ago` : ''}
           </Text>
           {lastErrors.length ? <Notice tone="error" text={lastErrors.slice(0, 2).join(' · ')} /> : null}

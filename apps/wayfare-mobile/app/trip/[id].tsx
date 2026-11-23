@@ -35,7 +35,7 @@ import { TabStrip, type TabItem } from '../../src/ui/TabStrip';
 import { SOCIAL_ENABLED } from '../../src/lib/features';
 import { BudgetBar } from '../../src/ui/BudgetBar';
 import { getRates, type RatesSnapshot } from '../../src/lib/currency';
-import { sumInCurrency } from '../../src/lib/currencyMath';
+import { splitSpend } from '../../src/lib/currencyMath';
 
 type Tab = 'journal' | 'plan' | 'budget' | 'pack' | 'route' | 'crew';
 
@@ -193,6 +193,8 @@ export default function TripDetailScreen() {
     }
   };
 
+  const spend = stats ? splitSpend(stats.spendByCurrency, trip.currency || 'INR', rates?.rates ?? null) : { total: 0, pending: [] };
+
   return (
     <Screen scrollRef={pageRef} onEndReached={() => (tab === 'journal' ? loadMoreRef.current?.() : undefined)}>
       <Stack.Screen options={{ title: trip.title }} />
@@ -292,7 +294,8 @@ export default function TripDetailScreen() {
           </View>
             <BudgetBar
               compact
-              spent={sumInCurrency(Object.entries(stats.spendByCurrency).map(([currency, amount]) => ({ currency, amount })), trip.currency || 'INR', rates?.rates ?? null).total}
+              spent={spend.total}
+              unconverted={spend.pending}
               budget={trip.budget_total}
               currency={trip.currency || 'INR'}
               onAddBudget={canEdit ? () => router.push(`/trip/edit/${trip.id}`) : undefined}

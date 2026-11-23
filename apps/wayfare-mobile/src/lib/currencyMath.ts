@@ -57,3 +57,26 @@ export function sumInCurrency(items: { amount: number; currency: string }[], tar
   }
   return { total, unconverted: Array.from(unconverted) };
 }
+
+export type MoneyAmount = { amount: number; currency: string };
+
+/**
+ * Splits a per-currency spend map into one converted total plus the amounts that could not be
+ * converted (no exchange rate yet), so screens can say "₹1,000 + $50" instead of a short total.
+ */
+export function splitSpend(byCurrency: Record<string, number>, target: string, rates: Rates | null) {
+  const items = Object.entries(byCurrency).map(([currency, amount]) => ({ currency, amount }));
+  const { total, unconverted } = sumInCurrency(items, target, rates);
+  const pending: MoneyAmount[] = unconverted
+    .map(code => ({
+      currency: code,
+      amount: items.filter(i => i.currency.toUpperCase() === code).reduce((sum, i) => sum + i.amount, 0),
+    }))
+    .filter(p => p.amount !== 0);
+  return { total, pending };
+}
+
+/** "$50 + €20" for amounts still waiting on an exchange rate. */
+export function formatPendingMoney(pending: MoneyAmount[], opts: { compact?: boolean } = {}) {
+  return pending.map(p => formatMoney(p.amount, p.currency, opts)).join(' + ');
+}
