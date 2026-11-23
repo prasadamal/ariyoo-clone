@@ -11,7 +11,7 @@ import { useAuth, useCanConnect } from '../src/context/AuthContext';
 import { useSync } from '../src/context/SyncContext';
 import { useWayfareTheme, type ThemeMode } from '../src/context/ThemeContext';
 import { useToast } from '../src/context/ToastContext';
-import { timeAgo } from '../src/lib/format';
+import { timeAgoPhrase } from '../src/lib/format';
 import { stopDeviceActivity } from '../src/lib/deviceActivity';
 import { wipeDevice } from '../src/lib/wipeDevice';
 import { backupLabel, backupState, signOutMessage } from '../src/lib/backupStatus';
@@ -241,7 +241,7 @@ export default function SettingsScreen() {
         <>
           <Text style={{ color: colors.onSurfaceVariant }}>
             {backupLabel(backup)}
-            {lastSyncAt ? ` · last sync ${timeAgo(lastSyncAt)} ago` : ''}
+            {lastSyncAt ? ` · last sync ${timeAgoPhrase(lastSyncAt)}` : ''}
           </Text>
           {lastErrors.length ? <Notice tone="error" text={lastErrors.slice(0, 2).join(' · ')} /> : null}
           <Button mode="outlined" icon="cloud-sync-outline" style={{ marginTop: 8, alignSelf: 'flex-start' }} onPress={() => syncNow()} loading={syncing} disabled={syncing}>

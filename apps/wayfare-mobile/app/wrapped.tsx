@@ -7,12 +7,11 @@ import { Button, IconButton, Text } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { captureRef } from 'react-native-view-shot';
 import { useAuth } from '../src/context/AuthContext';
-import { formatMoney } from '../src/lib/currencyMath';
 import { formatKm } from '../src/lib/format';
 import { loadStatsInput } from '../src/lib/useTravelStats';
-import { buildWrapped, type WrappedSummary } from '../src/lib/wrapped';
+import { buildWrapped, whereYouWent, type WrappedSummary } from '../src/lib/wrapped';
 import { Icon } from '../src/ui/Icon';
-import { flagEmoji } from '../src/lib/travelStats';
+import { countryName, flagEmoji } from '../src/lib/travelStats';
 import { Image } from 'expo-image';
 
 const LOGO = require('../assets/logo-mark.png');
@@ -42,29 +41,20 @@ export default function WrappedScreen() {
     loadStatsInput().then(({ input, media }) => setSummary(buildWrapped(year, input, media)));
   }, [year]);
 
-  // Spending in your home currency (or the biggest one), with a note when there were others.
-  const spend = useMemo(() => {
-    if (!summary) return null;
-    const entries = Object.entries(summary.spendByCurrency).filter(([, v]) => v > 0);
-    if (!entries.length) return null;
-    const main = entries.find(([c]) => c === 'INR') ?? entries[0];
-    const others = entries.length - 1;
-    return {
-      value: formatMoney(main[1], main[0], { compact: true }),
-      note: others ? `+ ${others} other ${others === 1 ? 'currency' : 'currencies'}` : undefined,
-    };
-  }, [summary]);
-
-  // Mood, busiest month, longest trip and spending: one short value each (no long sentences).
+  // The year's character: one short value each (no long sentences, no money).
   const tiles = useMemo(() => {
-    if (!summary) return [] as { label: string; value: string; note?: string }[];
-    const out: { label: string; value: string; note?: string }[] = [];
+    if (!summary) return [] as { label: string; value: string }[];
+    const out: { label: string; value: string }[] = [];
+    const st = summary.stats;
     if (summary.topMood) out.push({ label: 'Mood of the year', value: summary.topMood });
     if (summary.busiestMonth) out.push({ label: 'Busiest month', value: summary.busiestMonth });
-    if (summary.stats.longestTripDays >= 2) out.push({ label: 'Longest trip', value: `${summary.stats.longestTripDays} days` });
-    if (spend) out.push({ label: 'Spent on travel', ...spend });
-    return out.slice(0, 4);
-  }, [summary, spend]);
+    if (st.longestTripDays >= 2) out.push({ label: 'Longest trip', value: `${st.longestTripDays} days` });
+    if (st.longestStreakDays >= 2) out.push({ label: 'Writing streak', value: `${st.longestStreakDays} days` });
+    else if (st.voiceNotes) out.push({ label: 'Voice notes', value: String(st.voiceNotes) });
+    return out.slice(0, 4); // a lone last tile stretches to the full width
+  }, [summary]);
+
+  const went = useMemo(() => (summary ? whereYouWent(summary, { flag: flagEmoji, country: countryName }) : null), [summary]);
 
   const share = async () => {
     if (!summary) return;
@@ -122,30 +112,16 @@ export default function WrappedScreen() {
                   <BigStat value={String(summary.stats.photos)} label={summary.stats.photos === 1 ? 'photo' : 'photos'} />
                   <BigStat value={String(summary.stats.destinations)} label={summary.stats.destinations === 1 ? 'destination' : 'destinations'} />
                 </View>
-                {/* Where you went: flags, then the places as chips. */}
-                {summary.destinations.length || summary.stats.countryCodes.length ? (
-                  <View style={{ marginTop: 14, padding: 14, borderRadius: 18, backgroundColor: '#ffffff14' }}>
-                    <Text style={{ color: '#ffffffcc', fontSize: 12, fontWeight: '800', letterSpacing: 1 }} numberOfLines={1}>
-                      WHERE YOU WENT
-                      {summary.stats.countries >= 2 ? ` · ${summary.stats.countries} COUNTRIES` : ''}
+                {/* Where you went: a statement to show off, not a list to tap. */}
+                {went ? (
+                  <View style={{ marginTop: 14, padding: 16, borderRadius: 18, backgroundColor: '#ffffff14' }}>
+                    <Text style={{ color: '#ffffffb3', fontSize: 11, fontWeight: '800', letterSpacing: 1 }}>WHERE YOU WENT</Text>
+                    <Text style={{ color: '#fff', fontSize: 26, fontWeight: '900', marginTop: 2 }}>
+                      {went.count} {went.noun}
                     </Text>
-                    {summary.stats.countryCodes.length ? (
-                      <Text style={{ fontSize: 22, marginTop: 8, letterSpacing: 2 }} accessibilityLabel={`${summary.stats.countryCodes.length} countries`}>
-                        {summary.stats.countryCodes.slice(0, 8).map(flagEmoji).join(' ')}
-                      </Text>
-                    ) : null}
-                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 10 }}>
-                      {summary.destinations.slice(0, 6).map(d => (
-                        <View key={d} style={{ paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999, backgroundColor: '#ffffff22' }}>
-                          <Text style={{ color: '#fff', fontSize: 13, fontWeight: '600' }}>{d}</Text>
-                        </View>
-                      ))}
-                      {summary.destinations.length > 6 ? (
-                        <View style={{ paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999, borderWidth: 1, borderColor: '#ffffff44' }}>
-                          <Text style={{ color: '#fff', fontSize: 13 }}>+{summary.destinations.length - 6}</Text>
-                        </View>
-                      ) : null}
-                    </View>
+                    <Text style={{ color: '#ffffffe6', fontSize: 15, lineHeight: 24, marginTop: 6 }}>
+                      {went.items.map(i => (i.flag ? `${i.flag}\u00a0${i.name.replace(/ /g, '\u00a0')}` : i.name.replace(/ /g, '\u00a0'))).join('   ')}
+                    </Text>
                   </View>
                 ) : null}
 
@@ -158,11 +134,6 @@ export default function WrappedScreen() {
                         <Text style={{ color: '#fff', fontSize: 18, fontWeight: '900', marginTop: 4 }} numberOfLines={1} adjustsFontSizeToFit>
                           {t.value}
                         </Text>
-                        {t.note ? (
-                          <Text style={{ color: '#ffffffb3', fontSize: 11, marginTop: 1 }} numberOfLines={1}>
-                            {t.note}
-                          </Text>
-                        ) : null}
                       </View>
                     ))}
                   </View>

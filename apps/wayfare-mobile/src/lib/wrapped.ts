@@ -1,6 +1,6 @@
 /** "Year in travel" summary (pure). */
 import { getDestination } from '../content/destinations';
-import { computeTravelStats, type StatsInput, type TravelStats } from './travelStats';
+import { computeTravelStats, stateWord, type StatsInput, type TravelStats } from './travelStats';
 import { parseDay } from './format';
 
 export type Persona = { title: string; blurb: string; icon: string };
@@ -116,4 +116,28 @@ export function buildWrapped(
     persona: personaFor(stats),
     highlights,
   };
+}
+
+/**
+ * "Where you went" on the year card, as a statement: the countries if you crossed a border,
+ * otherwise the states, otherwise the destinations. Every one is shown (no "+N").
+ */
+export type WhereYouWent = { count: number; noun: string; items: { flag?: string; name: string }[] };
+export function whereYouWent(
+  w: Pick<WrappedSummary, 'stats' | 'destinations'>,
+  names: { flag: (code: string) => string; country: (code: string) => string }
+): WhereYouWent | null {
+  const s = w.stats;
+  if (s.countryCodes.length >= 2) {
+    return { count: s.countryCodes.length, noun: 'countries', items: s.countryCodes.map(c => ({ flag: names.flag(c), name: names.country(c) })) };
+  }
+  if (s.states.length >= 1) {
+    const code = s.countryCodes[0] ?? '';
+    const noun = s.states.length === 1 ? stateWord(code, 1) : stateWord(code, 2);
+    return { count: s.states.length, noun, items: s.states.map(name => ({ name })) };
+  }
+  if (w.destinations.length) {
+    return { count: w.destinations.length, noun: w.destinations.length === 1 ? 'place' : 'places', items: w.destinations.map(name => ({ name })) };
+  }
+  return null;
 }

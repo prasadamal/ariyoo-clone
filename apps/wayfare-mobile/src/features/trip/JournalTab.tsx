@@ -448,7 +448,7 @@ export function JournalTab({ trip, onChanged, everyday = false, crewNames = {}, 
           }}
         >
           {/* The same pill as the Journal / Plan / Budget tabs above. */}
-          <View style={{ marginBottom: 10, marginTop: 4, alignSelf: 'center' }} accessibilityRole="header">
+          <View style={{ marginBottom: 10, marginTop: 4, alignSelf: 'flex-start' }} accessibilityRole="header">
             <Pill label={g.label} icon="calendar-blank-outline" selected />
           </View>
           {g.list.map(e => (

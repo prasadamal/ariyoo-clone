@@ -537,7 +537,7 @@
       "evidence": [
         {
           "line": 2,
-          "text": "import { useCallback, useEffect, useMemo, useRef, useState } from 'react';"
+          "text": "import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';"
         },
         {
           "line": 66,
@@ -553,26 +553,38 @@
         },
         {
           "line": 69,
-          "text": "const [recordingTripId, setRecordingTripId] = useState<string | null>(null);"
-        },
-        {
-          "line": 70,
-          "text": "const [loaded, setLoaded] = useState(false);"
+          "text": "const [counts, setCounts] = useState<Record<TripStatus, number>>({ ongoing: 0, upcoming: 0, completed: 0 });"
         },
         {
           "line": 71,
-          "text": "const [loadingMore, setLoadingMore] = useState(false);"
+          "text": "const [listTop, setListTop] = useState(0);"
         },
         {
           "line": 72,
-          "text": "const [refreshing, setRefreshing] = useState(false);"
+          "text": "const [inList, setInList] = useState(false);"
+        },
+        {
+          "line": 73,
+          "text": "const [recordingTripId, setRecordingTripId] = useState<string | null>(null);"
         },
         {
           "line": 74,
+          "text": "const [loaded, setLoaded] = useState(false);"
+        },
+        {
+          "line": 75,
+          "text": "const [loadingMore, setLoadingMore] = useState(false);"
+        },
+        {
+          "line": 76,
+          "text": "const [refreshing, setRefreshing] = useState(false);"
+        },
+        {
+          "line": 78,
           "text": "const [showStatus, setShowStatus] = useState(false);"
         },
         {
-          "line": 147,
+          "line": 153,
           "text": "statusTimer.current = setTimeout(() => setShowStatus(false), 6000);"
         }
       ]
@@ -1780,20 +1792,16 @@
           "text": "import { useEffect, useMemo, useRef, useState } from 'react';"
         },
         {
-          "line": 35,
+          "line": 34,
           "text": "const [year, setYear] = useState(thisYear);"
         },
         {
-          "line": 36,
+          "line": 35,
           "text": "const [summary, setSummary] = useState<WrappedSummary | null>(null);"
         },
         {
-          "line": 37,
+          "line": 36,
           "text": "const [sharing, setSharing] = useState(false);"
-        },
-        {
-          "line": 58,
-          "text": "// Mood, busiest month, longest trip and spending: one short value each (no long sentences)."
         }
       ]
     },
@@ -1957,27 +1965,31 @@
       "path": "apps/wayfare-mobile/src/components/TripCard.tsx",
       "evidence": [
         {
-          "line": 37,
-          "text": "function StatusChip({ status }: { status: TripStatus }) {"
+          "line": 30,
+          "text": "// One quiet style for every status: smoked glass, white text, and a small coloured dot."
         },
         {
-          "line": 65,
-          "text": "const status = tripStatus(trip);"
+          "line": 38,
+          "text": "function StatusChip({ status, count }: { status: TripStatus; count?: number }) {"
         },
         {
           "line": 71,
+          "text": "const status = tripStatus(trip);"
+        },
+        {
+          "line": 77,
           "text": "status === 'upcoming' && until != null && until > 0"
         },
         {
-          "line": 73,
+          "line": 79,
           "text": ": status === 'ongoing' && dayOf"
         },
         {
-          "line": 86,
-          "text": "<StatusChip status={status} />"
+          "line": 93,
+          "text": "<StatusChip status={status} count={groupCount} />"
         },
         {
-          "line": 96,
+          "line": 103,
           "text": "{showUpload && trip.sync_status === 'pending' ? <Icon name=\"cloud-upload-outline\" size={16} color=\"#ffffffaa\" /> : null}"
         }
       ]
@@ -3432,11 +3444,15 @@
           "text": "status: string;"
         },
         {
-          "line": 105,
+          "line": 107,
           "text": "const addState = (country: string, state: string) => {"
         },
         {
-          "line": 159,
+          "line": 114,
+          "text": "const addPlace = (country: string, state: string, place: string | null | undefined) => {"
+        },
+        {
+          "line": 174,
           "text": "completedTrips: input.trips.filter(t => t.status === 'completed').length,"
         }
       ]

@@ -135,12 +135,13 @@ export function TripForm({ initial, submitLabel, busy, onSubmit }: Props) {
       {datesInvalid ? <HelperText type="error">The end date is before the start date.</HelperText> : null}
       <TextInput
         mode="outlined"
-        label="Travelling with (names, comma separated)"
+        label="Travelling with"
+        placeholder="Arif, Neha"
         value={v.companions}
         onChangeText={t => set({ companions: capitalizeWords(t) })}
         left={<TextInput.Icon icon="account-multiple-outline" />}
       />
-      <Text style={{ color: colors.muted, fontSize: 12, marginTop: -6 }}>Used to split expenses fairly in the Budget tab.</Text>
+      <Text style={{ color: colors.muted, fontSize: 12, marginTop: -6 }}>Names, separated by commas. Used to split costs in Budget.</Text>
       <Text style={{ fontWeight: '600', marginTop: 4 }}>Trip currency</Text>
       <ChipSelect scroll options={POPULAR_CURRENCIES.map(c => ({ value: c, label: c }))} value={v.currency} onChange={c => set({ currency: c })} />
       <TextInput

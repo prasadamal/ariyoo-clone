@@ -2,8 +2,8 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { computeBadges, sortBadges } from '../badges';
 import { cleanTrack, elevationStats, regionFor, trackDistanceKm, type TrackPoint } from '../geo';
-import { computeTravelStats, longestStreak } from '../travelStats';
-import { buildWrapped } from '../wrapped';
+import { computeTravelStats, countryPlaces, countrySummary, flagEmoji, longestStreak, stateWord } from '../travelStats';
+import { buildWrapped, whereYouWent } from '../wrapped';
 
 function climb(n: number, start = Date.parse('2026-12-21T02:00:00Z')): TrackPoint[] {
   return Array.from({ length: n }, (_, i) => ({
@@ -162,4 +162,51 @@ test('wrapped leaves out journeys that have not started yet', () => {
   const w = buildWrapped(2026, { ...input, trips: [...input.trips, upcoming] }, [], '2026-11-23');
   assert.ok(!w.destinations.includes('Ha Giang'));
   assert.equal(buildWrapped(2026, { ...input, trips: [...input.trips, upcoming] }, [], '2026-12-11').destinations.includes('Ha Giang'), true);
+});
+
+const placeEntry = (place_name: string | null, region: string | null, country_code: string | null) => ({ trip_id: 'x', recorded_at: '2026-01-01T08:00:00Z', mood: null, place_name, weather: null, latitude: null, longitude: null, region, country_code });
+
+test('places visited: states hold the places you went, each counted once', () => {
+  const stats = computeTravelStats({
+    trips: [],
+    entries: [
+      placeEntry('Munnar', 'Kerala', 'IN'),
+      placeEntry('munnar', 'Kerala', 'IN'),
+      placeEntry('Varkala Cliff', 'Kerala', 'IN'),
+      placeEntry('Leh', 'Ladakh', 'IN'),
+      placeEntry(null, 'Goa', 'IN'),
+      placeEntry('Goa', 'Goa', 'IN'),
+      placeEntry('Kandy', 'Central Province', 'LK'),
+    ],
+    trackPointsByTrip: {},
+    photos: 0,
+    voiceNotes: 0,
+  });
+  const india = countryPlaces(stats, 'IN');
+  assert.deepEqual(india.states.map(s => s.name), ['Goa', 'Kerala', 'Ladakh']);
+  assert.deepEqual(india.states.find(s => s.name === 'Kerala')!.places, ['Munnar', 'Varkala Cliff']);
+  assert.equal(india.placeCount, 3);
+  assert.equal(countrySummary('IN', india.states.length, india.placeCount), '3 states · 3 places');
+  const lk = countryPlaces(stats, 'LK');
+  assert.equal(countrySummary('LK', lk.states.length, lk.placeCount), '1 province · 1 place');
+  assert.equal(countrySummary('', 0, 0), 'Visited');
+  assert.equal(stateWord('JP', 2), 'prefectures');
+  assert.equal(stateWord('ZZ', 1), 'region');
+});
+
+test('where you went: countries when you crossed a border, else states, else destinations', () => {
+  const names = { flag: flagEmoji, country: (c: string) => ({ IN: 'India', NP: 'Nepal' } as Record<string, string>)[c] ?? c };
+  const base = computeTravelStats({ trips: [], entries: [placeEntry('Leh', 'Ladakh', 'IN'), placeEntry('Pokhara', 'Gandaki', 'NP')], trackPointsByTrip: {}, photos: 0, voiceNotes: 0 });
+  const multi = whereYouWent({ stats: base, destinations: ['Ladakh', 'Poon Hill'] }, names)!;
+  assert.equal(multi.noun, 'countries');
+  assert.equal(multi.count, 2);
+  assert.deepEqual(multi.items.map(i => i.name), ['India', 'Nepal']);
+  assert.equal(multi.items[0].flag, '🇮🇳');
+  const one = computeTravelStats({ trips: [], entries: [placeEntry('Leh', 'Ladakh', 'IN'), placeEntry('Munnar', 'Kerala', 'IN')], trackPointsByTrip: {}, photos: 0, voiceNotes: 0 });
+  const states = whereYouWent({ stats: one, destinations: [] }, names)!;
+  assert.equal(states.noun, 'states');
+  assert.deepEqual(states.items.map(i => i.name), ['Kerala', 'Ladakh']);
+  const none = computeTravelStats({ trips: [], entries: [], trackPointsByTrip: {}, photos: 0, voiceNotes: 0 });
+  assert.deepEqual(whereYouWent({ stats: none, destinations: ['Somewhere'] }, names), { count: 1, noun: 'place', items: [{ name: 'Somewhere' }] });
+  assert.equal(whereYouWent({ stats: none, destinations: [] }, names), null);
 });

@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { Pressable, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { Text } from 'react-native-paper';
 import { getDestination } from '../content/destinations';
 import { SOCIAL_ENABLED } from '../lib/features';
@@ -27,19 +27,23 @@ export function tripTypeIcon(type: string) {
   return TYPE_ICONS[type] ?? 'map-outline';
 }
 
-const STATUS: Record<TripStatus, { label: string; icon: string | null; background: string }> = {
-  ongoing: { label: 'On Going', icon: null, background: 'rgba(22,163,74,0.92)' },
-  upcoming: { label: 'Coming Soon', icon: 'calendar-month', background: 'rgba(106,1,163,0.92)' },
-  completed: { label: 'Completed', icon: 'check-circle', background: 'rgba(40,40,40,0.55)' },
+// One quiet style for every status: smoked glass, white text, and a small coloured dot.
+const STATUS: Record<TripStatus, { label: string; dot: string }> = {
+  ongoing: { label: 'On Going', dot: '#4ade80' },
+  upcoming: { label: 'Coming Soon', dot: '#d8b4fe' },
+  completed: { label: 'Completed', dot: '#e5e7eb' },
 };
 
-/** The status chip in a tile's top-left corner. */
-function StatusChip({ status }: { status: TripStatus }) {
+/** The status chip in a tile's top-left corner; with a count when the tile stands for a group. */
+function StatusChip({ status, count }: { status: TripStatus; count?: number }) {
   const s = STATUS[status];
   return (
-    <View style={{ alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999, backgroundColor: s.background, borderWidth: 1, borderColor: '#ffffff40' }}>
-      {s.icon ? <Icon name={s.icon} size={15} color="#fff" /> : <View style={{ width: 9, height: 9, borderRadius: 5, backgroundColor: '#fff' }} />}
-      <Text style={{ color: '#fff', fontWeight: '700', fontSize: 13 }}>{s.label}</Text>
+    <View style={{ alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: 11, paddingVertical: 5, borderRadius: 999, backgroundColor: 'rgba(0,0,0,0.30)', borderWidth: StyleSheet.hairlineWidth, borderColor: '#ffffff55' }}>
+      <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: s.dot }} />
+      <Text style={{ color: '#fff', fontWeight: '600', fontSize: 12, letterSpacing: 0.3 }}>{s.label}</Text>
+      {count && count > 1 ? (
+        <Text style={{ color: '#ffffffb3', fontWeight: '600', fontSize: 12 }}>· {count}</Text>
+      ) : null}
     </View>
   );
 }
@@ -53,13 +57,15 @@ type Props = {
   showUpload?: boolean;
   /** Featured tiles on top of Journeys are a little taller. */
   large?: boolean;
+  /** How many journeys this tile stands for (the newest is shown); more than one draws a stack behind it. */
+  groupCount?: number;
 };
 
 /**
  * A journey tile: its cover photo (or an illustration for its type) with a status chip, the title
  * and a line or two of details; upcoming and ongoing journeys show the day count on the right.
  */
-export function TripCard({ trip, synopsis, tracking, coverUri, showUpload = true, large = false }: Props) {
+export function TripCard({ trip, synopsis, tracking, coverUri, showUpload = true, large = false, groupCount }: Props) {
   const cover = coverUri === undefined ? trip.cover_uri : coverUri;
   const { colors } = useAppTheme();
   const status = tripStatus(trip);
@@ -74,16 +80,17 @@ export function TripCard({ trip, synopsis, tracking, coverUri, showUpload = true
         ? { value: `Day ${dayOf}`, caption: totalDays ? `of ${totalDays}` : 'on the road' }
         : null;
   const details = synopsis || [dest?.name ?? trip.destination, formatDateRange(trip.starts_on, trip.ends_on)].filter(Boolean).join(' · ') || 'Add a destination and dates';
-  return (
+  const stacked = (groupCount ?? 0) > 1;
+  const card = (
     <Pressable
       onPress={() => router.push(`/trip/${trip.id}`)}
-      style={({ pressed }) => ({ marginBottom: 14, borderRadius: 22, overflow: 'hidden', opacity: pressed ? 0.92 : 1, transform: [{ scale: pressed ? 0.99 : 1 }] })}
+      style={({ pressed }) => ({ marginBottom: stacked ? 0 : 14, borderRadius: 22, overflow: 'hidden', opacity: pressed ? 0.92 : 1, transform: [{ scale: pressed ? 0.99 : 1 }] })}
       accessibilityRole="button"
-      accessibilityLabel={`${trip.title}, ${STATUS[status].label}`}
+      accessibilityLabel={`${trip.title}, ${STATUS[status].label}${stacked ? `, newest of ${groupCount}` : ''}`}
     >
       <TripCover uri={cover} art={coverArtFor(trip.trip_type)} gradient={[colors.heroStart, colors.heroEnd]} style={{ borderRadius: 22, padding: 18, minHeight: large ? 190 : 160, justifyContent: 'space-between' }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <StatusChip status={status} />
+          <StatusChip status={status} count={groupCount} />
           <View style={{ flex: 1 }} />
           {tracking ? <Pill icon="record-circle" label="Recording" color="#fff" background="#dc2626" /> : null}
           {SOCIAL_ENABLED && trip.open_to_meet ? <Icon name="account-group" size={18} color="#fff" /> : null}
@@ -124,5 +131,15 @@ export function TripCard({ trip, synopsis, tracking, coverUri, showUpload = true
         </View>
       </TripCover>
     </Pressable>
+  );
+  if (!stacked) return card;
+  // A group: two cards peek out underneath, like a small deck of journeys.
+  return (
+    <View style={{ marginBottom: 30 }}>
+      {/* Drawn first so they sit behind the tile. */}
+      <View style={{ position: 'absolute', left: 28, right: 28, bottom: -14, height: 40, borderRadius: 18, backgroundColor: colors.onSurface, opacity: 0.07 }} />
+      <View style={{ position: 'absolute', left: 14, right: 14, bottom: -7, height: 40, borderRadius: 20, backgroundColor: colors.onSurface, opacity: 0.14 }} />
+      {card}
+    </View>
   );
 }
