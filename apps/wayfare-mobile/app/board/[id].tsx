@@ -9,7 +9,7 @@ import { MEETUP_SAFETY } from '../../src/content/safety';
 import { useAuth } from '../../src/context/AuthContext';
 import { useInbox } from '../../src/context/InboxContext';
 import { useToast } from '../../src/context/ToastContext';
-import { displayName, formatDateRange, timeAgo } from '../../src/lib/format';
+import { displayName, formatDateRange, timeAgoPhrase } from '../../src/lib/format';
 import {
   boardKindMeta,
   deleteBoardPost,
@@ -156,7 +156,7 @@ function BoardDetail({ id }: { id: string }) {
         {post.budget_level ? <Pill icon="wallet-outline" label={post.budget_level} /> : null}
       </View>
       {post.body ? <Text style={{ marginTop: 14, lineHeight: 22 }}>{post.body}</Text> : null}
-      <UserRow id={post.user_id} username={post.author_username} name={post.author_display_name} avatarPath={post.author_avatar_path} tier={post.author_tier} subtitle={`Organiser · posted ${timeAgo(post.created_at)} ago`} />
+      <UserRow id={post.user_id} username={post.author_username} name={post.author_display_name} avatarPath={post.author_avatar_path} tier={post.author_tier} subtitle={`Organiser · posted ${timeAgoPhrase(post.created_at)}`} />
 
       {post.conversation_id ? (
         <Button mode="contained" icon="forum-outline" style={{ marginTop: 12 }} onPress={() => router.push(`/chat/${post.conversation_id}`)}>

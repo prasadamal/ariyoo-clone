@@ -662,8 +662,9 @@ async function runSync(userId: string): Promise<SyncResult> {
   await pullEntryMedia(userId, result, sharedTripIds, accessVerified);
   await pushEntryMedia(userId, result);
 
-  // Server-verified stats (distance / altitude / tier) — best effort.
-  if (result.pushed.track_points > 0 || result.pushed.trips > 0) {
+  // Server-verified stats (distance / altitude / tier) — best effort. Also after routes come down
+  // (a new phone), so the tier matches the routes you can see.
+  if (result.pushed.track_points > 0 || result.pushed.trips > 0 || result.pulled.track_points > 0) {
     await supabase.rpc('refresh_my_stats').then(
       () => undefined,
       () => undefined

@@ -3,7 +3,7 @@ import { View } from 'react-native';
 import { IconButton, Text, TextInput } from 'react-native-paper';
 import { getRates, type RatesSnapshot } from '../../src/lib/currency';
 import { POPULAR_CURRENCIES, convert, formatMoney } from '../../src/lib/currencyMath';
-import { timeAgo } from '../../src/lib/format';
+import { timeAgoPhrase } from '../../src/lib/format';
 import { useAppTheme } from '../../src/theme';
 import { ChipSelect } from '../../src/ui/ChipSelect';
 import { Notice } from '../../src/ui/Notice';
@@ -85,7 +85,7 @@ export default function CurrencyScreen() {
       ) : null}
       {rates ? (
         <Text style={{ color: colors.muted, fontSize: 12, marginTop: 12 }}>
-          Mid-market rates from {rates.source}, updated {timeAgo(rates.fetchedAt)} ago. Card and exchange-counter rates will differ. Pull to refresh.
+          Mid-market rates from {rates.source}, updated {timeAgoPhrase(rates.fetchedAt)}. Card and exchange-counter rates will differ. Pull to refresh.
         </Text>
       ) : null}
     </Screen>

@@ -5,7 +5,7 @@ import { Button, Dialog, IconButton, Portal, Text, TextInput } from 'react-nativ
 import { uuid } from '../../lib/id';
 import { getRates, type RatesSnapshot } from '../../lib/currency';
 import { formatMoney, sumInCurrency } from '../../lib/currencyMath';
-import { formatDay, timeAgo } from '../../lib/format';
+import { formatDay, timeAgoPhrase } from '../../lib/format';
 import { deleteExpense, listExpenses, updateTrip, upsertExpense, type LocalExpense, type LocalTrip } from '../../lib/localDb';
 import { computeBalances, isSpending, ME, parseCompanions, parseSplitWith, SETTLEMENT, settlementFor, settleUp } from '../../lib/split';
 import { useAppTheme } from '../../theme';
@@ -255,7 +255,7 @@ export function BudgetTab({ trip, onChanged, readOnly = false }: Props) {
           <Notice tone="warning" text={`${total.unconverted.join(', ')} not included — connect once to download exchange rates.`} />
         ) : rates && expenses.some(e => e.currency !== tripCurrency) ? (
           <Text style={{ color: colors.muted, fontSize: 11, marginTop: 6 }}>
-            Converted with {rates.source} rates from {timeAgo(rates.fetchedAt)} ago.
+            Converted with {rates.source} rates from {timeAgoPhrase(rates.fetchedAt)}.
           </Text>
         ) : null}
         {byCategory.length && showCategories ? (

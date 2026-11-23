@@ -1,5 +1,11 @@
 /** Pure display helpers. */
 
+/** "just now", or "5m ago" — for sentences ("last sync 5m ago"), never "just now ago". */
+export function timeAgoPhrase(iso: string | null | undefined, now: Date = new Date()) {
+  const t = timeAgo(iso, now);
+  return !t || t === 'just now' ? t : `${t} ago`;
+}
+
 export function timeAgo(iso: string | null | undefined, now: Date = new Date()) {
   if (!iso) return '';
   const then = new Date(iso).getTime();

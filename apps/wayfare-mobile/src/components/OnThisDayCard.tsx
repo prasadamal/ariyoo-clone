@@ -12,7 +12,7 @@ import { Icon } from '../ui/Icon';
  * "On this day": what you wrote on today's date in earlier years, as one small card. Nothing shows
  * when there's no memory for today.
  */
-export function OnThisDayCard() {
+export function OnThisDayCard({ refreshKey }: { refreshKey?: string | null }) {
   const { colors } = useAppTheme();
   const [memory, setMemory] = useState<{ group: MemoryGroup<LocalEntry>; trip: LocalTrip | null } | null>(null);
 
@@ -30,7 +30,7 @@ export function OnThisDayCard() {
       return () => {
         active = false;
       };
-    }, [])
+    }, [refreshKey])
   );
 
   if (!memory) return null;

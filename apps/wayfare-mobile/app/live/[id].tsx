@@ -5,7 +5,7 @@ import MapView, { Circle, Marker } from 'react-native-maps';
 import { googleMapsApiKey } from '../../src/config';
 import { mapsSupported } from '../../src/lib/mapSupport';
 import { ActivityIndicator, Button, Text } from 'react-native-paper';
-import { timeAgo } from '../../src/lib/format';
+import { timeAgo, timeAgoPhrase } from '../../src/lib/format';
 import { fetchLiveShare, type LiveShareView } from '../../src/lib/liveShare';
 import { mapsLink } from '../../src/lib/sosMessage';
 import { useAppTheme } from '../../src/theme';
@@ -43,7 +43,7 @@ export default function LiveViewerScreen() {
       {data.active ? (
         <Notice tone="success" icon="broadcast" text={`Live · updated ${timeAgo(data.updated_at)} · until ${new Date(data.expires_at).toLocaleString('en-IN', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' })}`} />
       ) : (
-        <Notice tone="warning" text={`Sharing ended. Last position from ${timeAgo(data.updated_at)} ago.`} />
+        <Notice tone="warning" text={`Sharing ended. Last position from ${timeAgoPhrase(data.updated_at)}.`} />
       )}
       {region && mapsSupported(Platform.OS, googleMapsApiKey) ? (
         <View style={{ height: 360, borderRadius: 18, overflow: 'hidden', marginTop: 8 }}>

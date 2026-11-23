@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { applyTripFilter, featuredTrips, pickNextUp, recentFirst, tripStatus } from '../tripList';
+import { applyTripFilter, featuredTrips, pickNextUp, recentFirst, statusCounts, tripStatus } from '../tripList';
 
 const today = new Date('2026-11-22T10:00:00');
 const trip = (id: string, starts_on: string | null, ends_on: string | null = starts_on, status = 'active') => ({ id, starts_on, ends_on, status });
@@ -43,4 +43,16 @@ test('three featured tiles: on the road, next up, most recently finished', () =>
   assert.equal(tripStatus(t('x', null, null), today), 'upcoming');
   assert.deepEqual(featuredTrips([t('plan', null, null)], today), { ongoing: null, upcoming: trips[6], completed: null });
   assert.deepEqual(recentFirst(trips).map(x => x.id), ['later', 'done-early', 'soon', 'now', 'plan', 'past-new', 'past-old']);
+});
+
+test('status counts group every journey once', () => {
+  const today = new Date('2026-11-23T10:00:00');
+  const trips = [
+    { id: 'a', status: 'active', starts_on: '2026-11-22', ends_on: '2026-11-26' },
+    { id: 'b', status: 'active', starts_on: '2026-12-15', ends_on: '2026-12-22' },
+    { id: 'c', status: 'active', starts_on: null, ends_on: null },
+    { id: 'd', status: 'completed', starts_on: '2026-03-12', ends_on: '2026-03-16' },
+    { id: 'e', status: 'active', starts_on: '2026-01-01', ends_on: '2026-01-03' },
+  ];
+  assert.deepEqual(statusCounts(trips, today), { ongoing: 1, upcoming: 2, completed: 2 });
 });

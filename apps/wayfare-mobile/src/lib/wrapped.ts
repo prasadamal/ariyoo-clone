@@ -1,6 +1,6 @@
 /** "Year in travel" summary (pure). */
 import { getDestination } from '../content/destinations';
-import { computeTravelStats, type StatsInput, type TravelStats } from './travelStats';
+import { computeTravelStats, stateWord, type StatsInput, type TravelStats } from './travelStats';
 import { parseDay } from './format';
 
 export type Persona = { title: string; blurb: string; icon: string };
@@ -54,10 +54,19 @@ function inYear(iso: string | null | undefined, year: number) {
 
 export type DatedMedia = { at: string; audio: boolean };
 
-export function buildWrapped(year: number, input: StatsInput, media: DatedMedia[] = []): WrappedSummary {
+export function buildWrapped(
+  year: number,
+  input: StatsInput,
+  media: DatedMedia[] = [],
+  today: string = new Date().toISOString().slice(0, 10)
+): WrappedSummary {
   const entries = input.entries.filter(e => inYear(e.recorded_at, year));
   const tripIds = new Set(entries.map(e => e.trip_id));
-  const trips = input.trips.filter(t => tripIds.has(t.id) || inYear(t.starts_on, year) || inYear(t.ends_on, year));
+  // A journey you haven't set off on yet isn't part of the year you travelled.
+  const started = (t: { starts_on?: string | null }) => !t.starts_on || t.starts_on.slice(0, 10) <= today;
+  const trips = input.trips.filter(
+    t => tripIds.has(t.id) || (started(t) && (inYear(t.starts_on, year) || inYear(t.ends_on, year)))
+  );
   const tripIdSet = new Set(trips.map(t => t.id));
   const trackPointsByTrip: StatsInput['trackPointsByTrip'] = {};
   for (const [tripId, points] of Object.entries(input.trackPointsByTrip)) {
@@ -107,4 +116,28 @@ export function buildWrapped(year: number, input: StatsInput, media: DatedMedia[
     persona: personaFor(stats),
     highlights,
   };
+}
+
+/**
+ * "Where you went" on the year card, as a statement: the countries if you crossed a border,
+ * otherwise the states, otherwise the destinations. Every one is shown (no "+N").
+ */
+export type WhereYouWent = { count: number; noun: string; items: { flag?: string; name: string }[] };
+export function whereYouWent(
+  w: Pick<WrappedSummary, 'stats' | 'destinations'>,
+  names: { flag: (code: string) => string; country: (code: string) => string }
+): WhereYouWent | null {
+  const s = w.stats;
+  if (s.countryCodes.length >= 2) {
+    return { count: s.countryCodes.length, noun: 'countries', items: s.countryCodes.map(c => ({ flag: names.flag(c), name: names.country(c) })) };
+  }
+  if (s.states.length >= 1) {
+    const code = s.countryCodes[0] ?? '';
+    const noun = s.states.length === 1 ? stateWord(code, 1) : stateWord(code, 2);
+    return { count: s.states.length, noun, items: s.states.map(name => ({ name })) };
+  }
+  if (w.destinations.length) {
+    return { count: w.destinations.length, noun: w.destinations.length === 1 ? 'place' : 'places', items: w.destinations.map(name => ({ name })) };
+  }
+  return null;
 }

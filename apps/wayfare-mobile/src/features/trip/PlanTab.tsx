@@ -28,6 +28,8 @@ export function PlanTab({ trip, onChanged, readOnly = false }: Props) {
   const [drafts, setDrafts] = useState<Record<number, { title: string; time: string }>>({});
   const [forecast, setForecast] = useState<Record<string, ForecastDay>>({});
   const [menuDay, setMenuDay] = useState<number | null>(null);
+  // Only the day you're adding to shows the time and plan boxes; the rest show a small "Add a plan" link.
+  const [openDay, setOpenDay] = useState<number | null>(null);
   const [editing, setEditing] = useState<LocalItineraryItem | null>(null);
   const [editTitle, setEditTitle] = useState('');
   const [editTime, setEditTime] = useState('');
@@ -219,7 +221,17 @@ export function PlanTab({ trip, onChanged, readOnly = false }: Props) {
                 )}
               </Pressable>
             ))}
-            {readOnly ? null : (
+            {readOnly ? null : openDay !== day.index && !draft.title && !draft.time ? (
+              <Pressable
+                onPress={() => setOpenDay(day.index)}
+                accessibilityRole="button"
+                accessibilityLabel={`Add a plan to day ${day.index + 1}`}
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 8, paddingHorizontal: 4 }}
+              >
+                <Icon name="plus" size={18} color={colors.primary} />
+                <Text style={{ color: colors.primary, fontWeight: '700' }}>Add a plan</Text>
+              </Pressable>
+            ) : (
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 }}>
               <TextInput
                 dense
@@ -235,6 +247,7 @@ export function PlanTab({ trip, onChanged, readOnly = false }: Props) {
                 dense
                 mode="outlined"
                 placeholder="Add a stop or plan…"
+                autoFocus={openDay === day.index}
                 value={draft.title}
                 onChangeText={t => setDrafts(prev => ({ ...prev, [day.index]: { ...draft, title: t } }))}
                 style={{ flex: 1 }}
