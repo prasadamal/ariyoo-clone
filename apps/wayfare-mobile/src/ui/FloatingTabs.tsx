@@ -1,4 +1,4 @@
-import { Pressable, ScrollView, View, type StyleProp, type ViewStyle } from 'react-native';
+import { Pressable, View, type StyleProp, type ViewStyle } from 'react-native';
 import { Text } from 'react-native-paper';
 import { useAppTheme } from '../theme';
 
@@ -6,7 +6,8 @@ export type FloatingTab<T extends string> = { value: T; label: string; leading?:
 
 /**
  * A floating segmented toggle: a raised rounded tray with one pill per option; the chosen pill is
- * filled with the brand colour. Scrolls sideways when there are many options (countries).
+ * filled with the brand colour. Many options (countries) wrap onto more rows. A plain row, not a
+ * horizontal ScrollView: inside a scrolling page Android let that ScrollView stretch to full height.
  */
 export function FloatingTabs<T extends string>({
   tabs,
@@ -30,7 +31,7 @@ export function FloatingTabs<T extends string>({
         {
           alignSelf: 'flex-start',
           maxWidth: '100%',
-          borderRadius: 999,
+          borderRadius: 24,
           backgroundColor: colors.surface,
           padding: 4,
           shadowColor: colors.primary,
@@ -42,7 +43,7 @@ export function FloatingTabs<T extends string>({
         style,
       ]}
     >
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 4 }}>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 4 }}>
         {tabs.map(t => {
           const on = t.value === value;
           return (
@@ -52,6 +53,8 @@ export function FloatingTabs<T extends string>({
               accessibilityRole="tab"
               accessibilityState={{ selected: on }}
               style={({ pressed }) => ({
+                flexGrow: 0,
+                alignSelf: 'center',
                 flexDirection: 'row',
                 alignItems: 'center',
                 gap: 6,
@@ -67,7 +70,7 @@ export function FloatingTabs<T extends string>({
             </Pressable>
           );
         })}
-      </ScrollView>
+      </View>
     </View>
   );
 }
