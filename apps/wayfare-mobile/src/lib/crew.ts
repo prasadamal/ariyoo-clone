@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { inviteLinkUrl } from '../config';
 import { forgetTrip, setTripShare } from './localDb';
 import { supabase } from './supabase';
 
@@ -72,6 +73,32 @@ export async function addCrew(tripId: string, handle: string, role: 'admin' | 'm
   const { error } = await supabase.rpc('add_trip_member', { p_trip: tripId, p_username: handle, p_role: role });
   if (error) throw error;
   await refreshCount(tripId);
+}
+
+/** A link anyone can open to join this journey as a member (valid 7 days, up to 10 people). */
+export async function createInviteLink(tripId: string): Promise<string> {
+  if (!supabase) throw new Error('Cloud is not configured');
+  const { data, error } = await supabase.rpc('create_trip_invite', { p_trip: tripId });
+  if (error) throw error;
+  return inviteLinkUrl(String(data));
+}
+
+export type InvitePreview = { trip_id: string; title: string; invited_by: string };
+
+/** What an invite is for, before joining. Null when the link has expired or was used up. */
+export async function previewInvite(token: string): Promise<InvitePreview | null> {
+  if (!supabase) throw new Error('Cloud is not configured');
+  const { data, error } = await supabase.rpc('preview_trip_invite', { p_token: token });
+  if (error) throw error;
+  return ((data as InvitePreview[] | null) ?? [])[0] ?? null;
+}
+
+/** Joins the journey from an invite link; returns its id. */
+export async function acceptInvite(token: string): Promise<string> {
+  if (!supabase) throw new Error('Cloud is not configured');
+  const { data, error } = await supabase.rpc('accept_trip_invite', { p_token: token });
+  if (error) throw error;
+  return String(data);
 }
 
 export async function removeCrew(tripId: string, userId: string) {

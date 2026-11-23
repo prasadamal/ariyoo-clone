@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, RefreshControl, View } from 'react-native';
 import { IconButton, Text } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { OnThisDayCard } from '../../src/components/OnThisDayCard';
 import { TripCard } from '../../src/components/TripCard';
 import { useAuth } from '../../src/context/AuthContext';
 import { useSync } from '../../src/context/SyncContext';
@@ -181,6 +182,7 @@ export default function JourneysTab() {
         {user ? (
           <IconButton icon={syncing ? 'cloud-sync' : 'cloud-sync-outline'} onPress={backUp} disabled={syncing} accessibilityLabel="Back up now" />
         ) : null}
+        <IconButton icon="magnify" onPress={() => router.push('/find' as never)} accessibilityLabel="Search your journal" />
         <IconButton icon="shield-alert-outline" iconColor={colors.danger} onPress={() => router.push('/safety')} accessibilityLabel="Safety and SOS" />
       </View>
 
@@ -188,6 +190,8 @@ export default function JourneysTab() {
       <View style={{ flexDirection: 'row', marginTop: 6 }}>
         <Pill icon="party-popper" label={`${new Date().getFullYear()} so far`} onPress={() => router.push('/wrapped')} />
       </View>
+
+      <OnThisDayCard />
 
       {recordingTrip ? (
         <Pressable onPress={() => router.push(`/trip/${recordingTrip.id}`)} accessibilityRole="button">

@@ -1,4 +1,5 @@
 import { useFocusEffect } from 'expo-router';
+import { isSpending } from './split';
 import { useCallback, useState } from 'react';
 import { journeysOnly } from './everydayMemories';
 import { getDb, listAllEntries, listAllExpenses, listAllTrackPoints, listTrips } from './localDb';
@@ -21,7 +22,7 @@ export async function loadStatsInput(): Promise<{ input: StatsInput; media: Date
     'SELECT updated_at, mime_type FROM entry_media WHERE author_id IS NULL'
   );
   const mineEntries = entries.filter(e => !e.author_id);
-  const mineExpenses = expenses.filter(e => !e.author_id);
+  const mineExpenses = expenses.filter(e => !e.author_id && isSpending(e));
   const myTrips = trips.filter(t => t.my_role !== 'member');
   const trackPointsByTrip: StatsInput['trackPointsByTrip'] = {};
   for (const p of points) (trackPointsByTrip[p.trip_id] ??= []).push(p);

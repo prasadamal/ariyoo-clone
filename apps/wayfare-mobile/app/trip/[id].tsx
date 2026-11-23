@@ -1,8 +1,9 @@
 import { router, Stack, useLocalSearchParams, useFocusEffect } from 'expo-router';
+import { exportPhotoBook } from '../../src/lib/photoBook';
 import { Image as ExpoImage } from 'expo-image';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, Pressable, ScrollView, View } from 'react-native';
-import { ActivityIndicator, Menu, Text } from 'react-native-paper';
+import { ActivityIndicator, Button, Menu, Text } from 'react-native-paper';
 import { tripTypeIcon } from '../../src/components/TripCard';
 import { getDestination } from '../../src/content/destinations';
 import { useAuth, useCanConnect, useSocial } from '../../src/context/AuthContext';
@@ -265,7 +266,17 @@ export default function TripDetailScreen() {
                 }}
               />
             ) : null}
+            <Menu.Item leadingIcon="image-outline" title="Share recap image" onPress={() => { setMenu(false); router.push(`/trip/recap/${trip.id}` as never); }} />
             <Menu.Item leadingIcon="file-pdf-box" title="Export PDF journal" onPress={() => { setMenu(false); exportPdf(); }} />
+            <Menu.Item
+              leadingIcon="book-open-page-variant-outline"
+              title="Photo book (PDF to print)"
+              onPress={() => {
+                setMenu(false);
+                toast('Making your photo book…');
+                exportPhotoBook(trip).catch(e => toast(e instanceof Error ? e.message : 'Could not make the photo book'));
+              }}
+            />
             {canEdit ? (
               <Menu.Item
                 leadingIcon={trip.status === 'completed' ? 'restore' : 'flag-checkered'}
@@ -308,6 +319,31 @@ export default function TripDetailScreen() {
           </View>
         ) : null}
       </TripCover>
+
+      {/* The journey's dates are over: wrap it up, and share the recap. */}
+      {!everyday && canEdit && trip.status !== 'completed' && tripPhase(trip.starts_on, trip.ends_on) === 'past' ? (
+        <View style={{ marginTop: 14, padding: 14, borderRadius: 18, backgroundColor: colors.primaryContainer }}>
+          <Text style={{ fontWeight: '800', fontSize: 16, color: colors.onPrimaryContainer }}>This journey is over 🎉</Text>
+          <Text style={{ color: colors.onPrimaryContainer, marginTop: 2 }}>Mark it complete and share a recap of it.</Text>
+          <View style={{ flexDirection: 'row', gap: 8, marginTop: 10 }}>
+            <Button
+              mode="contained"
+              compact
+              onPress={async () => {
+                const next = await updateTrip(trip.id, { status: 'completed' });
+                if (next) setTrip(next);
+                refreshPending();
+                router.push(`/trip/recap/${trip.id}` as never);
+              }}
+            >
+              Complete & see recap
+            </Button>
+            <Button compact onPress={() => router.push(`/trip/recap/${trip.id}` as never)}>
+              Just the recap
+            </Button>
+          </View>
+        </View>
+      ) : null}
 
       <View style={{ marginVertical: 14 }}>
         <TabStrip tabs={tabs} value={tabs.some(t => t.value === tab) ? tab : 'journal'} onChange={setTab} />

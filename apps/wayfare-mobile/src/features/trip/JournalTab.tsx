@@ -1,4 +1,5 @@
 import { useAudioRecorder } from 'expo-audio';
+import { track } from '../../lib/telemetry';
 import * as Haptics from 'expo-haptics';
 import * as Location from 'expo-location';
 import { router } from 'expo-router';
@@ -22,6 +23,7 @@ import { MomentComposer, type MomentMoney } from './MomentComposer';
 import { pickPhotos, type PickedPhoto } from './photoPicker';
 import { Pill } from '../../ui/Pill';
 import { datePills } from './dayStripCells';
+import { PhotoGrid } from './PhotoGrid';
 import { placeFromCoords, type FoundPlace } from '../../lib/reverseGeocode';
 import { canEditTrip, isSharedTrip } from '../../lib/crew';
 import { Notice } from '../../ui/Notice';
@@ -65,7 +67,10 @@ export function JournalTab({ trip, onChanged, everyday = false, crewNames = {}, 
   // Which day's moments are shown (null: every day), and in which order.
   const [dayFilter, setDayFilter] = useState<string | null>(null);
   const [newestFirst, setNewestFirst] = useState(false);
-  const [sortOpen, setSortOpen] = useState(false);  const [money, setMoney] = useState<MomentMoney | null>(null);
+  const [sortOpen, setSortOpen] = useState(false);
+  // Moments as a list, or every photo as a grid.
+  const [grid, setGrid] = useState(false);  const [money, setMoney] = useState<MomentMoney | null>(null);
+  const [typedPlace, setTypedPlace] = useState<FoundPlace | null>(null);
   const [expenses, setExpenses] = useState<LocalExpense[]>([]);
   const [photos, setPhotos] = useState<PickedPhoto[]>([]);
   const [saving, setSaving] = useState(false);
@@ -166,7 +171,8 @@ export function JournalTab({ trip, onChanged, everyday = false, crewNames = {}, 
     const now = new Date().toISOString();
     let weather: string | null = null;
     let coords: Location.LocationObjectCoords | null = null;
-    let place: FoundPlace | null = null;
+    // A place typed or picked from the list (no GPS needed).
+    let place: FoundPlace | null = typedPlace;
     if (attachContext) {
       try {
         coords = await currentFix();
@@ -224,10 +230,12 @@ export function JournalTab({ trip, onChanged, everyday = false, crewNames = {}, 
       }
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => undefined);
       setText('');
+      void track('moment_added');
       setMood('');
       setPhotos([]);
       setVoices([]);
       setMoney(null);
+      setTypedPlace(null);
       // A new moment is the latest, so it sits at the end: show everything down to it.
       if (!everyday) setLimit(total + 1);
       await load();
@@ -355,6 +363,8 @@ export function JournalTab({ trip, onChanged, everyday = false, crewNames = {}, 
         onAddPhotos={addPhotosToDraft}
         money={money}
         onMoney={setMoney}
+        place={typedPlace}
+        onPlace={setTypedPlace}
         currencySymbol={symbol}
         recording={recording}
         voiceCount={voices.length}
@@ -406,6 +416,13 @@ export function JournalTab({ trip, onChanged, everyday = false, crewNames = {}, 
           <Text style={{ flex: 1, color: colors.muted, fontWeight: '700', fontSize: 13 }}>
             {dayFilter ? `${entries.length} ${entries.length === 1 ? 'moment' : 'moments'} this day` : `${total || entries.length} ${(total || entries.length) === 1 ? 'moment' : 'moments'}`}
           </Text>
+          <IconButton
+            icon={grid ? 'view-agenda-outline' : 'view-grid-outline'}
+            size={20}
+            onPress={() => setGrid(g => !g)}
+            accessibilityLabel={grid ? 'Show moments as a list' : 'Show photos as a grid'}
+            style={{ margin: 0 }}
+          />
           <Menu
             visible={sortOpen}
             onDismiss={() => setSortOpen(false)}
@@ -417,7 +434,8 @@ export function JournalTab({ trip, onChanged, everyday = false, crewNames = {}, 
         </View>
       ) : null}
 
-      {groups.slice(-shownDays).map(g => (
+      {grid ? <PhotoGrid tripId={trip.id} refreshKey={mediaKey} /> : null}
+      {(grid ? [] : groups.slice(-shownDays)).map(g => (
         <View
           key={g.day}
           onLayout={e => {
@@ -451,7 +469,7 @@ export function JournalTab({ trip, onChanged, everyday = false, crewNames = {}, 
           ))}
         </View>
       ))}
-      {hasMore ? (
+      {hasMore && !grid ? (
         <View style={{ alignItems: 'center', paddingVertical: 16 }}>
           {loadingMore ? (
             <ActivityIndicator color={colors.primary} accessibilityLabel="Loading more moments" />

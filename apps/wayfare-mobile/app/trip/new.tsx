@@ -1,4 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router';
+import { track } from '../../src/lib/telemetry';
 import { useMemo, useState } from 'react';
 import { uuid } from '../../src/lib/id';
 import { getDestination } from '../../src/content/destinations';
@@ -61,6 +62,7 @@ export default function NewTripScreen() {
         // Upload now so matching (and match notifications) work immediately.
         await pushTripNow(user.id, id).catch(() => toast('Saved offline — matching starts once you are online.'));
       }
+      void track('trip_created');
       router.replace(`/trip/${id}`);
     } catch (e) {
       toast(e instanceof Error ? e.message : 'Could not create journey');

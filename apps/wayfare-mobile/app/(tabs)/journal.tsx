@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
+import { track } from '../../src/lib/telemetry';
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -23,10 +23,12 @@ import { useToast } from '../../src/context/ToastContext';
 import { DIARY_LINE_HEIGHT, DIARY_THEMES, diaryTheme, type DiaryTheme, type DiaryThemeId } from '../../src/features/diary/diaryThemes';
 import { dayOf, diarySheets, pageIndexFor, todayPageKeys, type DiarySheet } from '../../src/features/diary/diaryPages';
 import { pickPhotos } from '../../src/features/trip/photoPicker';
+import { MoodCalendar } from '../../src/features/diary/MoodCalendar';
+import { writingStreak } from '../../src/features/diary/moodCalendarRules';
 import { ensureEverydayTrip } from '../../src/lib/everyday';
 import { formatDay } from '../../src/lib/format';
 import { uuid } from '../../src/lib/id';
-import { deleteEntry, listEntries, listEntryMedia, updateTrip, upsertEntry, upsertEntryMedia, type LocalEntry, type LocalTrip } from '../../src/lib/localDb';
+import { deleteEntry, listAllEntries, listEntries, listEntryMedia, updateTrip, upsertEntry, upsertEntryMedia, type LocalEntry, type LocalTrip } from '../../src/lib/localDb';
 import { persistJournalPhoto } from '../../src/lib/media';
 import { capitalizeWords } from '../../src/lib/names';
 import { parseRich, RICH_COLORS, toggleLine, toggleWrap, type RichColor, type RichLine, type Selection } from '../../src/lib/richText';
@@ -216,6 +218,7 @@ export default function DiaryScreen() {
         };
         await upsertEntry(created);
         entryByKey.current[key] = created;
+        void track('diary_written');
       }
       refreshPending();
     },
@@ -239,6 +242,12 @@ export default function DiaryScreen() {
   );
 
   const sheets = useMemo(() => diarySheets(entries, today, todayKeys), [entries, today, todayKeys]);
+  // Moods from every moment you wrote (journeys too), for the calendar; the diary's own writing streak.
+  const [moodEntries, setMoodEntries] = useState<LocalEntry[]>([]);
+  useEffect(() => {
+    if (pickerOpen) listAllEntries().then(all => setMoodEntries(all.filter(e => !e.author_id))).catch(() => setMoodEntries(entries));
+  }, [pickerOpen, entries]);
+  const streak = useMemo(() => writingStreak(entries.filter(e => !e.author_id), today), [entries, today]);
   const active = sheets[page] ?? sheets[0];
   const activeKey = active?.editable ? active.key : null;
 
@@ -294,19 +303,7 @@ export default function DiaryScreen() {
     if (!exact) toast(`Nothing written on ${formatDay(day)} — showing ${index === 0 ? 'today' : formatDay(days[index].day)}`);
   };
 
-  const openPicker = () => {
-    const current = new Date(`${active?.day ?? today}T12:00:00`);
-    if (Platform.OS === 'android') {
-      DateTimePickerAndroid.open({
-        value: current,
-        mode: 'date',
-        maximumDate: new Date(),
-        onChange: (e, d) => {
-          if (e.type === 'set' && d) goTo(dayOf(d));
-        },
-      });
-    } else setPickerOpen(true);
-  };
+  const openPicker = () => setPickerOpen(true);
 
   // One tap: the next paper style.
   const nextTheme = () => {
@@ -542,11 +539,11 @@ export default function DiaryScreen() {
             </Pressable>
           )}
           <Text style={{ color: colors.muted, fontSize: 13, marginTop: 2 }}>
-            {active?.editable ? (page < sheets.length - 1 ? 'Today · swipe right for earlier pages' : 'Today') : `${formatDay(active?.day ?? today)} · read only`}
+            {active?.editable ? `Today${streak >= 2 ? ` · 🔥 ${streak}-day streak` : ''}${page < sheets.length - 1 ? ' · swipe right for earlier pages' : ''}` : `${formatDay(active?.day ?? today)} · read only`}
           </Text>
         </View>
         {page !== 0 ? <IconButton icon="calendar-today" onPress={() => goTo(today)} accessibilityLabel="Back to today" /> : null}
-        <IconButton icon="calendar-search" onPress={openPicker} accessibilityLabel="Go to a date" />
+        <IconButton icon="calendar-month-outline" onPress={openPicker} accessibilityLabel="Mood calendar: go to a day" />
         <IconButton icon="palette-outline" onPress={nextTheme} accessibilityLabel={`Diary style: ${theme.name}. Tap for the next one`} />
       </View>
 
@@ -571,42 +568,8 @@ export default function DiaryScreen() {
         />
       </View>
 
-      {/* iPhone and web: a date picker sheet (Android uses its own pop-up calendar). */}
-      {Platform.OS === 'ios' ? (
-        <Modal visible={pickerOpen} transparent animationType="fade" onRequestClose={() => setPickerOpen(false)}>
-          <Pressable style={{ flex: 1, backgroundColor: '#0006', justifyContent: 'flex-end' }} onPress={() => setPickerOpen(false)}>
-            <View style={{ backgroundColor: colors.surface, padding: 16, borderTopLeftRadius: 20, borderTopRightRadius: 20 }}>
-              <DateTimePicker
-                value={new Date(`${active?.day ?? today}T12:00:00`)}
-                mode="date"
-                display="inline"
-                maximumDate={new Date()}
-                onChange={(_, d) => {
-                  if (d) {
-                    setPickerOpen(false);
-                    goTo(dayOf(d));
-                  }
-                }}
-              />
-            </View>
-          </Pressable>
-        </Modal>
-      ) : (
-        <Portal>
-          <Dialog visible={pickerOpen} onDismiss={() => setPickerOpen(false)}>
-            <Dialog.Title>Go to a day</Dialog.Title>
-            <Dialog.ScrollArea style={{ maxHeight: 360 }}>
-              <ScrollView>
-                {days.map((p, i) => (
-                  <Button key={p.day} onPress={() => { setPickerOpen(false); goTo(p.day); }} style={{ alignItems: 'flex-start' }}>
-                    {i === 0 ? 'Today' : longDate(p.day)}
-                  </Button>
-                ))}
-              </ScrollView>
-            </Dialog.ScrollArea>
-          </Dialog>
-        </Portal>
-      )}
+      {/* The month at a glance: moods and written days; tap one to open it. */}
+      <MoodCalendar visible={pickerOpen} onClose={() => setPickerOpen(false)} entries={moodEntries} today={today} onPick={goTo} />
     </KeyboardAvoidingView>
   );
 }
