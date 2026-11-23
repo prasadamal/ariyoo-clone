@@ -21,6 +21,8 @@ import { MomentCard } from './MomentCard';
 import { MomentComposer, type MomentMoney } from './MomentComposer';
 import { pickPhotos, type PickedPhoto } from './photoPicker';
 import { Pill } from '../../ui/Pill';
+import { DayStrip } from './DayStrip';
+import { dayStripCells } from './dayStripCells';
 import { placeFromCoords, type FoundPlace } from '../../lib/reverseGeocode';
 import { canEditTrip } from '../../lib/crew';
 import { Notice } from '../../ui/Notice';
@@ -318,6 +320,12 @@ export function JournalTab({ trip, onChanged, everyday = false, crewNames = {}, 
   // Every day of the journey (not just the loaded ones), for the strip of Day 1, Day 2… to jump to.
   const allDays = useMemo(() => [...new Set(times.map(t => toDayString(new Date(t))))], [times]);
 
+  const stripCells = useMemo(() => dayStripCells(trip.starts_on, trip.ends_on, allDays), [trip.starts_on, trip.ends_on, allDays]);
+  // The highlighted day: the one you tapped, else today when it falls inside the journey.
+  const [stripDay, setStripDay] = useState<string | null>(null);
+  const todayKey = toDayString(new Date());
+  const shownStripDay = stripDay ?? (stripCells.some(c => c.kind === 'day' && c.day === todayKey) ? todayKey : null);
+
   const jump = (day: string) => {
     // Load moments down to the end of that day, then scroll there once it's on screen.
     const upTo = times.filter(t => toDayString(new Date(t)) <= day).length;
@@ -383,13 +391,17 @@ export function JournalTab({ trip, onChanged, everyday = false, crewNames = {}, 
           Show earlier days ({groups.length - shownDays} more)
         </Button>
       ) : null}
-      {!everyday && allDays.length > 1 ? (
-        // Swipe along the days and tap one to jump straight to it.
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingBottom: 12 }}>
-          {allDays.map(d => (
-            <Pill key={d} label={labelFor(d, true)} onPress={() => jump(d)} />
-          ))}
-        </ScrollView>
+      {!everyday && stripCells.length ? (
+        // Swipe along the journey's days and tap one to jump to it (hidden for a one-day trip).
+        <DayStrip
+          cells={stripCells}
+          selected={shownStripDay}
+          onSelect={c => {
+            setStripDay(c.day);
+            if (c.hasMoments) jump(c.day);
+            else toast(`Nothing written on Day ${c.n} yet`);
+          }}
+        />
       ) : null}
 
       {groups.slice(-shownDays).map(g => (
