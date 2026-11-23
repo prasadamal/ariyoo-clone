@@ -174,17 +174,28 @@ export function BudgetTab({ trip, onChanged, readOnly = false }: Props) {
             {formatMoney(total.total, tripCurrency)}
           </Text>
           {readOnly ? null : (
-            <Button
-              compact
+            <IconButton
               icon="pencil-outline"
+              size={20}
+              iconColor={colors.primary}
               onPress={() => {
                 setBudgetText(budget > 0 ? String(budget) : '');
                 setBudgetOpen(true);
               }}
-            >
-              {budget > 0 ? 'Edit budget' : 'Set budget'}
-            </Button>
+              accessibilityLabel={budget > 0 ? 'Edit budget' : 'Set budget'}
+              style={{ margin: 0 }}
+            />
           )}
+          {byCategory.length ? (
+            // Spending by category stays folded until you open it with the arrow.
+            <IconButton
+              icon={showCategories ? 'chevron-up' : 'chevron-down'}
+              size={22}
+              onPress={() => setShowCategories(v => !v)}
+              accessibilityLabel={showCategories ? 'Hide spending by category' : 'Show spending by category'}
+              style={{ margin: 0 }}
+            />
+          ) : null}
         </View>
         {budget > 0 ? (
           <View
@@ -192,14 +203,14 @@ export function BudgetTab({ trip, onChanged, readOnly = false }: Props) {
             accessibilityLabel={used > 1 ? `${formatMoney(total.total - budget, tripCurrency)} over the ${formatMoney(budget, tripCurrency)} budget` : `${formatMoney(budget - total.total, tripCurrency)} left of the ${formatMoney(budget, tripCurrency)} budget`}
           >
             <Meter progress={Math.min(1, used)} color={used > 1 ? colors.danger : used > 0.85 ? colors.warning : colors.primary} height={8} style={{ marginTop: 10 }} />
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 6, marginRight: byCategory.length ? 36 : 0 }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 6 }}>
               <Text style={{ color: colors.muted, fontSize: 13, fontWeight: '600' }}>{formatMoney(0, tripCurrency)}</Text>
               <Text style={{ color: used > 1 ? colors.danger : colors.muted, fontSize: 13, fontWeight: '600' }}>{formatMoney(budget, tripCurrency)}</Text>
             </View>
           </View>
         ) : null}
         {budget <= 0 ? (
-          <Text style={{ color: colors.muted, marginTop: 8, fontSize: 13 }}>{readOnly ? 'No budget set for this journey.' : 'No budget set yet. Set one to see what is left.'}</Text>
+          <Text style={{ color: colors.muted, marginTop: 8, fontSize: 13 }}>{readOnly ? 'No budget set for this journey.' : 'No budget yet. Tap the pencil to set one.'}</Text>
         ) : null}
         {total.unconverted.length ? (
           <Notice tone="warning" text={`${total.unconverted.join(', ')} not included — connect once to download exchange rates.`} />
@@ -208,18 +219,8 @@ export function BudgetTab({ trip, onChanged, readOnly = false }: Props) {
             Converted with {rates.source} rates from {timeAgo(rates.fetchedAt)} ago.
           </Text>
         ) : null}
-        {byCategory.length ? (
-          // Spending by category stays folded until you open it with the arrow.
-          <IconButton
-            icon={showCategories ? 'chevron-up' : 'chevron-down'}
-            size={22}
-            onPress={() => setShowCategories(v => !v)}
-            accessibilityLabel={showCategories ? 'Hide spending by category' : 'Show spending by category'}
-            style={{ position: 'absolute', right: 4, bottom: 4, margin: 0 }}
-          />
-        ) : null}
         {byCategory.length && showCategories ? (
-          <View style={{ marginTop: 12, marginBottom: 28, gap: 6 }}>
+          <View style={{ marginTop: 12, gap: 6 }}>
             {byCategory.map(([cat, v]) => (
               <View key={cat} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                 <Icon name={categoryIcon(cat)} size={16} color={colors.onSurfaceVariant} />

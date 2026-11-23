@@ -24,3 +24,37 @@ export function applyTripFilter<T extends TripLike>(trips: T[], filter: TripFilt
     return t.status === 'completed' || phase === 'past';
   });
 }
+
+export type TripStatus = 'ongoing' | 'upcoming' | 'completed';
+type DatedTrip = TripLike & { updated_at?: string | null };
+
+/** On the road, coming up (dated or still a plan), or done. */
+export function tripStatus(t: TripLike, today = new Date()): TripStatus {
+  if (t.status === 'completed') return 'completed';
+  const phase = tripPhase(t.starts_on, t.ends_on, today);
+  if (phase === 'ongoing') return 'ongoing';
+  if (phase === 'past') return 'completed';
+  return 'upcoming';
+}
+
+/**
+ * The three tiles on top of Journeys: the journey you're on, the next one coming up (dated ones
+ * before undated plans) and the one that ended most recently. Any of them may be missing.
+ */
+export function featuredTrips<T extends DatedTrip>(trips: T[], today = new Date()) {
+  const by = (s: TripStatus) => trips.filter(t => tripStatus(t, today) === s);
+  const ongoing = by('ongoing').sort((a, b) => (a.starts_on ?? '').localeCompare(b.starts_on ?? ''))[0] ?? null;
+  const upcoming =
+    by('upcoming').sort((a, b) => {
+      if (!a.starts_on !== !b.starts_on) return a.starts_on ? -1 : 1;
+      return (a.starts_on ?? a.updated_at ?? '').localeCompare(b.starts_on ?? b.updated_at ?? '');
+    })[0] ?? null;
+  const completed = by('completed').sort((a, b) => (b.ends_on ?? b.starts_on ?? '').localeCompare(a.ends_on ?? a.starts_on ?? ''))[0] ?? null;
+  return { ongoing, upcoming, completed };
+}
+
+/** Every journey, most recent first (by start date; undated plans by when they were last edited). */
+export function recentFirst<T extends DatedTrip>(trips: T[]): T[] {
+  const key = (t: T) => t.starts_on ?? (t.updated_at ?? '').slice(0, 10);
+  return [...trips].sort((a, b) => key(b).localeCompare(key(a)));
+}
