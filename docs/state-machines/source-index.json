@@ -674,19 +674,19 @@
           "text": "import { useCallback, useEffect, useMemo, useRef, useState } from 'react';"
         },
         {
-          "line": 52,
+          "line": 59,
           "text": "const [width, setWidth] = useState(0);"
         },
         {
-          "line": 129,
+          "line": 136,
           "text": "const [stats, setStats] = useState<TravelStats | null>(null);"
         },
         {
-          "line": 130,
+          "line": 137,
           "text": "const [menuOpen, setMenuOpen] = useState(false);"
         },
         {
-          "line": 131,
+          "line": 138,
           "text": "const [country, setCountry] = useState<string | null>(null);"
         }
       ]

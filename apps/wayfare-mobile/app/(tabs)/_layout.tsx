@@ -1,4 +1,5 @@
 import { Tabs } from 'expo-router';
+import { Image } from 'react-native';
 import { useInbox } from '../../src/context/InboxContext';
 import { useAppTheme } from '../../src/theme';
 import { Icon } from '../../src/ui/Icon';
@@ -32,7 +33,9 @@ export default function TabsLayout() {
         name="index"
         options={{
           title: 'Journeys',
-          headerTitle: 'Wayfare',
+          headerTitle: () => (
+            <Image source={require('../../assets/logo-mark.png')} style={{ width: 64, height: 36 }} resizeMode="contain" accessibilityRole="header" accessibilityLabel="Wayfare" />
+          ),
           tabBarIcon: ({ color, size }) => <Icon name="book-open-page-variant" color={color} size={size} />,
         }}
       />

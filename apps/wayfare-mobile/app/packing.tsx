@@ -61,16 +61,13 @@ export default function PackingListsScreen() {
         onChange={setTab}
         style={{ alignSelf: 'center', marginBottom: 18 }}
       />
-      <Text style={{ color: colors.muted, marginBottom: 10 }}>
-        {items.length} {items.length === 1 ? 'thing' : 'things'} to carry · tick them off in each journey’s Pack tab
-      </Text>
       <View style={{ backgroundColor: colors.surfaceVariant, borderRadius: 18, paddingHorizontal: 14, paddingVertical: 4 }}>
         {items.length ? (
-          items.map((item, i) => (
+          items.map(item => (
             <Pressable
               key={item}
               onLongPress={() => remove(item)}
-              style={{ flexDirection: 'row', alignItems: 'center', gap: 10, borderBottomWidth: i === items.length - 1 ? 0 : 1, borderBottomColor: colors.border }}
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 10, borderBottomWidth: 1, borderBottomColor: colors.border }}
             >
               <Icon name="bag-personal-outline" size={18} color={colors.primary} />
               <Text style={{ flex: 1, paddingVertical: 13 }}>{item}</Text>
@@ -78,12 +75,12 @@ export default function PackingListsScreen() {
             </Pressable>
           ))
         ) : (
-          <Text style={{ color: colors.muted, paddingVertical: 16 }}>Nothing here yet. Add the things you always carry.</Text>
+          <Text style={{ color: colors.muted, paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: colors.border }}>Nothing here yet. Add the things you always carry.</Text>
         )}
-      </View>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 14 }}>
-        <TextInput dense mode="outlined" placeholder={`Add to ${PACKING_LIST_NAMES[tab].toLowerCase()}`} value={label} onChangeText={setLabel} onSubmitEditing={add} returnKeyType="done" style={{ flex: 1 }} />
-        <IconButton icon="plus-circle" iconColor={colors.primary} size={30} onPress={add} accessibilityLabel="Add item" />
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 8 }}>
+          <TextInput dense mode="outlined" placeholder={`Add to ${PACKING_LIST_NAMES[tab].toLowerCase()}`} value={label} onChangeText={setLabel} onSubmitEditing={add} returnKeyType="done" style={{ flex: 1, backgroundColor: colors.surface }} />
+          <IconButton icon="plus-circle" iconColor={colors.primary} size={30} onPress={add} accessibilityLabel="Add item" style={{ margin: 0 }} />
+        </View>
       </View>
     </Screen>
   );

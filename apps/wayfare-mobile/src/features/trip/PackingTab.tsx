@@ -100,8 +100,12 @@ export function PackingTab({ trip, onChanged }: Props) {
         tabs={PACKING_LIST_IDS.map(id => ({ value: id, label: PACKING_LIST_NAMES[id] }))}
         value={selected}
         onChange={choose}
-        style={{ alignSelf: 'center', marginBottom: 16 }}
+        style={{ alignSelf: 'center', marginBottom: 12 }}
       />
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 12 }}>
+        <TextInput dense mode="outlined" placeholder={`Add to ${PACKING_LIST_NAMES[selected].toLowerCase()} list`} value={label} onChangeText={setLabel} style={{ flex: 1 }} onSubmitEditing={add} returnKeyType="done" />
+        <IconButton icon="plus-circle" iconColor={colors.primary} onPress={add} accessibilityLabel="Add packing item" style={{ margin: 0 }} />
+      </View>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 }}>
         <Meter progress={progress} color={colors.secondary} height={8} style={{ flex: 1 }} />
         <Text style={{ fontWeight: '700' }}>
@@ -117,10 +121,6 @@ export function PackingTab({ trip, onChanged }: Props) {
       {extras.map(e => (
         <Row key={e.id} text={e.label} checked={Boolean(e.packed)} onPress={() => toggleLabel(e.label, e)} onRemove={() => removeExtra(e)} />
       ))}
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 12 }}>
-        <TextInput dense mode="outlined" placeholder={`Add to ${PACKING_LIST_NAMES[selected].toLowerCase()} list`} value={label} onChangeText={setLabel} style={{ flex: 1 }} onSubmitEditing={add} returnKeyType="done" />
-        <IconButton icon="plus-circle" iconColor={colors.primary} onPress={add} accessibilityLabel="Add packing item" />
-      </View>
       {packed ? (
         <Button style={{ marginTop: 8 }} icon="restore" onPress={uncheckAll}>
           Unpack all (reuse for the return)
