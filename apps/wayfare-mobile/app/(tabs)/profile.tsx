@@ -18,14 +18,21 @@ import { Screen } from '../../src/ui/Screen';
 import { TAB_BAR_SPACE } from '../../src/ui/GlassTabBar';
 
 /** A rounded light tile: every block on this page sits in one. */
-function Tile({ title, children }: { title?: string; children: React.ReactNode }) {
+function Tile({ title, action, onAction, children }: { title?: string; action?: string; onAction?: () => void; children: React.ReactNode }) {
   const { colors } = useAppTheme();
   return (
     <View style={{ marginTop: 12, padding: 16, borderRadius: 20, backgroundColor: colors.surfaceVariant }}>
       {title ? (
-        <Text style={{ fontSize: 16, fontWeight: '800', marginBottom: 12 }} accessibilityRole="header">
-          {title}
-        </Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+          <Text style={{ flex: 1, fontSize: 16, fontWeight: '800' }} accessibilityRole="header">
+            {title}
+          </Text>
+          {action ? (
+            <Pressable onPress={onAction} hitSlop={8} accessibilityRole="button">
+              <Text style={{ color: colors.primary, fontWeight: '700' }}>{action}</Text>
+            </Pressable>
+          ) : null}
+        </View>
       ) : null}
       {children}
     </View>
@@ -248,7 +255,7 @@ export default function ProfileTab() {
           )}
         </Tile>
 
-        <Tile title="Badges">
+        <Tile title="Badges" action="See all" onAction={() => router.push('/badges')}>
           {earned.length ? (
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', rowGap: 14 }}>
               {earned.map(b => (
