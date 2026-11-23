@@ -11,7 +11,8 @@ type Ctx = {
   syncing: boolean;
   lastSyncAt: string | null;
   lastErrors: string[];
-  pending: number;
+  /** Changes waiting to upload; null when they couldn't be counted. */
+  pending: number | null;
   syncNow: () => Promise<SyncResult | null>;
   refreshPending: () => Promise<void>;
 };
@@ -28,11 +29,11 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
   const current = state.scope === scope ? state : initialSyncState(scope);
   const inFlight = useRef<{ scope: string; request: number; promise: Promise<SyncResult | null> } | null>(null);
   const sequence = useRef(0);
-  const [pending, setPending] = useState(0);
+  const [pending, setPending] = useState<number | null>(null);
   const lastAuto = useRef(0);
 
   const refreshPending = useCallback(async () => {
-    setPending(await countPendingSync().catch(() => 0));
+    setPending(await countPendingSync().catch(() => null));
   }, []);
 
   const syncNow = useCallback(async () => {
