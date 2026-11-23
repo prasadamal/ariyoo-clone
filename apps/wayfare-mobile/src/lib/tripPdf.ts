@@ -16,7 +16,7 @@ export async function exportTripJournalPdf(trip: LocalTrip) {
     listEntries(trip.id),
     listExpenses(trip.id),
     listItinerary(trip.id),
-    computeTripStats(trip.id),
+    computeTripStats(trip.id, trip),
   ]);
 
   const entryHtml = entries

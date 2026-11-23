@@ -54,7 +54,7 @@ export default function NewPostScreen() {
           setRouteKm(km);
           setIncludeRoute(isTripStory && km >= 0.2);
           if (isTripStory) {
-            const s = await computeTripStats(t.id);
+            const s = await computeTripStats(t.id, t);
             const elev = elevationStats(points);
             const nextStats: Record<string, number> = { entries: s.entryCount, photos: s.photoCount };
             const days = dayCount(t.starts_on, t.ends_on);
