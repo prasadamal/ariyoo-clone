@@ -1,8 +1,21 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, Pressable, View } from 'react-native';
-import { Button, Checkbox, IconButton, Text, TextInput } from 'react-native-paper';
+import { Button, Checkbox, Dialog, IconButton, Menu, Portal, Text, TextInput } from 'react-native-paper';
+import { uuid } from '../../lib/id';
 import { addPackingItem, deletePackingItem, listPacking, upsertPackingItem, type LocalPackingItem, type LocalTrip } from '../../lib/localDb';
-import { addToList, defaultListFor, labelKey, PACKING_LIST_IDS, PACKING_LIST_NAMES, packView, type PackingListId, type PackingLists } from '../../lib/packingLists';
+import {
+  addList,
+  addToList,
+  BUILT_IN_LISTS,
+  defaultListFor,
+  deleteList,
+  labelKey,
+  listOrDefault,
+  packView,
+  removeFromList,
+  updateItems,
+  type PackingLists,
+} from '../../lib/packingLists';
 import { loadPackingLists, loadTripList, savePackingLists, saveTripList } from '../../lib/packingListsStore';
 import { useAppTheme } from '../../theme';
 import { FloatingTabs } from '../../ui/FloatingTabs';
@@ -11,15 +24,19 @@ import { Meter } from '../../ui/Meter';
 type Props = { trip: LocalTrip; onChanged: () => void };
 
 /**
- * Pack for this journey from one of your personal lists (short trip, long trip, custom). Ticks are
- * saved per journey; items you add here go onto the chosen list for next time too.
+ * Pack for this journey from one of your checklists (Short trip, Long trip, or your own). Ticks are
+ * saved per journey; items you add or remove here change the checklist for next time too. New
+ * checklists are made here (⋯ menu).
  */
 export function PackingTab({ trip, onChanged }: Props) {
   const { colors } = useAppTheme();
   const [items, setItems] = useState<LocalPackingItem[]>([]);
   const [lists, setLists] = useState<PackingLists | null>(null);
-  const [selected, setSelected] = useState<PackingListId>(defaultListFor(trip.starts_on, trip.ends_on));
+  const [selected, setSelected] = useState<string>(defaultListFor(trip.starts_on, trip.ends_on));
   const [label, setLabel] = useState('');
+  const [menu, setMenu] = useState(false);
+  const [naming, setNaming] = useState(false);
+  const [newName, setNewName] = useState('');
   // Labels being saved right now: a second tap can't create the same item twice.
   const busy = useRef(new Set<string>());
 
@@ -33,7 +50,12 @@ export function PackingTab({ trip, onChanged }: Props) {
     load();
   }, [load]);
 
-  const choose = (id: PackingListId) => {
+  const saveLists = async (next: PackingLists) => {
+    setLists(next);
+    await savePackingLists(next).catch(() => undefined);
+  };
+
+  const choose = (id: string) => {
     setSelected(id);
     void saveTripList(trip.id, id);
   };
@@ -56,20 +78,43 @@ export function PackingTab({ trip, onChanged }: Props) {
     }
   };
 
+  if (!lists) return null;
+  const current = listOrDefault(lists, selected);
+
   const add = async () => {
-    if (!lists || !label.trim()) return;
-    const next = addToList(lists[selected], label);
+    if (!label.trim()) return;
+    const next = addToList(current.items, label);
     setLabel('');
-    if (next.length === lists[selected].length) return;
-    const updated = { ...lists, [selected]: next };
-    setLists(updated);
-    await savePackingLists(updated).catch(() => undefined);
+    if (next.length !== current.items.length) await saveLists(updateItems(lists, current.id, next));
   };
+
+  const removeFromChecklist = (item: string) =>
+    Alert.alert(`Remove from “${current.name}”?`, item, [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Remove', style: 'destructive', onPress: () => void saveLists(updateItems(lists, current.id, removeFromList(current.items, item))) },
+    ]);
 
   const removeExtra = (item: LocalPackingItem) =>
     Alert.alert('Remove item?', item.label, [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Remove', style: 'destructive', onPress: async () => { await deletePackingItem(item.id); await load(); onChanged(); } },
+    ]);
+
+  const createList = async () => {
+    const id = `list-${uuid().slice(0, 8)}`;
+    const next = addList(lists, newName, id);
+    setNaming(false);
+    setNewName('');
+    if (next !== lists) {
+      await saveLists(next);
+      choose(id);
+    }
+  };
+
+  const removeList = () =>
+    Alert.alert(`Delete “${current.name}”?`, 'The checklist is removed for every journey. Ticks already made on journeys stay.', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Delete', style: 'destructive', onPress: () => { void saveLists(deleteList(lists, current.id)); choose('short'); } },
     ]);
 
   const uncheckAll = async () => {
@@ -79,8 +124,7 @@ export function PackingTab({ trip, onChanged }: Props) {
     onChanged();
   };
 
-  if (!lists) return null;
-  const { rows, extras } = packView(lists, selected, items);
+  const { rows, extras } = packView(lists, current.id, items);
   const all = [...rows.map(r => r.packed), ...extras.map(e => Boolean(e.packed))];
   const packed = all.filter(Boolean).length;
   const progress = all.length ? packed / all.length : 0;
@@ -95,15 +139,28 @@ export function PackingTab({ trip, onChanged }: Props) {
 
   return (
     <View>
-      <FloatingTabs
-        accessibilityLabel="Packing list for this journey"
-        tabs={PACKING_LIST_IDS.map(id => ({ value: id, label: PACKING_LIST_NAMES[id] }))}
-        value={selected}
-        onChange={choose}
-        style={{ alignSelf: 'center', marginBottom: 12 }}
-      />
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 12 }}>
-        <TextInput dense mode="outlined" placeholder={`Add to ${PACKING_LIST_NAMES[selected].toLowerCase()} list`} value={label} onChangeText={setLabel} style={{ flex: 1 }} onSubmitEditing={add} returnKeyType="done" />
+        <View style={{ flex: 1 }}>
+          <FloatingTabs
+            accessibilityLabel="Packing checklist for this journey"
+            tabs={lists.map(l => ({ value: l.id, label: l.name }))}
+            value={current.id}
+            onChange={choose}
+          />
+        </View>
+        <Menu
+          visible={menu}
+          onDismiss={() => setMenu(false)}
+          anchor={<IconButton icon="dots-horizontal" onPress={() => setMenu(true)} accessibilityLabel="Checklist options" style={{ margin: 0 }} />}
+        >
+          <Menu.Item leadingIcon="playlist-plus" title="New checklist" onPress={() => { setMenu(false); setNaming(true); }} />
+          {BUILT_IN_LISTS.includes(current.id) ? null : (
+            <Menu.Item leadingIcon="delete-outline" title={`Delete “${current.name}”`} onPress={() => { setMenu(false); removeList(); }} />
+          )}
+        </Menu>
+      </View>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 12 }}>
+        <TextInput dense mode="outlined" placeholder={`Add to ${current.name}`} value={label} onChangeText={setLabel} style={{ flex: 1 }} onSubmitEditing={add} returnKeyType="done" />
         <IconButton icon="plus-circle" iconColor={colors.primary} onPress={add} accessibilityLabel="Add packing item" style={{ margin: 0 }} />
       </View>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 }}>
@@ -113,9 +170,9 @@ export function PackingTab({ trip, onChanged }: Props) {
         </Text>
       </View>
       {progress === 1 && all.length ? <Text style={{ color: colors.success, fontWeight: '700', marginBottom: 8 }}>All packed — have a great trip! 🎒</Text> : null}
-      {rows.length ? null : <Text style={{ color: colors.muted, marginBottom: 6 }}>This list is empty. Add what you want to carry.</Text>}
+      {rows.length ? null : <Text style={{ color: colors.muted, marginBottom: 6 }}>This checklist is empty. Add what you want to carry.</Text>}
       {rows.map(r => (
-        <Row key={r.label} text={r.label} checked={r.packed} onPress={() => toggleLabel(r.label, r.item)} />
+        <Row key={r.label} text={r.label} checked={r.packed} onPress={() => toggleLabel(r.label, r.item)} onRemove={() => removeFromChecklist(r.label)} />
       ))}
       {extras.length ? <Text style={{ color: colors.muted, fontSize: 12, fontWeight: '700', marginTop: 16, letterSpacing: 0.4 }}>ALSO ON THIS JOURNEY</Text> : null}
       {extras.map(e => (
@@ -126,6 +183,20 @@ export function PackingTab({ trip, onChanged }: Props) {
           Unpack all (reuse for the return)
         </Button>
       ) : null}
+      <Portal>
+        <Dialog visible={naming} onDismiss={() => setNaming(false)}>
+          <Dialog.Title>New checklist</Dialog.Title>
+          <Dialog.Content>
+            <TextInput mode="outlined" label="Name (e.g. Trek, Wedding, Work)" value={newName} onChangeText={setNewName} maxLength={30} autoFocus onSubmitEditing={createList} />
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setNaming(false)}>Cancel</Button>
+            <Button mode="contained" disabled={!newName.trim()} onPress={createList}>
+              Create
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
     </View>
   );
 }

@@ -11,6 +11,8 @@ type Props = {
   uri?: string | null;
   /** Fallback colours when there is no photo. */
   gradient: [string, string];
+  /** An illustrated cover (bundled image) to use when there is no photo, before the colours. */
+  art?: number;
   /** Total spent so far, for example "₹15,000". */
   spent?: string;
   style?: StyleProp<ViewStyle>;
@@ -23,10 +25,11 @@ type Props = {
  * The top of a journey card or page: the cover photo with a dark fade so white text stays readable,
  * or a colour gradient when there is no photo. The total spent is a small label in the corner.
  */
-export function TripCover({ uri, gradient, spent, style, glass, children }: Props) {
-  const background = uri ? (
+export function TripCover({ uri, gradient, art, spent, style, glass, children }: Props) {
+  const picture = uri ? { uri } : art ?? null;
+  const background = picture ? (
     <>
-      <Image source={{ uri }} style={StyleSheet.absoluteFill} contentFit="cover" transition={150} accessibilityElementsHidden />
+      <Image source={picture} style={StyleSheet.absoluteFill} contentFit="cover" transition={150} accessibilityElementsHidden />
       <LinearGradient colors={['rgba(0,0,0,0.15)', 'rgba(0,0,0,0.72)']} style={StyleSheet.absoluteFill} />
     </>
   ) : (

@@ -22,8 +22,6 @@ type Props = {
   photos: PickedPhoto[];
   onPhotos: (p: PickedPhoto[]) => void;
   onAddPhotos: () => void;
-  location: boolean;
-  onLocation: (on: boolean) => void;
   money: MomentMoney | null;
   onMoney: (m: MomentMoney | null) => void;
   currencySymbol: string;
@@ -42,7 +40,7 @@ type Props = {
 
 
 /**
- * The moment box. Whatever is added (photos, mood, location, money, a recording) shows as small chips
+ * The moment box. Whatever is added (photos, money, a recording) shows as small chips
  * and thumbnails above the text, like attachments in a chat box. The icons below add them.
  */
 /** An attachment in the moment box: icon, words, and a remove button centred on the right. */
@@ -72,7 +70,9 @@ export function MomentComposer(p: Props) {
   const [category, setCategory] = useState('food');
   const amount = parseAmount(amountText);
   const voiceCount = p.voiceCount ?? 0;
-  const hasTray = p.photos.length > 0 || Boolean(p.mood) || p.location || Boolean(p.money) || p.recording || voiceCount > 0;
+  const hasTray = p.photos.length > 0 || Boolean(p.money) || p.recording || voiceCount > 0;
+  // The chosen mood's emoji replaces the smiley button itself (no extra chip).
+  const moodEmoji = p.mood ? p.mood.split(' ')[0] : '';
 
   const openMoney = () => {
     setAmountText(p.money ? String(p.money.amount) : '');
@@ -110,8 +110,6 @@ export function MomentComposer(p: Props) {
               </Pressable>
             </View>
           ))}
-          {p.mood ? <TrayPill label={p.mood} onRemove={() => p.onMood('')} removeLabel="Remove mood" /> : null}
-          {p.location ? <TrayPill icon="map-marker" label="Location" onRemove={() => p.onLocation(false)} removeLabel="Remove location" /> : null}
           {p.money ? (
             <TrayPill
               icon="currency-inr"
@@ -158,8 +156,23 @@ export function MomentComposer(p: Props) {
         <Menu
           visible={moodOpen}
           onDismiss={() => setMoodOpen(false)}
-          anchor={tool('emoticon-happy-outline', 'Add a mood', () => setMoodOpen(true), Boolean(p.mood), p.recording)}
+          anchor={
+            moodEmoji ? (
+              <Pressable
+                onPress={() => setMoodOpen(true)}
+                disabled={p.recording}
+                accessibilityRole="button"
+                accessibilityLabel={`Mood: ${p.mood}. Tap to change`}
+                style={{ width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.primaryContainer }}
+              >
+                <Text style={{ fontSize: 22 }}>{moodEmoji}</Text>
+              </Pressable>
+            ) : (
+              tool('emoticon-happy-outline', 'Add a mood', () => setMoodOpen(true), false, p.recording)
+            )
+          }
         >
+          {p.mood ? <Menu.Item key="none" title="No mood" leadingIcon="close" onPress={() => { p.onMood(''); setMoodOpen(false); }} /> : null}
           {MOODS.map(m => (
             <Menu.Item
               key={m}
@@ -173,12 +186,20 @@ export function MomentComposer(p: Props) {
         </Menu>
         {tool('camera-outline', 'Add photos', p.onAddPhotos, p.photos.length > 0, p.recording)}
         {tool(p.recording ? 'stop-circle' : 'microphone-outline', p.recording ? 'Stop recording' : 'Record a voice note', p.onToggleVoice, p.recording, p.voiceBusy)}
-        {tool(p.location ? 'map-marker' : 'map-marker-outline', p.location ? 'Remove location' : 'Add location and weather', () => p.onLocation(!p.location), p.location, p.recording)}
         {tool('currency-inr', 'Add money spent', openMoney, Boolean(p.money), p.recording)}
         <View style={{ flex: 1 }} />
-        <Button mode="contained" icon="send" onPress={p.onSave} loading={p.saving} disabled={!p.canSave || p.saving || p.recording} compact style={{ borderRadius: 999 }}>
-          Save
-        </Button>
+        <IconButton
+          icon="send"
+          mode="contained"
+          size={22}
+          containerColor={colors.primary}
+          iconColor={colors.onPrimary}
+          onPress={p.onSave}
+          loading={p.saving}
+          disabled={!p.canSave || p.saving || p.recording}
+          accessibilityLabel="Save moment"
+          style={{ margin: 0 }}
+        />
       </View>
 
       <Portal>

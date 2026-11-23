@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { dayOf, diaryPages, pageIndexFor } from '../../features/diary/diaryPages';
+import { dayOf, diaryPages, diarySheets, pageIndexFor, todayPageKeys } from '../../features/diary/diaryPages';
 
 const at = (day: string, time = '10:00') => ({ recorded_at: new Date(`${day}T${time}:00`).toISOString() });
 
@@ -20,4 +20,20 @@ test('going to a date lands on that page, or the nearest earlier one', () => {
 
 test('days are local calendar days', () => {
   assert.equal(dayOf(new Date(2026, 0, 5, 23, 59)), '2026-01-05');
+});
+
+test('several pages today (newest first), then earlier days as single sheets', () => {
+  const e = (id: string, day: string, time = '10:00') => ({ id, ...at(day, time) });
+  const entries = [e('a', '2026-11-22', '08:00'), e('b', '2026-11-22', '13:00'), e('c', '2026-11-20')];
+  const keys = todayPageKeys(entries, '2026-11-22');
+  assert.deepEqual(keys, ['a', 'b']);
+  const sheets = diarySheets(entries, '2026-11-22', [...keys, 'new-1']);
+  assert.deepEqual(sheets.map(s => [s.key, s.editable, s.page, s.pages]), [
+    ['new-1', true, 3, 3],
+    ['b', true, 2, 3],
+    ['a', true, 1, 3],
+    ['day-2026-11-20', false, 1, 1],
+  ]);
+  assert.equal(sheets[1].entry?.id, 'b');
+  assert.deepEqual(todayPageKeys([], '2026-11-22'), ['new-0'], 'a blank page when nothing is written yet');
 });

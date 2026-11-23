@@ -1,23 +1,29 @@
 /**
- * Personal packing lists: the things you carry, kept as three reusable lists (short trip, long trip,
- * custom). Pure helpers here; storage lives in packingListsStore.ts.
+ * Personal packing checklists: the things you carry, kept as reusable lists. Short trip and Long trip
+ * come ready-made; you can add your own (Trek, Wedding, Work…). Pure helpers here; storage lives in
+ * packingListsStore.ts.
  */
 import { MAX_PACKING_ITEMS } from './packing';
 
-export type PackingListId = 'short' | 'long' | 'custom';
-export type PackingLists = Record<PackingListId, string[]>;
+export type PackingList = { id: string; name: string; items: string[] };
+export type PackingLists = PackingList[];
 
-export const PACKING_LIST_IDS: PackingListId[] = ['short', 'long', 'custom'];
-export const PACKING_LIST_NAMES: Record<PackingListId, string> = { short: 'Short trip', long: 'Long trip', custom: 'Custom' };
+/** The two ready-made lists can't be deleted (they're the defaults for short and long journeys). */
+export const BUILT_IN_LISTS = ['short', 'long'];
+export const MAX_LISTS = 12;
 
-export const DEFAULT_PACKING_LISTS: PackingLists = {
-  short: ['Phone charger', 'Power bank', 'ID card', 'Wallet', 'Toothbrush', 'Change of clothes', 'Water bottle', 'Medicines'],
-  long: [
-    'Phone charger', 'Power bank', 'ID card', 'Passport', 'Wallet', 'Toothbrush', 'Toiletries', 'Clothes for each day',
-    'Jacket', 'Comfortable shoes', 'Water bottle', 'Medicines', 'First-aid kit', 'Sunscreen', 'Sunglasses', 'Laundry bag',
-  ],
-  custom: [],
-};
+export const DEFAULT_PACKING_LISTS: PackingLists = [
+  { id: 'short', name: 'Short trip', items: ['Phone charger', 'Power bank', 'ID card', 'Wallet', 'Toothbrush', 'Change of clothes', 'Water bottle', 'Medicines'] },
+  {
+    id: 'long',
+    name: 'Long trip',
+    items: [
+      'Phone charger', 'Power bank', 'ID card', 'Passport', 'Wallet', 'Toothbrush', 'Toiletries', 'Clothes for each day',
+      'Jacket', 'Comfortable shoes', 'Water bottle', 'Medicines', 'First-aid kit', 'Sunscreen', 'Sunglasses', 'Laundry bag',
+    ],
+  },
+  { id: 'custom', name: 'Custom', items: [] },
+];
 
 export const labelKey = (label: string) => label.trim().replace(/\s+/g, ' ').toLocaleLowerCase();
 
@@ -34,39 +40,81 @@ export function removeFromList(list: readonly string[], label: string): string[]
   return list.filter(l => labelKey(l) !== k);
 }
 
-/** Reads stored lists defensively: anything missing or malformed falls back to the defaults. */
+const cleanItems = (v: unknown) =>
+  Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string' && x.trim().length > 0) : null;
+
+/**
+ * Reads stored lists defensively. Understands the first format ({ short: [...], long: [...],
+ * custom: [...] }) and the current one (an array of named lists); anything broken falls back to the
+ * defaults, and the two built-in lists are always there.
+ */
 export function parseLists(raw: string | null | undefined): PackingLists {
+  let v: unknown;
   try {
-    const v = raw ? JSON.parse(raw) : null;
-    const pick = (id: PackingListId) =>
-      Array.isArray(v?.[id]) ? (v[id] as unknown[]).filter((x): x is string => typeof x === 'string' && x.trim().length > 0) : DEFAULT_PACKING_LISTS[id];
-    return { short: pick('short'), long: pick('long'), custom: pick('custom') };
+    v = raw ? JSON.parse(raw) : null;
   } catch {
-    return { ...DEFAULT_PACKING_LISTS };
+    v = null;
   }
+  let lists: PackingLists;
+  if (Array.isArray(v)) {
+    lists = v
+      .filter((l): l is { id: unknown; name: unknown; items: unknown } => Boolean(l) && typeof l === 'object')
+      .filter(l => typeof l.id === 'string' && typeof l.name === 'string' && l.name.trim().length > 0)
+      .map(l => ({ id: l.id as string, name: (l.name as string).trim().slice(0, 30), items: cleanItems(l.items) ?? [] }));
+  } else if (v && typeof v === 'object') {
+    const o = v as Record<string, unknown>;
+    lists = DEFAULT_PACKING_LISTS.map(d => ({ ...d, items: cleanItems(o[d.id]) ?? d.items }));
+  } else {
+    lists = DEFAULT_PACKING_LISTS.map(d => ({ ...d, items: [...d.items] }));
+  }
+  for (const d of DEFAULT_PACKING_LISTS.filter(x => BUILT_IN_LISTS.includes(x.id)).reverse()) {
+    if (!lists.some(l => l.id === d.id)) lists.unshift({ ...d, items: [...d.items] });
+  }
+  const seen = new Set<string>();
+  return lists.filter(l => (seen.has(l.id) ? false : (seen.add(l.id), true))).slice(0, MAX_LISTS);
+}
+
+/** A new, empty checklist. Returns the lists unchanged when the name is blank, taken or the cap is hit. */
+export function addList(lists: PackingLists, rawName: string, id: string): PackingLists {
+  const name = rawName.trim().replace(/\s+/g, ' ').slice(0, 30);
+  if (!name || lists.length >= MAX_LISTS || lists.some(l => labelKey(l.name) === labelKey(name))) return lists;
+  return [...lists, { id, name, items: [] }];
+}
+
+export function deleteList(lists: PackingLists, id: string): PackingLists {
+  return BUILT_IN_LISTS.includes(id) ? lists : lists.filter(l => l.id !== id);
+}
+
+export function updateItems(lists: PackingLists, id: string, items: string[]): PackingLists {
+  return lists.map(l => (l.id === id ? { ...l, items } : l));
 }
 
 /** The list a journey starts on: up to 4 days is a short trip. */
-export function defaultListFor(startsOn: string | null, endsOn: string | null): PackingListId {
+export function defaultListFor(startsOn: string | null, endsOn: string | null): string {
   if (!startsOn || !endsOn) return 'short';
   const days = Math.round((Date.parse(endsOn) - Date.parse(startsOn)) / 86_400_000) + 1;
   return Number.isFinite(days) && days > 4 ? 'long' : 'short';
 }
 
+/** The chosen list, or Short trip if it was deleted. */
+export function listOrDefault(lists: PackingLists, id: string): PackingList {
+  return lists.find(l => l.id === id) ?? lists.find(l => l.id === 'short') ?? lists[0];
+}
+
 /**
- * What a journey's Pack tab shows for one personal list: each label with whether it's packed on
- * this trip, and the trip's own items that aren't on any personal list.
+ * What a journey's Pack view shows for one checklist: each item with whether it's packed on this
+ * trip, and the trip's own items that aren't on any checklist.
  */
-export function packView<T extends { label: string; packed: number }>(lists: PackingLists, selected: PackingListId, tripItems: readonly T[]) {
+export function packView<T extends { label: string; packed: number }>(lists: PackingLists, selected: string, tripItems: readonly T[]) {
   const byKey = new Map(tripItems.map(i => [labelKey(i.label), i]));
-  const rows = lists[selected].map(label => ({ label, item: byKey.get(labelKey(label)) ?? null, packed: Boolean(byKey.get(labelKey(label))?.packed) }));
-  const onLists = new Set(PACKING_LIST_IDS.flatMap(id => lists[id].map(labelKey)));
+  const rows = listOrDefault(lists, selected).items.map(label => ({ label, item: byKey.get(labelKey(label)) ?? null, packed: Boolean(byKey.get(labelKey(label))?.packed) }));
+  const onLists = new Set(lists.flatMap(l => l.items.map(labelKey)));
   const extras = tripItems.filter(i => !onLists.has(labelKey(i.label)));
   return { rows, extras };
 }
 
-/** Packed / total for a journey, counted against its chosen personal list plus its own extra items. */
-export function packCounts<T extends { label: string; packed: number }>(lists: PackingLists, selected: PackingListId, tripItems: readonly T[]) {
+/** Packed / total for a journey, counted against its chosen checklist plus its own extra items. */
+export function packCounts<T extends { label: string; packed: number }>(lists: PackingLists, selected: string, tripItems: readonly T[]) {
   const { rows, extras } = packView(lists, selected, tripItems);
   return {
     done: rows.filter(r => r.packed).length + extras.filter(e => e.packed).length,

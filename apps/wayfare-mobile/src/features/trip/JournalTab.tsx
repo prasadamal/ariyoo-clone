@@ -4,12 +4,12 @@ import * as Location from 'expo-location';
 import { router } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, ScrollView, View } from 'react-native';
-import { Button, Text } from 'react-native-paper';
+import { Button, IconButton, Menu, Text } from 'react-native-paper';
 import { uuid } from '../../lib/id';
 import { useCanConnect, useSocial } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { formatDay, toDayString } from '../../lib/format';
-import { countEntries, deleteEntry, listEntries, listEntriesPage, listEntryTimes, listExpenses, upsertEntry, upsertEntryMedia, upsertExpense, type LocalEntry, type LocalExpense, type LocalTrip } from '../../lib/localDb';
+import { countEntries, deleteEntry, listEntries, listEntriesOnDay, listEntriesPage, listEntryTimes, listExpenses, upsertEntry, upsertEntryMedia, upsertExpense, type LocalEntry, type LocalExpense, type LocalTrip } from '../../lib/localDb';
 import { currencySymbol } from '../../lib/currencyMath';
 import { totalsByMoment } from '../../lib/momentMoney';
 import { persistJournalPhoto } from '../../lib/media';
@@ -21,10 +21,9 @@ import { MomentCard } from './MomentCard';
 import { MomentComposer, type MomentMoney } from './MomentComposer';
 import { pickPhotos, type PickedPhoto } from './photoPicker';
 import { Pill } from '../../ui/Pill';
-import { DayStrip } from './DayStrip';
-import { dayStripCells } from './dayStripCells';
+import { datePills } from './dayStripCells';
 import { placeFromCoords, type FoundPlace } from '../../lib/reverseGeocode';
-import { canEditTrip } from '../../lib/crew';
+import { canEditTrip, isSharedTrip } from '../../lib/crew';
 import { Notice } from '../../ui/Notice';
 
 /** `everyday` is the private journal for ordinary days: no "Day n" counter, a daily prompt. */
@@ -61,9 +60,12 @@ export function JournalTab({ trip, onChanged, everyday = false, crewNames = {}, 
   const [entries, setEntries] = useState<LocalEntry[]>([]);
   const [text, setText] = useState('');
   const [mood, setMood] = useState('');
-  // Location and weather are added only when the person taps the location icon.
-  const [attachContext, setAttachContext] = useState(false);
-  const [money, setMoney] = useState<MomentMoney | null>(null);
+  // Location isn't attached to moments any more (the lookups cost more than they gave).
+  const attachContext = false;
+  // Which day's moments are shown (null: every day), and in which order.
+  const [dayFilter, setDayFilter] = useState<string | null>(null);
+  const [newestFirst, setNewestFirst] = useState(false);
+  const [sortOpen, setSortOpen] = useState(false);  const [money, setMoney] = useState<MomentMoney | null>(null);
   const [expenses, setExpenses] = useState<LocalExpense[]>([]);
   const [photos, setPhotos] = useState<PickedPhoto[]>([]);
   const [saving, setSaving] = useState(false);
@@ -89,20 +91,24 @@ export function JournalTab({ trip, onChanged, everyday = false, crewNames = {}, 
   const load = useCallback(async () => {
     if (everyday) setEntries(await listEntries(trip.id));
     else {
-      const [page, count, all] = await Promise.all([listEntriesPage(trip.id, limit), countEntries(trip.id), listEntryTimes(trip.id)]);
+      const [page, count, all] = await Promise.all([
+        dayFilter ? listEntriesOnDay(trip.id, dayFilter) : listEntriesPage(trip.id, limit, newestFirst),
+        countEntries(trip.id),
+        listEntryTimes(trip.id),
+      ]);
       setEntries(page);
       setTotal(count);
       setTimes(all.map(r => r.recorded_at));
       setLoadingMore(false);
     }
     setExpenses(await listExpenses(trip.id));
-  }, [trip.id, everyday, limit]);
+  }, [trip.id, everyday, limit, dayFilter, newestFirst]);
 
   useEffect(() => {
     load();
   }, [load]);
 
-  const hasMore = !everyday && entries.length < total;
+  const hasMore = !everyday && !dayFilter && entries.length < total;
   const loadMore = useCallback(() => {
     if (!hasMore || loadingMore) return;
     setLoadingMore(true);
@@ -222,7 +228,6 @@ export function JournalTab({ trip, onChanged, everyday = false, crewNames = {}, 
       setPhotos([]);
       setVoices([]);
       setMoney(null);
-      setAttachContext(false);
       // A new moment is the latest, so it sits at the end: show everything down to it.
       if (!everyday) setLimit(total + 1);
       await load();
@@ -313,25 +318,18 @@ export function JournalTab({ trip, onChanged, everyday = false, crewNames = {}, 
       const day = toDayString(new Date(e.recorded_at));
       byDay.set(day, [...(byDay.get(day) ?? []), e]);
     }
-    return [...byDay.entries()].map(([day, list]) => ({ day, label: labelFor(day), list }));
+    const out = [...byDay.entries()].map(([day, list]) => ({ day, label: labelFor(day), list: newestFirst ? [...list].sort((a, b) => b.recorded_at.localeCompare(a.recorded_at)) : list }));
+    return newestFirst ? out.sort((a, b) => b.day.localeCompare(a.day)) : out;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [entries, trip.starts_on, everyday, times]);
+  }, [entries, trip.starts_on, everyday, times, newestFirst]);
 
   // Every day of the journey (not just the loaded ones), for the strip of Day 1, Day 2… to jump to.
   const allDays = useMemo(() => [...new Set(times.map(t => toDayString(new Date(t))))], [times]);
 
-  const stripCells = useMemo(() => dayStripCells(trip.starts_on, trip.ends_on, allDays), [trip.starts_on, trip.ends_on, allDays]);
-  // The highlighted day: the one you tapped, else today when it falls inside the journey.
-  const [stripDay, setStripDay] = useState<string | null>(null);
-  const todayKey = toDayString(new Date());
-  const shownStripDay = stripDay ?? (stripCells.some(c => c.kind === 'day' && c.day === todayKey) ? todayKey : null);
-
-  const jump = (day: string) => {
-    // Load moments down to the end of that day, then scroll there once it's on screen.
-    const upTo = times.filter(t => toDayString(new Date(t)) <= day).length;
-    if (upTo > entries.length) setLimit(upTo);
-    if (dayY.current[day] != null && upTo <= entries.length) onJumpTo?.(dayY.current[day]);
-    else setJumpTo(day);
+  const pills = useMemo(() => (everyday ? [] : datePills(trip.starts_on, trip.ends_on, allDays)), [everyday, trip.starts_on, trip.ends_on, allDays]);
+  const pickDay = (day: string | null) => {
+    setDayFilter(day);
+    setLimit(MOMENTS_PER_PAGE);
   };
 
   const moneyByMoment = useMemo(() => totalsByMoment(expenses), [expenses]);
@@ -355,8 +353,6 @@ export function JournalTab({ trip, onChanged, everyday = false, crewNames = {}, 
         photos={photos}
         onPhotos={setPhotos}
         onAddPhotos={addPhotosToDraft}
-        location={attachContext}
-        onLocation={setAttachContext}
         money={money}
         onMoney={setMoney}
         currencySymbol={symbol}
@@ -391,17 +387,34 @@ export function JournalTab({ trip, onChanged, everyday = false, crewNames = {}, 
           Show earlier days ({groups.length - shownDays} more)
         </Button>
       ) : null}
-      {!everyday && stripCells.length ? (
-        // Swipe along the journey's days and tap one to jump to it (hidden for a one-day trip).
-        <DayStrip
-          cells={stripCells}
-          selected={shownStripDay}
-          onSelect={c => {
-            setStripDay(c.day);
-            if (c.hasMoments) jump(c.day);
-            else toast(`Nothing written on Day ${c.n} yet`);
-          }}
-        />
+      {pills.length ? (
+        // Date pills: tap one to show just that day's moments (the pills stay where they are).
+        // A fixed height keeps the sideways list from stretching inside the page on Android.
+        <View style={{ height: 44, marginBottom: 6 }}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0 }} contentContainerStyle={{ gap: 8, alignItems: 'center' }} accessibilityRole="tablist" accessibilityLabel="Days of this journey">
+            <Pill label="All days" selected={!dayFilter} onPress={() => pickDay(null)} />
+            {pills.map(p => (
+              <Pill key={p.day} label={p.label} selected={dayFilter === p.day} onPress={() => pickDay(p.day)} />
+            ))}
+          </ScrollView>
+        </View>
+      ) : null}
+
+      {groups.length ? (
+        // Just before the moments: their order (oldest or newest first).
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
+          <Text style={{ flex: 1, color: colors.muted, fontWeight: '700', fontSize: 13 }}>
+            {dayFilter ? `${entries.length} ${entries.length === 1 ? 'moment' : 'moments'} this day` : `${total || entries.length} ${(total || entries.length) === 1 ? 'moment' : 'moments'}`}
+          </Text>
+          <Menu
+            visible={sortOpen}
+            onDismiss={() => setSortOpen(false)}
+            anchor={<IconButton icon="sort-variant" size={20} onPress={() => setSortOpen(true)} accessibilityLabel={newestFirst ? 'Order: newest first' : 'Order: oldest first'} style={{ margin: 0 }} />}
+          >
+            <Menu.Item title="Newest first" leadingIcon={newestFirst ? 'check' : undefined} onPress={() => { setNewestFirst(true); setLimit(MOMENTS_PER_PAGE); setSortOpen(false); }} />
+            <Menu.Item title="Oldest first" leadingIcon={newestFirst ? undefined : 'check'} onPress={() => { setNewestFirst(false); setLimit(MOMENTS_PER_PAGE); setSortOpen(false); }} />
+          </Menu>
+        </View>
       ) : null}
 
       {groups.slice(-shownDays).map(g => (
@@ -429,7 +442,7 @@ export function JournalTab({ trip, onChanged, everyday = false, crewNames = {}, 
               mediaKey={mediaKey}
               canShare={social && !e.author_id}
               canEdit={canEdit}
-              author={e.author_id ? crewNames[e.author_id] ?? 'Crew' : undefined}
+              author={e.author_id ? crewNames[e.author_id] ?? 'Crew' : isSharedTrip(trip) ? 'You' : undefined}
               tripId={trip.id}
               onChanged={onChanged}
               onAddPhotos={() => addPhotosToEntry(e.id)}

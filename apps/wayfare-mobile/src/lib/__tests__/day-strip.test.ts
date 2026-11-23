@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { dayStripCells } from '../../features/trip/dayStripCells';
+import { datePills, dayStripCells } from '../../features/trip/dayStripCells';
 
 test('one cell per trip day, with the days that have moments marked', () => {
   const cells = dayStripCells('2026-11-28', '2026-11-30', ['2026-11-29']);
@@ -28,4 +28,13 @@ test('no dates: the trip runs from the first to the last moment; month ends roll
   const cells = dayStripCells(null, null, ['2026-11-30', '2026-12-02']);
   assert.deepEqual(cells.map(c => c.day), ['2026-11-30', '2026-12-01', '2026-12-02']);
   assert.equal(dayStripCells('2026-01-01', '2027-12-31', []).length, 120, 'capped');
+});
+
+test('date pills: trip days plus other days with moments, in order', () => {
+  const pills = datePills('2026-11-30', '2026-12-01', ['2026-11-20', '2026-11-30']);
+  assert.deepEqual(pills.map(p => p.day), ['2026-11-20', '2026-11-30', '2026-12-01']);
+  assert.match(pills[1].label, /^Day 1 · 30 Nov$/);
+  assert.match(pills[0].label, /^20 Nov$/);
+  assert.deepEqual(datePills('2026-11-30', '2026-11-30', ['2026-11-30']), [], 'one day: nothing to switch');
+  assert.equal(datePills('2026-11-30', null, ['2026-11-20', '2026-11-22', '2026-11-23']).length, 4, 'one-day trip with earlier moments');
 });

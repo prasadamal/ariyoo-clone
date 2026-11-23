@@ -1,45 +1,56 @@
 import * as FileSystem from 'expo-file-system/legacy';
-import { stripRich } from '../../lib/richText';
-import { router } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
 import * as Sharing from 'expo-sharing';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, Share, View } from 'react-native';
-import { Button, SegmentedButtons, Text } from 'react-native-paper';
-import { RouteMap } from '../../components/RouteMap';
-import { useCanConnect } from '../../context/AuthContext';
+import { Alert, Share, StyleSheet, View } from 'react-native';
+import { Button, IconButton, Text } from 'react-native-paper';
+import Svg, { Circle, Path } from 'react-native-svg';
 import { useToast } from '../../context/ToastContext';
 import { formatAltitude, formatKm } from '../../lib/format';
 import { cleanTrack, elevationProfile, elevationStats, trackDistanceKm } from '../../lib/geo';
-import { buildTripGeoJson, buildTripGpx } from '../../lib/geoExport';
-import { listEntries, listTrackPoints, type LocalEntry, type LocalTrackPoint, type LocalTrip } from '../../lib/localDb';
-import {
-  getActiveTrackingTripId,
-  getTrackingMode,
-  setTrackingMode,
-  startTripTracking,
-  stopTripTracking,
-  type TrackingMode,
-} from '../../lib/locationTask';
+import { buildTripGpx } from '../../lib/geoExport';
+import { listTrackPoints, type LocalTrackPoint, type LocalTrip } from '../../lib/localDb';
+import { getActiveTrackingTripId, getTrackingMode, setTrackingMode, startTripTracking, stopTripTracking, type TrackingMode } from '../../lib/locationTask';
+import { sketchPath } from '../../lib/routeSketch';
 import { useAppTheme } from '../../theme';
 import { ElevationChart } from '../../ui/ElevationChart';
-import { StatRow, StatTile } from '../../ui/StatTile';
+import { FloatingTabs } from '../../ui/FloatingTabs';
+import { Icon } from '../../ui/Icon';
 
 type Props = { trip: LocalTrip; onChanged: () => void };
 
+const SKETCH_H = 200;
+
+/** One number in the stats row, in the same light tiles as the rest of the app. */
+function Stat({ icon, value, label }: { icon: string; value: string; label: string }) {
+  const { colors } = useAppTheme();
+  return (
+    <View style={{ flex: 1, padding: 12, borderRadius: 16, backgroundColor: colors.surfaceVariant }} accessible accessibilityLabel={`${label}: ${value}`}>
+      <Icon name={icon} size={18} color={colors.primary} />
+      <Text style={{ fontWeight: '900', fontSize: 18, marginTop: 4 }} numberOfLines={1} adjustsFontSizeToFit>
+        {value}
+      </Text>
+      <Text style={{ color: colors.muted, fontSize: 12 }}>{label}</Text>
+    </View>
+  );
+}
+
+/**
+ * The journey's route: its shape drawn from the recorded GPS points (no map service needed), the
+ * distance / climb / high point, and one button to start or stop recording. Export is one icon.
+ */
 export function RouteTab({ trip, onChanged }: Props) {
   const { colors } = useAppTheme();
   const toast = useToast();
-  const canConnect = useCanConnect();
   const [points, setPoints] = useState<LocalTrackPoint[]>([]);
-  const [entries, setEntries] = useState<LocalEntry[]>([]);
   const [tracking, setTracking] = useState(false);
   const [mode, setMode] = useState<TrackingMode>('battery');
   const [busy, setBusy] = useState(false);
+  const [width, setWidth] = useState(0);
 
   const load = useCallback(async () => {
-    const [pts, ents, active, m] = await Promise.all([listTrackPoints(trip.id), listEntries(trip.id), getActiveTrackingTripId(), getTrackingMode()]);
+    const [pts, active, m] = await Promise.all([listTrackPoints(trip.id), getActiveTrackingTripId(), getTrackingMode()]);
     setPoints(pts);
-    setEntries(ents);
     setTracking(active === trip.id);
     setMode(m);
   }, [trip.id]);
@@ -54,19 +65,7 @@ export function RouteTab({ trip, onChanged }: Props) {
   const km = useMemo(() => trackDistanceKm(points), [points]);
   const elev = useMemo(() => elevationStats(points), [points]);
   const profile = useMemo(() => elevationProfile(points), [points]);
-  const pins = useMemo(
-    () =>
-      entries
-        .filter(e => e.latitude != null && e.longitude != null)
-        .map(e => ({
-          id: e.id,
-          latitude: e.latitude as number,
-          longitude: e.longitude as number,
-          title: e.place_name || new Date(e.recorded_at).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }),
-          description: stripRich(e.body ?? '').slice(0, 80),
-        })),
-    [entries]
-  );
+  const sketch = useMemo(() => (width ? sketchPath(clean, width, SKETCH_H, 22) : null), [clean, width]);
 
   const toggle = async () => {
     setBusy(true);
@@ -76,7 +75,7 @@ export function RouteTab({ trip, onChanged }: Props) {
         toast('Route recording stopped');
       } else {
         await startTripTracking(trip.id, mode);
-        toast(mode === 'precise' ? 'Recording every ~15 s / 10 m' : 'Recording every ~1 min / 25 m (battery saver)');
+        toast('Recording your route');
       }
       await load();
       onChanged();
@@ -87,81 +86,90 @@ export function RouteTab({ trip, onChanged }: Props) {
     }
   };
 
-  const changeMode = async (m: string) => {
-    const next = m as TrackingMode;
+  const changeMode = async (next: TrackingMode) => {
     setMode(next);
     await setTrackingMode(next);
     if (tracking) await startTripTracking(trip.id, next);
   };
 
-  const exportFile = async (kind: 'gpx' | 'geojson') => {
+  const exportGpx = async () => {
     try {
-      const body = kind === 'gpx' ? await buildTripGpx(trip.id, trip.title) : JSON.stringify(await buildTripGeoJson(trip.id, trip.title), null, 2);
+      const body = await buildTripGpx(trip.id, trip.title);
       const safe = trip.title.replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '').toLowerCase() || 'route';
-      const uri = `${FileSystem.cacheDirectory}${safe}.${kind}`;
+      const uri = `${FileSystem.cacheDirectory}${safe}.gpx`;
       await FileSystem.writeAsStringAsync(uri, body);
-      if (await Sharing.isAvailableAsync()) {
-        await Sharing.shareAsync(uri, {
-          mimeType: kind === 'gpx' ? 'application/gpx+xml' : 'application/geo+json',
-          dialogTitle: `${trip.title} route`,
-        });
-      } else {
-        await Share.share({ message: body.slice(0, 50_000), title: `${trip.title} route` });
-      }
+      if (await Sharing.isAvailableAsync()) await Sharing.shareAsync(uri, { mimeType: 'application/gpx+xml', dialogTitle: `${trip.title} route` });
+      else await Share.share({ message: body.slice(0, 50_000), title: `${trip.title} route` });
     } catch (e) {
-      toast(e instanceof Error ? e.message : 'Export failed');
+      toast(e instanceof Error ? e.message : 'Could not export the route');
     }
   };
 
   return (
     <View>
-      <RouteMap points={clean} pins={pins} />
-      <StatRow>
-        <StatTile icon="map-marker-path" value={formatKm(km)} label="Distance" />
-        <StatTile icon="stairs-up" value={`${elev.gainM.toLocaleString('en-IN')} m`} label="Climbed" tint={colors.secondary} />
-        <StatTile icon="image-filter-hdr" value={formatAltitude(elev.maxM)} label="High point" tint={colors.tertiary} />
-      </StatRow>
+      {/* The route's shape on a soft brand background, start in green and the latest point in orange. */}
+      <View onLayout={e => setWidth(e.nativeEvent.layout.width)} style={{ height: SKETCH_H, borderRadius: 22, overflow: 'hidden', backgroundColor: colors.surfaceVariant }}>
+        <LinearGradient colors={[colors.primaryContainer, colors.surfaceVariant]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
+        {sketch ? (
+          <Svg width={width} height={SKETCH_H} accessibilityLabel={`Route of ${formatKm(km)}`}>
+            <Path d={sketch.d} stroke={colors.primary} strokeOpacity={0.25} strokeWidth={10} fill="none" strokeLinecap="round" strokeLinejoin="round" />
+            <Path d={sketch.d} stroke={colors.primary} strokeWidth={4} fill="none" strokeLinecap="round" strokeLinejoin="round" />
+            <Circle cx={sketch.start.x} cy={sketch.start.y} r={7} fill="#16a34a" stroke="#fff" strokeWidth={2.5} />
+            <Circle cx={sketch.end.x} cy={sketch.end.y} r={8} fill={colors.secondary} stroke="#fff" strokeWidth={2.5} />
+          </Svg>
+        ) : (
+          <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+            <Icon name="map-marker-path" size={36} color={colors.primary} />
+            <Text style={{ fontWeight: '800', marginTop: 8 }}>No route yet</Text>
+            <Text style={{ color: colors.muted, textAlign: 'center', marginTop: 2 }}>Start recording when you set off. Your path is drawn here.</Text>
+          </View>
+        )}
+        {clean.length >= 2 ? (
+          <IconButton icon="export-variant" mode="contained-tonal" size={18} onPress={exportGpx} accessibilityLabel="Export route (GPX)" style={{ position: 'absolute', top: 6, right: 6 }} />
+        ) : null}
+        {tracking ? (
+          <View style={{ position: 'absolute', top: 12, left: 12, flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999, backgroundColor: colors.danger }}>
+            <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: '#fff' }} />
+            <Text style={{ color: '#fff', fontWeight: '700', fontSize: 12 }}>Recording</Text>
+          </View>
+        ) : null}
+      </View>
+
+      <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
+        <Stat icon="map-marker-distance" value={formatKm(km)} label="Distance" />
+        <Stat icon="stairs-up" value={`${elev.gainM.toLocaleString('en-IN')} m`} label="Climbed" />
+        <Stat icon="image-filter-hdr" value={formatAltitude(elev.maxM)} label="High point" />
+      </View>
+
       {profile.length > 2 ? (
-        <View style={{ marginTop: 14 }}>
-          <Text style={{ fontWeight: '700', marginBottom: 6 }}>Elevation profile</Text>
+        <View style={{ marginTop: 12, padding: 12, borderRadius: 16, backgroundColor: colors.surfaceVariant }}>
+          <Text style={{ fontWeight: '800', marginBottom: 6 }}>Elevation</Text>
           <ElevationChart series={profile} />
         </View>
       ) : null}
 
-      <View style={{ marginTop: 16, gap: 10 }}>
-        <SegmentedButtons
-          value={mode}
-          onValueChange={changeMode}
-          buttons={[
-            { value: 'battery', label: 'Battery saver', icon: 'battery-heart-variant' },
-            { value: 'precise', label: 'Precise', icon: 'crosshairs-gps' },
-          ]}
-        />
-        <Button mode="contained" icon={tracking ? 'stop-circle-outline' : 'record-circle-outline'} onPress={toggle} loading={busy} disabled={busy} buttonColor={tracking ? colors.danger : undefined}>
-          {tracking ? 'Stop recording' : 'Start recording route'}
-        </Button>
-        <Text style={{ color: colors.muted, fontSize: 12, lineHeight: 17 }}>
-          {points.length} GPS points. Recording keeps running in the background (with a notification on Android) so your route is
-          verifiable — GPS-verified distance and altitude power your traveller tier.
-        </Text>
-        <View style={{ flexDirection: 'row', gap: 8 }}>
-          <Button mode="outlined" icon="download" onPress={() => exportFile('gpx')} disabled={clean.length < 2} style={{ flex: 1 }}>
-            GPX
-          </Button>
-          <Button mode="outlined" icon="code-json" onPress={() => exportFile('geojson')} disabled={clean.length < 2} style={{ flex: 1 }}>
-            GeoJSON
-          </Button>
-        </View>
-        {canConnect ? (
-          <Button
-            icon="share-variant"
-            disabled={clean.length < 2}
-            onPress={() => router.push({ pathname: '/post/new', params: { tripId: trip.id, kind: 'trip' } })}
-          >
-            Share this route to your feed
-          </Button>
-        ) : null}
-      </View>
+      <FloatingTabs<TrackingMode>
+        accessibilityLabel="Recording accuracy"
+        tabs={[
+          { value: 'battery', label: 'Battery saver' },
+          { value: 'precise', label: 'Precise' },
+        ]}
+        value={mode}
+        onChange={changeMode}
+        style={{ alignSelf: 'center', marginTop: 16 }}
+      />
+      <Button
+        mode="contained"
+        icon={tracking ? 'stop-circle-outline' : 'record-circle-outline'}
+        onPress={toggle}
+        loading={busy}
+        disabled={busy}
+        buttonColor={tracking ? colors.danger : undefined}
+        style={{ marginTop: 12 }}
+        contentStyle={{ height: 48 }}
+      >
+        {tracking ? 'Stop recording' : 'Start recording'}
+      </Button>
     </View>
   );
 }

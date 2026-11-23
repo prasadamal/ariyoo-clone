@@ -1,4 +1,5 @@
 import { router, Stack, useLocalSearchParams, useFocusEffect } from 'expo-router';
+import { Image as ExpoImage } from 'expo-image';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, Pressable, ScrollView, View } from 'react-native';
 import { ActivityIndicator, Menu, Text } from 'react-native-paper';
@@ -15,14 +16,14 @@ import { isEverydayTrip } from '../../src/lib/everydayMemories';
 import { Glass } from '../../src/ui/Glass';
 import { tripCoverUri } from '../../src/lib/tripCover';
 import { JournalTab } from '../../src/features/trip/JournalTab';
-import { PackingTab } from '../../src/features/trip/PackingTab';
-import { PlanTab } from '../../src/features/trip/PlanTab';
+import { PlanPackTab } from '../../src/features/trip/PlanPackTab';
 import { RouteTab } from '../../src/features/trip/RouteTab';
 import { daysUntil, formatDateRange, formatKm, tripPhase } from '../../src/lib/format';
 import { deleteTrip, getTrip, setTripCover, updateTrip, type LocalTrip } from '../../src/lib/localDb';
 import { persistCoverPhoto } from '../../src/lib/media';
 import { pickPhotos } from '../../src/features/trip/photoPicker';
 import { TripCover } from '../../src/ui/TripCover';
+import { coverArtFor } from '../../src/ui/coverArt';
 import { getActiveTrackingTripId, stopTripTracking } from '../../src/lib/locationTask';
 import { pushTripNow } from '../../src/lib/sync';
 import { exportTripJournalPdf } from '../../src/lib/tripPdf';
@@ -37,13 +38,12 @@ import { BudgetBar } from '../../src/ui/BudgetBar';
 import { getRates, type RatesSnapshot } from '../../src/lib/currency';
 import { splitSpend } from '../../src/lib/currencyMath';
 
-type Tab = 'journal' | 'plan' | 'budget' | 'pack' | 'route' | 'crew';
+type Tab = 'journal' | 'plan' | 'budget' | 'route' | 'crew';
 
 const ALL_TABS: TabItem<Tab>[] = [
   { value: 'journal', label: 'Journal', icon: 'notebook-outline' },
-  { value: 'plan', label: 'Plan', icon: 'calendar-text-outline' },
+  { value: 'plan', label: 'Plan & Pack', icon: 'clipboard-check-outline' },
   { value: 'budget', label: 'Budget', icon: 'wallet-outline' },
-  { value: 'pack', label: 'Pack', icon: 'bag-checked' },
   { value: 'route', label: 'Route', icon: 'map-marker-path' },
   { value: 'crew', label: 'Crew', icon: 'account-group-outline' },
 ];
@@ -201,6 +201,7 @@ export default function TripDetailScreen() {
       <TripCover
         glass
         uri={coverUri}
+        art={coverArtFor(trip.trip_type)}
         gradient={[colors.heroStart, colors.heroEnd]}
         style={{ borderRadius: 22, padding: 16, paddingRight: 6, minHeight: coverUri ? 210 : undefined }}
       >
@@ -287,7 +288,11 @@ export default function TripDetailScreen() {
           // Counts and money float straight on the cover photo.
           <View style={{ marginTop: 14, marginRight: 10 }}>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
-            <Pill icon="feather" label={`${stats.entryCount} ${stats.entryCount === 1 ? 'moment' : 'moments'}`} color="#fff" background="#ffffff26" />
+            {/* Moments carry the app's own mark, in the same white as the other pills. */}
+            <View accessible accessibilityLabel={`${stats.entryCount} ${stats.entryCount === 1 ? 'moment' : 'moments'}`} style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999, backgroundColor: '#ffffff26' }}>
+              <ExpoImage source={require('../../assets/logo-mark.png')} style={{ width: 22, height: 13 }} tintColor="#fff" contentFit="contain" />
+              <Text style={{ color: '#fff', fontWeight: '600', fontSize: 13 }}>{`${stats.entryCount} ${stats.entryCount === 1 ? 'moment' : 'moments'}`}</Text>
+            </View>
             {stats.photoCount ? <Pill icon="camera-outline" label={`${stats.photoCount}`} color="#fff" background="#ffffff26" /> : null}
             {stats.distanceKm >= 0.1 ? <Pill icon="map-marker-path" label={formatKm(stats.distanceKm)} color="#fff" background="#ffffff26" /> : null}
             {social && trip.open_to_meet ? <Pill icon="account-group" label="Open to meet" color="#fff" background="#ffffff26" /> : null}
@@ -317,9 +322,8 @@ export default function TripDetailScreen() {
             onJumpTo={y => pageRef.current?.scrollTo({ y: Math.max(0, journalY.current + y - 8), animated: true })}
           />
         </View> : null}
-      {tab === 'plan' ? <PlanTab trip={trip} onChanged={load} readOnly={!canEdit} /> : null}
+      {tab === 'plan' ? <PlanPackTab trip={trip} onChanged={load} readOnly={!canEdit} /> : null}
       {tab === 'budget' ? <BudgetTab trip={trip} onChanged={load} readOnly={!canEdit} /> : null}
-      {tab === 'pack' ? <PackingTab trip={trip} onChanged={load} /> : null}
       {tab === 'route' && canEdit ? <RouteTab trip={trip} onChanged={load} /> : null}
       {tab === 'crew' && !everyday ? (
         <>
