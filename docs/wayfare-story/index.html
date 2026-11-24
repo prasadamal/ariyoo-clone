@@ -85,7 +85,7 @@
         : '';
       const moments = data.moments || [];
       const photoCount = moments.reduce((n, m) => n + (m.photos || []).length, 0);
-      $('sub').textContent = [t.destination, dates, moments.length + (moments.length === 1 ? ' moment' : ' moments'), photoCount ? photoCount + ' photos' : '']
+      $('sub').textContent = [t.destination, dates, moments.length + (moments.length === 1 ? ' moment' : ' moments'), photoCount ? photoCount + (photoCount === 1 ? ' photo' : ' photos') : '']
         .filter(Boolean).join(' · ');
 
       // Sign the photo links (only allowed while the journey's story link is on).

@@ -334,8 +334,14 @@ export function BudgetTab({ trip, onChanged, readOnly = false }: Props) {
                   <Icon name="arrow-right" size={16} color={colors.muted} />
                   <Text style={{ fontWeight: '700', flex: 1 }} numberOfLines={1}>{personLabel(t.to)}</Text>
                   <Text style={{ fontWeight: '800', color: colors.secondary }}>{formatMoney(t.amount, s.currency)}</Text>
+                  {/* Between two other people (or not in rupees): just "Paid", on the same line. */}
+                  {readOnly || (s.currency === 'INR' && (t.from === ME || t.to === ME)) ? null : (
+                    <Button compact mode="outlined" onPress={() => markPaid(t, s.currency)} accessibilityLabel={`Mark ${personLabel(t.from)} paid ${personLabel(t.to)}`}>
+                      Paid
+                    </Button>
+                  )}
                 </View>
-                {readOnly ? null : (
+                {readOnly || !(s.currency === 'INR' && (t.from === ME || t.to === ME)) ? null : (
                   // UPI for rupees: "Pay" when you owe, "Request" when you're owed. "Paid" records it.
                   <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 8 }}>
                     {s.currency === 'INR' && t.from === ME ? (

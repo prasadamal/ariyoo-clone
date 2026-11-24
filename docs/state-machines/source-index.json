@@ -544,63 +544,67 @@
           "text": "import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';"
         },
         {
-          "line": 41,
+          "line": 43,
           "text": "const [all, setAll] = useState<LocalTrip[]>([]);"
         },
         {
-          "line": 42,
+          "line": 44,
           "text": "const [rows, setRows] = useState<TripRow[]>([]);"
         },
         {
-          "line": 43,
+          "line": 45,
           "text": "const [featured, setFeatured] = useState<TripRow[]>([]);"
         },
         {
-          "line": 44,
+          "line": 46,
           "text": "const [counts, setCounts] = useState<Record<TripStatus, number>>({ ongoing: 0, upcoming: 0, completed: 0 });"
         },
         {
-          "line": 46,
+          "line": 48,
           "text": "const [listTop, setListTop] = useState(0);"
         },
         {
-          "line": 47,
+          "line": 49,
           "text": "const [inList, setInList] = useState(false);"
         },
         {
-          "line": 49,
+          "line": 51,
           "text": "const [viewHeight, setViewHeight] = useState(0);"
         },
         {
-          "line": 50,
+          "line": 52,
           "text": "const [greetHeight, setGreetHeight] = useState(72);"
         },
         {
-          "line": 51,
-          "text": "const [recordingTripId, setRecordingTripId] = useState<string | null>(null);"
-        },
-        {
-          "line": 52,
-          "text": "const [loaded, setLoaded] = useState(false);"
-        },
-        {
           "line": 53,
-          "text": "const [loadingMore, setLoadingMore] = useState(false);"
+          "text": "const [bannerHeight, setBannerHeight] = useState(0);"
         },
         {
           "line": 54,
-          "text": "const [refreshing, setRefreshing] = useState(false);"
+          "text": "const [recordingTripId, setRecordingTripId] = useState<string | null>(null);"
+        },
+        {
+          "line": 55,
+          "text": "const [loaded, setLoaded] = useState(false);"
         },
         {
           "line": 56,
+          "text": "const [loadingMore, setLoadingMore] = useState(false);"
+        },
+        {
+          "line": 57,
+          "text": "const [refreshing, setRefreshing] = useState(false);"
+        },
+        {
+          "line": 59,
           "text": "const [showStatus, setShowStatus] = useState(false);"
         },
         {
-          "line": 131,
+          "line": 140,
           "text": "statusTimer.current = setTimeout(() => setShowStatus(false), 6000);"
         },
         {
-          "line": 178,
+          "line": 187,
           "text": "const status = tripStatus(t);"
         }
       ]
@@ -1205,6 +1209,23 @@
       ]
     },
     {
+      "path": "apps/wayfare-mobile/app/passport.tsx",
+      "evidence": [
+        {
+          "line": 3,
+          "text": "import { useCallback, useRef, useState } from 'react';"
+        },
+        {
+          "line": 50,
+          "text": "const [stamps, setStamps] = useState<PassportStamp[] | null>(null);"
+        },
+        {
+          "line": 51,
+          "text": "const [sharing, setSharing] = useState(false);"
+        }
+      ]
+    },
+    {
       "path": "apps/wayfare-mobile/app/place/[key].tsx",
       "evidence": [
         {
@@ -1552,27 +1573,47 @@
           "text": "import { useEffect, useState } from 'react';"
         },
         {
-          "line": 45,
+          "line": 51,
           "text": "const [reminder, setReminder] = useState<DiaryReminder>({ on: false, hour: 21 });"
         },
         {
-          "line": 46,
-          "text": "const [telemetryOn, setTelemetryOn] = useState(true);"
+          "line": 52,
+          "text": "const [myUpi, setMyUpi] = useState('');"
+        },
+        {
+          "line": 53,
+          "text": "const [packNudges, setPackNudges] = useState(true);"
+        },
+        {
+          "line": 55,
+          "text": "const [writeOut, setWriteOut] = useState(false);"
+        },
+        {
+          "line": 62,
+          "text": "const [upiOpen, setUpiOpen] = useState(false);"
+        },
+        {
+          "line": 63,
+          "text": "const [upiDraft, setUpiDraft] = useState('');"
         },
         {
           "line": 67,
+          "text": "const [telemetryOn, setTelemetryOn] = useState(true);"
+        },
+        {
+          "line": 88,
           "text": "const [push, setPush] = useState<PushPreference>('unset');"
         },
         {
-          "line": 68,
+          "line": 89,
           "text": "const [deleteOpen, setDeleteOpen] = useState(false);"
         },
         {
-          "line": 69,
+          "line": 90,
           "text": "const [confirmText, setConfirmText] = useState('');"
         },
         {
-          "line": 70,
+          "line": 91,
           "text": "const [deleting, setDeleting] = useState(false);"
         }
       ]
@@ -1627,71 +1668,83 @@
           "text": "import { useCallback, useEffect, useRef, useState } from 'react';"
         },
         {
-          "line": 71,
+          "line": 72,
           "text": "const [rates, setRates] = useState<RatesSnapshot | null>(null);"
         },
         {
-          "line": 77,
+          "line": 78,
           "text": "const [trip, setTrip] = useState<LocalTrip | null | undefined>(undefined);"
         },
         {
-          "line": 78,
+          "line": 79,
           "text": "const [stats, setStats] = useState<TripStats | null>(null);"
         },
         {
-          "line": 79,
+          "line": 80,
           "text": "const [tab, setTab] = useState<Tab>(ALL_TABS.some(t => t.value === params.tab) ? (params.tab as Tab) : 'journal');"
         },
         {
-          "line": 80,
+          "line": 81,
           "text": "const [menu, setMenu] = useState(false);"
         },
         {
-          "line": 81,
+          "line": 82,
           "text": "const [crew, setCrew] = useState<CrewPerson[]>([]);"
         },
         {
-          "line": 82,
+          "line": 83,
           "text": "const [coverUri, setCoverUri] = useState<string | null>(null);"
         },
         {
-          "line": 135,
+          "line": 136,
           "text": "const phase = tripPhase(trip.starts_on, trip.ends_on);"
         },
         {
-          "line": 150,
+          "line": 151,
           "text": "await updateTrip(trip.id, { status: done ? 'completed' : 'active' });"
         },
         {
-          "line": 197,
+          "line": 198,
           "text": "const spend = stats ? splitSpend(stats.spendByCurrency, trip.currency || 'INR', rates?.rates ?? null) : { total: 0, pending: [] };"
         },
         {
-          "line": 214,
+          "line": 215,
           "text": "{trip.status === 'completed'"
         },
         {
-          "line": 216,
+          "line": 217,
           "text": ": phase === 'upcoming' && until != null"
         },
         {
-          "line": 218,
+          "line": 219,
           "text": ": phase === 'ongoing'"
         },
         {
-          "line": 220,
+          "line": 221,
           "text": ": phase === 'past'"
         },
         {
-          "line": 282,
+          "line": 274,
+          "text": "title={trip.visibility === 'link' ? 'Share story link again' : 'Share story link'}"
+        },
+        {
+          "line": 278,
+          "text": "if (trip.visibility === 'link') return void go();"
+        },
+        {
+          "line": 287,
+          "text": "{role === 'owner' && user && trip.visibility === 'link' ? ("
+        },
+        {
+          "line": 310,
           "text": "leadingIcon={trip.status === 'completed' ? 'restore' : 'flag-checkered'}"
         },
         {
-          "line": 283,
+          "line": 311,
           "text": "title={trip.status === 'completed' ? 'Reopen journey' : 'Mark complete'}"
         },
         {
-          "line": 333,
+          "line": 361,
           "text": "const next = await updateTrip(trip.id, { status: 'completed' });"
         }
       ]
@@ -1827,6 +1880,19 @@
         {
           "line": 36,
           "text": "const [sharing, setSharing] = useState(false);"
+        }
+      ]
+    },
+    {
+      "path": "apps/wayfare-mobile/src/components/AnnouncementBanner.tsx",
+      "evidence": [
+        {
+          "line": 3,
+          "text": "import { useCallback, useEffect, useState } from 'react';"
+        },
+        {
+          "line": 39,
+          "text": "const [item, setItem] = useState<Announcement | null>(null);"
         }
       ]
     },
@@ -2407,75 +2473,87 @@
           "text": "import { useCallback, useEffect, useMemo, useRef, useState } from 'react';"
         },
         {
-          "line": 47,
+          "line": 50,
           "text": "const [expenses, setExpenses] = useState<LocalExpense[]>([]);"
         },
         {
-          "line": 48,
+          "line": 51,
           "text": "const [rates, setRates] = useState<RatesSnapshot | null>(null);"
         },
         {
-          "line": 49,
+          "line": 52,
           "text": "const [amount, setAmount] = useState('');"
         },
         {
-          "line": 52,
+          "line": 55,
           "text": "const [category, setCategory] = useState('other');"
         },
         {
-          "line": 53,
+          "line": 56,
           "text": "const [noteFocused, setNoteFocused] = useState(false);"
         },
         {
-          "line": 54,
+          "line": 57,
           "text": "const [showCategories, setShowCategories] = useState(false);"
         },
         {
-          "line": 55,
+          "line": 58,
           "text": "const [budgetOpen, setBudgetOpen] = useState(false);"
         },
         {
-          "line": 56,
+          "line": 59,
           "text": "const [budgetText, setBudgetText] = useState('');"
         },
         {
-          "line": 57,
+          "line": 60,
           "text": "const [formOpen, setFormOpen] = useState(false);"
         },
         {
-          "line": 58,
+          "line": 61,
           "text": "const [showSettle, setShowSettle] = useState(false);"
         },
         {
-          "line": 59,
+          "line": 63,
+          "text": "const [upiIds, setUpiIds] = useState<Record<string, string>>({});"
+        },
+        {
+          "line": 64,
+          "text": "const [upiAsk, setUpiAsk] = useState<{ who: string; then: (id: string) => void } | null>(null);"
+        },
+        {
+          "line": 65,
+          "text": "const [upiText, setUpiText] = useState('');"
+        },
+        {
+          "line": 91,
           "text": "const [showExpenses, setShowExpenses] = useState(false);"
         },
         {
-          "line": 60,
+          "line": 92,
           "text": "const [note, setNote] = useState('');"
         },
         {
-          "line": 61,
+          "line": 93,
           "text": "const [paidBy, setPaidBy] = useState(ME);"
         },
         {
-          "line": 62,
+          "line": 94,
           "text": "const [splitWith, setSplitWith] = useState<string[]>(people);"
         },
         {
-          "line": 72,
+          "line": 104,
           "text": "const spending = useMemo(() => expenses.filter(isSpending), [expenses]);"
         },
         {
-          "line": 121,
+          "line": 153,
           "text": "sync_status: 'pending',"
         },
         {
-          "line": 156,
+          "line": 188,
           "text": "sync_status: 'pending',"
         },
         {
-          "line": 383,
+          "line": 474,
           "text": "onBlur={() => setTimeout(() => setNoteFocused(false), 200)}"
         }
       ]
@@ -2526,103 +2604,107 @@
           "text": "import { useCallback, useEffect, useMemo, useRef, useState } from 'react';"
         },
         {
-          "line": 62,
+          "line": 67,
           "text": "const [entries, setEntries] = useState<LocalEntry[]>([]);"
         },
         {
-          "line": 63,
+          "line": 68,
           "text": "const [text, setText] = useState('');"
         },
         {
-          "line": 64,
+          "line": 69,
           "text": "const [mood, setMood] = useState('');"
         },
         {
-          "line": 68,
+          "line": 73,
           "text": "const [dayFilter, setDayFilter] = useState<string | null>(null);"
         },
         {
-          "line": 69,
+          "line": 74,
           "text": "const [newestFirst, setNewestFirst] = useState(false);"
         },
         {
-          "line": 70,
+          "line": 75,
           "text": "const [sortOpen, setSortOpen] = useState(false);"
         },
         {
-          "line": 72,
+          "line": 77,
           "text": "const [grid, setGrid] = useState(false);  const [money, setMoney] = useState<MomentMoney | null>(null);"
         },
         {
-          "line": 73,
+          "line": 78,
           "text": "const [typedPlace, setTypedPlace] = useState<FoundPlace | null>(null);"
         },
         {
-          "line": 74,
+          "line": 79,
           "text": "const [expenses, setExpenses] = useState<LocalExpense[]>([]);"
         },
         {
-          "line": 75,
+          "line": 80,
           "text": "const [photos, setPhotos] = useState<PickedPhoto[]>([]);"
         },
         {
-          "line": 76,
+          "line": 81,
           "text": "const [saving, setSaving] = useState(false);"
         },
         {
-          "line": 78,
+          "line": 83,
           "text": "const [voiceBusy, setVoiceBusy] = useState(false);"
         },
         {
-          "line": 79,
+          "line": 84,
           "text": "const [recording, setRecording] = useState(false);"
         },
         {
-          "line": 81,
+          "line": 86,
           "text": "const [voices, setVoices] = useState<VoiceDraft[]>([]);"
         },
         {
-          "line": 83,
+          "line": 89,
+          "text": "const [liveWords, setLiveWords] = useState('');"
+        },
+        {
+          "line": 91,
           "text": "const [mediaKey, setMediaKey] = useState(0);"
         },
         {
-          "line": 85,
+          "line": 93,
           "text": "const [shownDays, setShownDays] = useState(DAYS_PER_PAGE);"
         },
         {
-          "line": 88,
+          "line": 96,
           "text": "const [limit, setLimit] = useState(MOMENTS_PER_PAGE);"
         },
         {
-          "line": 89,
+          "line": 97,
           "text": "const [total, setTotal] = useState(0);"
         },
         {
-          "line": 90,
+          "line": 98,
           "text": "const [loadingMore, setLoadingMore] = useState(false);"
         },
         {
-          "line": 92,
+          "line": 100,
           "text": "const [times, setTimes] = useState<string[]>([]);"
         },
         {
-          "line": 94,
+          "line": 102,
           "text": "const [jumpTo, setJumpTo] = useState<string | null>(null);"
         },
         {
-          "line": 144,
+          "line": 154,
           "text": "sync_status: 'pending',"
         },
         {
-          "line": 165,
+          "line": 175,
           "text": "sync_status: 'pending',"
         },
         {
-          "line": 205,
+          "line": 215,
           "text": "sync_status: 'pending',"
         },
         {
-          "line": 227,
+          "line": 237,
           "text": "sync_status: 'pending',"
         }
       ]
@@ -2652,35 +2734,35 @@
           "text": "import { useState } from 'react';"
         },
         {
-          "line": 72,
+          "line": 74,
           "text": "const [moodOpen, setMoodOpen] = useState(false);"
         },
         {
-          "line": 73,
+          "line": 75,
           "text": "const [moneyOpen, setMoneyOpen] = useState(false);"
         },
         {
-          "line": 74,
+          "line": 76,
           "text": "const [placeOpen, setPlaceOpen] = useState(false);"
         },
         {
-          "line": 75,
+          "line": 77,
           "text": "const [placeText, setPlaceText] = useState('');"
         },
         {
-          "line": 76,
+          "line": 78,
           "text": "const [placeMatch, setPlaceMatch] = useState<Destination | undefined>(undefined);"
         },
         {
-          "line": 77,
+          "line": 79,
           "text": "const [amountText, setAmountText] = useState('');"
         },
         {
-          "line": 78,
+          "line": 80,
           "text": "const [category, setCategory] = useState('food');"
         },
         {
-          "line": 95,
+          "line": 97,
           "text": "const tool = (icon: string, label: string, onPress: () => void, active = false, disabled = false) => ("
         }
       ]
@@ -2689,47 +2771,51 @@
       "path": "apps/wayfare-mobile/src/features/trip/PackingTab.tsx",
       "evidence": [
         {
-          "line": 1,
+          "line": 2,
           "text": "import { useCallback, useEffect, useRef, useState } from 'react';"
         },
         {
-          "line": 33,
+          "line": 40,
           "text": "const [items, setItems] = useState<LocalPackingItem[]>([]);"
         },
         {
-          "line": 34,
+          "line": 41,
           "text": "const [lists, setLists] = useState<PackingLists | null>(null);"
         },
         {
-          "line": 35,
+          "line": 42,
           "text": "const [selected, setSelected] = useState<string>(defaultListFor(trip.starts_on, trip.ends_on));"
         },
         {
-          "line": 36,
+          "line": 43,
           "text": "const [label, setLabel] = useState('');"
         },
         {
-          "line": 37,
+          "line": 44,
           "text": "const [menu, setMenu] = useState(false);"
         },
         {
-          "line": 38,
+          "line": 45,
           "text": "const [naming, setNaming] = useState(false);"
         },
         {
-          "line": 39,
+          "line": 46,
           "text": "const [newName, setNewName] = useState('');"
         },
         {
-          "line": 70,
+          "line": 48,
+          "text": "const [tip, setTip] = useState<WeatherTip | null>(null);"
+        },
+        {
+          "line": 98,
           "text": "await upsertPackingItem({ ...item, packed: item.packed ? 0 : 1, sync_status: 'pending', updated_at: new Date().toISOString() });"
         },
         {
-          "line": 122,
+          "line": 150,
           "text": "for (const i of items.filter(x => x.packed)) await upsertPackingItem({ ...i, packed: 0, sync_status: 'pending', updated_at: now });"
         },
         {
-          "line": 134,
+          "line": 162,
           "text": "<Checkbox.Android status={checked ? 'checked' : 'unchecked'} onPress={onPress} />"
         }
       ]
@@ -2937,6 +3023,35 @@
       ]
     },
     {
+      "path": "apps/wayfare-mobile/src/features/trip/TripGalleryCard.tsx",
+      "evidence": [
+        {
+          "line": 2,
+          "text": "import { useCallback, useEffect, useMemo, useRef, useState } from 'react';"
+        },
+        {
+          "line": 24,
+          "text": "const [access, setAccess] = useState<'granted' | 'ask' | 'denied' | null>(null);"
+        },
+        {
+          "line": 25,
+          "text": "const [photos, setPhotos] = useState<GalleryPhoto[] | null>(null);"
+        },
+        {
+          "line": 26,
+          "text": "const [chosen, setChosen] = useState<Set<string>>(new Set());"
+        },
+        {
+          "line": 27,
+          "text": "const [open, setOpen] = useState(false);"
+        },
+        {
+          "line": 28,
+          "text": "const [adding, setAdding] = useState(false);"
+        }
+      ]
+    },
+    {
       "path": "apps/wayfare-mobile/src/lib/backupStatus.ts",
       "evidence": [
         {
@@ -3004,6 +3119,19 @@
         {
           "line": 50,
           "text": "sync_status: 'pending',"
+        }
+      ]
+    },
+    {
+      "path": "apps/wayfare-mobile/src/lib/galleryPhotos.ts",
+      "evidence": [
+        {
+          "line": 82,
+          "text": "sync_status: 'pending',"
+        },
+        {
+          "line": 91,
+          "text": "await upsertEntryMedia({ id: mediaId, trip_id: trip.id, entry_id: entryId, local_uri: stored.uri, storage_path: null, mime_type: stored.mimeType, sync_status: 'pending', updated_at: new Date().toISOString() });"
         }
       ]
     },
@@ -3324,11 +3452,11 @@
       "path": "apps/wayfare-mobile/src/lib/shareTrip.ts",
       "evidence": [
         {
-          "line": 10,
+          "line": 11,
           "text": "await updateTrip(trip.id, { share_id: shareId, visibility: 'link' });"
         },
         {
-          "line": 15,
+          "line": 16,
           "text": "await updateTrip(trip.id, { visibility: 'private' });"
         }
       ]
@@ -3542,6 +3670,15 @@
         {
           "line": 44,
           "text": "storage_path: null, mime_type: 'audio/m4a', sync_status: 'pending', updated_at: new Date().toISOString(),"
+        }
+      ]
+    },
+    {
+      "path": "apps/wayfare-mobile/src/lib/voiceTranscribe.ts",
+      "evidence": [
+        {
+          "line": 98,
+          "text": "await Promise.race([endedPromise, new Promise(r => setTimeout(r, 8000))]);"
         }
       ]
     },
@@ -4551,6 +4688,43 @@
         {
           "line": 72,
           "text": "uses_left int not null default 10 check (uses_left >= 0)"
+        }
+      ]
+    },
+    {
+      "path": "supabase/migrations/20261124150000_trip_story_and_admin.sql",
+      "evidence": [
+        {
+          "line": 51,
+          "text": "and t.visibility = 'link'"
+        },
+        {
+          "line": 74,
+          "text": "and t.visibility = 'link'"
+        },
+        {
+          "line": 131,
+          "text": "message text not null check (char_length(message) between 1 and 280),"
+        },
+        {
+          "line": 132,
+          "text": "tone text not null default 'info' check (tone in ('info', 'warning')),"
+        },
+        {
+          "line": 182,
+          "text": "'story_links', (select count(*) from public.trips where visibility = 'link' and share_id is not null),"
+        },
+        {
+          "line": 188,
+          "text": "'reports_open', (select count(*) from public.reports where status = 'open'),"
+        },
+        {
+          "line": 342,
+          "text": "where p_status is null or r.status = p_status"
+        },
+        {
+          "line": 359,
+          "text": "update public.reports set status = p_status where id = p_id;"
         }
       ]
     }

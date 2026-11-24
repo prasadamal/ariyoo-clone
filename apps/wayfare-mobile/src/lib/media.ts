@@ -9,6 +9,7 @@ export function buildStoragePath(userId: string, tripId: string, mediaId: string
 }
 
 export function guessExt(uri: string, mimeType?: string | null) {
+  if (mimeType?.includes('wav')) return 'wav'; // voice notes written out by speech recognition
   if (mimeType?.includes('audio') || mimeType?.includes('m4a')) return 'm4a';
   if (mimeType?.includes('png')) return 'png';
   if (mimeType?.includes('webp')) return 'webp';

@@ -89,16 +89,16 @@ export default ({ config }: ConfigContext): ExpoConfig =>
         'USE_BIOMETRIC',
       ],
       // Route recording runs as a foreground service started from the app, which needs no
-      // background-location permission; photos come from the system photo picker, which needs no
-      // storage/media permission. Blocking them keeps Play's permission declarations short.
+      // background-location permission. Picking photos uses the system photo picker (no permission);
+      // "Add photos from these dates" reads photos by date, so photo reading is allowed:
+      // READ_MEDIA_IMAGES (+ "selected photos" on Android 14, READ_EXTERNAL_STORAGE on 12 and older).
+      // Play asks for a Photo permissions declaration for this at store launch.
+      // Video, audio and any writing to storage stay blocked.
       blockedPermissions: [
         'android.permission.ACCESS_BACKGROUND_LOCATION',
-        'android.permission.READ_EXTERNAL_STORAGE',
         'android.permission.WRITE_EXTERNAL_STORAGE',
-        'android.permission.READ_MEDIA_IMAGES',
         'android.permission.READ_MEDIA_VIDEO',
         'android.permission.READ_MEDIA_AUDIO',
-        'android.permission.READ_MEDIA_VISUAL_USER_SELECTED',
         'android.permission.SYSTEM_ALERT_WINDOW',
       ],
       config: {
@@ -131,6 +131,15 @@ export default ({ config }: ConfigContext): ExpoConfig =>
           savePhotosPermission: false,
           isAccessMediaLocationEnabled: false,
           granularPermissions: ['photo'],
+        },
+      ],
+      [
+        // "Write out voice notes" (Settings, off by default): the phone's own speech recognition.
+        'expo-speech-recognition',
+        {
+          microphonePermission: 'Wayfare records voice notes for your journal when you tap the microphone.',
+          speechRecognitionPermission: 'Wayfare writes out your voice notes so you can read and search them, if you switch this on.',
+          androidSpeechServicePackages: ['com.google.android.googlequicksearchbox', 'com.google.android.as'],
         },
       ],
       'expo-localization',

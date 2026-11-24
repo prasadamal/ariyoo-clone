@@ -404,3 +404,12 @@ begin
     execute format('grant execute on function public.%s to authenticated', f);
   end loop;
 end $$;
+
+-- =============================================================================================
+-- 3. Written-out voice notes are .wav files (the phone's speech recogniser records them).
+-- =============================================================================================
+update storage.buckets
+set allowed_mime_types = (
+  select array_agg(distinct t) from unnest(coalesce(allowed_mime_types, '{}'::text[]) || array['audio/wav', 'audio/x-wav']) t
+)
+where id = 'entry-media';

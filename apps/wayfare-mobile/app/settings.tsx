@@ -27,6 +27,7 @@ import { SOCIAL_ENABLED } from '../src/lib/features';
 import { cleanUpiId, isValidUpiId } from '../src/lib/upi';
 import { getUpiIds, MY_UPI, setUpiId } from '../src/lib/upiIds';
 import { packingNudgesEnabled, setPackingNudgesEnabled } from '../src/lib/packingReminders';
+import { setWriteOutEnabled, writeOutEnabled, writeOutSupported } from '../src/lib/voiceTranscribe';
 import { journeysOnly } from '../src/lib/everydayMemories';
 import { listTrips } from '../src/lib/localDb';
 
@@ -50,6 +51,11 @@ export default function SettingsScreen() {
   const [reminder, setReminder] = useState<DiaryReminder>({ on: false, hour: 21 });
   const [myUpi, setMyUpi] = useState('');
   const [packNudges, setPackNudges] = useState(true);
+  const voiceSupported = writeOutSupported();
+  const [writeOut, setWriteOut] = useState(false);
+  useEffect(() => {
+    writeOutEnabled().then(setWriteOut).catch(() => undefined);
+  }, []);
   useEffect(() => {
     packingNudgesEnabled().then(setPackNudges).catch(() => undefined);
   }, []);
@@ -297,6 +303,26 @@ export default function SettingsScreen() {
           }
         }}
       />
+
+      {voiceSupported ? (
+        <>
+          <SectionHeader title="Voice notes" />
+          <ToggleRow
+            icon="text-to-speech"
+            title="Write out voice notes (beta)"
+            body="Your words appear as you speak and are saved with the moment, so you can read and search them. Uses your phone's speech recognition; voice notes are saved as larger .wav files."
+            value={writeOut}
+            onChange={async on => {
+              try {
+                await setWriteOutEnabled(on);
+                setWriteOut(on);
+              } catch (e) {
+                toast(e instanceof Error ? e.message : 'Could not change this setting');
+              }
+            }}
+          />
+        </>
+      ) : null}
 
       <SectionHeader title="Payments" />
       {/* Your UPI ID: used by "Request" in a journey's Settle up. Saved on this phone only. */}
