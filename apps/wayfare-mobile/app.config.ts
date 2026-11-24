@@ -53,7 +53,7 @@ export default ({ config }: ConfigContext): ExpoConfig =>
         NSLocationAlwaysUsageDescription:
           'Wayfare records a journey route or a live-location link only after you start it, and stops when you stop it.',
         // The plugins below set these too; every copy says the same, so the order never matters.
-        NSPhotoLibraryUsageDescription: 'Wayfare uses your photos so you can add them to journal moments and trip covers, and to find photos you took during a journey. Photos stay on your phone unless you add them.',
+        NSPhotoLibraryUsageDescription: 'Wayfare uses the photos you choose so you can add them to journal moments and trip covers. Photos stay on your phone unless you add them.',
         NSCameraUsageDescription: 'Wayfare uses the camera to take photos for your journal moments and trip covers.',
         NSMicrophoneUsageDescription: 'Wayfare records voice notes for your journal when you tap the microphone.',
         NSFaceIDUsageDescription: 'Wayfare uses Face ID to lock your private travel journal, if you switch the lock on.',
@@ -89,16 +89,17 @@ export default ({ config }: ConfigContext): ExpoConfig =>
         'USE_BIOMETRIC',
       ],
       // Route recording runs as a foreground service started from the app, which needs no
-      // background-location permission. Picking photos uses the system photo picker (no permission);
-      // "Add photos from these dates" reads photos by date, so photo reading is allowed:
-      // READ_MEDIA_IMAGES (+ "selected photos" on Android 14, READ_EXTERNAL_STORAGE on 12 and older).
-      // Play asks for a Photo permissions declaration for this at store launch.
-      // Video, audio and any writing to storage stay blocked.
+      // background-location permission. Photos are chosen with the system photo picker, which needs
+      // no storage or media permission, so Play's photo-permission declaration doesn't apply.
+      // ("Add photos from these dates" read the gallery by date; it is off for the first release.)
       blockedPermissions: [
         'android.permission.ACCESS_BACKGROUND_LOCATION',
+        'android.permission.READ_EXTERNAL_STORAGE',
         'android.permission.WRITE_EXTERNAL_STORAGE',
+        'android.permission.READ_MEDIA_IMAGES',
         'android.permission.READ_MEDIA_VIDEO',
         'android.permission.READ_MEDIA_AUDIO',
+        'android.permission.READ_MEDIA_VISUAL_USER_SELECTED',
         'android.permission.SYSTEM_ALERT_WINDOW',
       ],
       adaptiveIcon: {
@@ -122,16 +123,6 @@ export default ({ config }: ConfigContext): ExpoConfig =>
       'expo-sqlite',
       // Maps: MapLibre with free OpenStreetMap tiles (OpenFreeMap). No Google Maps key needed.
       '@maplibre/maplibre-react-native',
-      [
-        // "Add photos from these dates": reads photos only (no saving, no videos, no locations).
-        'expo-media-library',
-        {
-          photosPermission: 'Wayfare uses your photos so you can add them to journal moments and trip covers, and to find photos you took during a journey. Photos stay on your phone unless you add them.',
-          savePhotosPermission: false,
-          isAccessMediaLocationEnabled: false,
-          granularPermissions: ['photo'],
-        },
-      ],
       [
         // "Write out voice notes" (Settings, off by default): the phone's own speech recognition.
         'expo-speech-recognition',
@@ -167,7 +158,7 @@ export default ({ config }: ConfigContext): ExpoConfig =>
       [
         'expo-image-picker',
         {
-          photosPermission: 'Wayfare uses your photos so you can add them to journal moments and trip covers, and to find photos you took during a journey. Photos stay on your phone unless you add them.',
+          photosPermission: 'Wayfare uses the photos you choose so you can add them to journal moments and trip covers. Photos stay on your phone unless you add them.',
           cameraPermission: 'Wayfare uses the camera to take photos for your journal moments and trip covers.',
           // Must not be `false`: that would also strip RECORD_AUDIO, which voice notes need.
           microphonePermission: 'Wayfare records voice notes for your journal when you tap the microphone.',

@@ -1465,8 +1465,16 @@
           "text": "const [confirmEmail, setConfirmEmail] = useState<string | null>(null);"
         },
         {
-          "line": 36,
+          "line": 26,
+          "text": "const [adult, setAdult] = useState(false);"
+        },
+        {
+          "line": 38,
           "text": "const t = setTimeout(() => {"
+        },
+        {
+          "line": 136,
+          "text": "<Checkbox.Android status={adult ? 'checked' : 'unchecked'} onPress={() => setAdult(v => !v)} />"
         }
       ]
     },
@@ -2108,11 +2116,11 @@
           "text": "const status = tripStatus(trip);"
         },
         {
-          "line": 90,
+          "line": 92,
           "text": "<StatusChip status={status} count={groupCount} />"
         },
         {
-          "line": 100,
+          "line": 102,
           "text": "{showUpload && trip.sync_status === 'pending' ? <Icon name=\"cloud-upload-outline\" size={16} color=\"#ffffffaa\" /> : null}"
         }
       ]
@@ -3150,11 +3158,11 @@
       "path": "apps/wayfare-mobile/src/lib/galleryPhotos.ts",
       "evidence": [
         {
-          "line": 83,
+          "line": 87,
           "text": "sync_status: 'pending',"
         },
         {
-          "line": 92,
+          "line": 96,
           "text": "await upsertEntryMedia({ id: mediaId, trip_id: trip.id, entry_id: entryId, local_uri: stored.uri, storage_path: null, mime_type: stored.mimeType, sync_status: 'pending', updated_at: new Date().toISOString() });"
         }
       ]

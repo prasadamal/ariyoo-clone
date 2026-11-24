@@ -78,6 +78,8 @@ export function TripCard({ trip, synopsis, tracking, coverUri, showUpload = true
   const big = tileCount(trip);
   const details = synopsis || [dest?.name ?? trip.destination, formatDateRange(trip.starts_on, trip.ends_on)].filter(Boolean).join(' · ') || 'Add a destination and dates';
   const stacked = (groupCount ?? 0) > 1;
+  // On short phones the three home tiles get less room: a compact tile keeps the title and the count.
+  const compact = height != null && height < 132;
   const card = (
     <Pressable
       onPress={onPress ?? (() => router.push(`/trip/${trip.id}`))}
@@ -85,7 +87,7 @@ export function TripCard({ trip, synopsis, tracking, coverUri, showUpload = true
       accessibilityRole="button"
       accessibilityLabel={`${trip.title}, ${STATUS[status].label}${stacked ? `, newest of ${groupCount}` : ''}`}
     >
-      <TripCover uri={cover} art={coverArtFor(trip.trip_type)} gradient={[colors.heroStart, colors.heroEnd]} style={{ borderRadius: 22, padding: 18, minHeight: height ?? (large ? 190 : 160), justifyContent: 'space-between' }}>
+      <TripCover uri={cover} art={coverArtFor(trip.trip_type)} gradient={[colors.heroStart, colors.heroEnd]} style={{ borderRadius: 22, padding: compact ? 12 : 18, minHeight: height ?? (large ? 190 : 160), justifyContent: 'space-between' }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
           <StatusChip status={status} count={groupCount} />
           <View style={{ flex: 1 }} />
@@ -99,18 +101,20 @@ export function TripCard({ trip, synopsis, tracking, coverUri, showUpload = true
           ) : null}
           {showUpload && trip.sync_status === 'pending' ? <Icon name="cloud-upload-outline" size={16} color="#ffffffaa" /> : null}
         </View>
-        <View style={{ flexDirection: 'row', alignItems: 'flex-end', marginTop: 18 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'flex-end', marginTop: compact ? 6 : 18 }}>
           <View style={{ flex: 1 }}>
             {/* A sized tile (the three on Journeys) keeps to one line each, so all three fit the screen. */}
-            <Text style={{ color: '#fff', fontWeight: '900', fontSize: large ? 28 : 24, letterSpacing: -0.3 }} numberOfLines={height ? 1 : 2} adjustsFontSizeToFit={Boolean(height)} minimumFontScale={0.75}>
+            <Text style={{ color: '#fff', fontWeight: '900', fontSize: compact ? 22 : large ? 28 : 24, letterSpacing: -0.3 }} numberOfLines={height ? 1 : 2} adjustsFontSizeToFit={Boolean(height)} minimumFontScale={0.75}>
               {trip.title}
             </Text>
+            {compact ? null : (
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 6 }}>
               <Icon name="calendar-month-outline" size={16} color="#ffffffd9" />
               <Text style={{ color: '#ffffffe6', flexShrink: 1 }} numberOfLines={height ? 1 : 2}>
                 {details}
               </Text>
             </View>
+            )}
             {trip.owner_id && trip.owner_name ? (
               <Text style={{ color: '#ffffffcc', fontSize: 12, marginTop: 2 }} numberOfLines={1}>
                 Shared by {trip.owner_name}
@@ -121,7 +125,7 @@ export function TripCard({ trip, synopsis, tracking, coverUri, showUpload = true
             <View style={{ flexDirection: 'row', alignItems: 'center', marginLeft: 12 }} accessible accessibilityLabel={`${big.value} ${big.caption}`}>
               <View style={{ width: 1.5, alignSelf: 'stretch', backgroundColor: '#ffffffb0', marginRight: 12 }} />
               <View style={{ alignItems: 'center' }}>
-                <Text style={{ color: '#fff', fontSize: big.value.length > 3 ? 24 : 34, fontWeight: '900', lineHeight: 38 }}>{big.value}</Text>
+                <Text style={{ color: '#fff', fontSize: big.value.length > 3 ? (compact ? 20 : 24) : compact ? 28 : 34, fontWeight: '900', lineHeight: compact ? 32 : 38 }}>{big.value}</Text>
                 <Text style={{ color: '#ffffffd9', fontSize: 12 }}>{big.caption}</Text>
               </View>
             </View>

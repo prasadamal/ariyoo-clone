@@ -193,7 +193,7 @@ export default function JourneysTab() {
   // tab bar, less the gaps (a stacked group tile needs a little more room underneath).
   const gaps = featured.reduce((sum, t) => sum + (counts[tripStatus(t)] > 1 ? 30 : 14), 0) + 14;
   const tileHeight = viewHeight && featured.length
-    ? Math.max(118, Math.min(200, Math.floor((viewHeight - 16 - greetHeight - bannerHeight - gaps - (fabBottom + 70)) / Math.max(featured.length, 3))))
+    ? Math.max(96, Math.min(200, Math.floor((viewHeight - 16 - greetHeight - bannerHeight - gaps - (fabBottom + 70)) / Math.max(featured.length, 3))))
     : undefined;
   /** A tile: the journey itself when it's the only one in its group, else that group's list. */
   const openTile = (t: TripRow) => {
