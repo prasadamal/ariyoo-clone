@@ -15,6 +15,9 @@ import { currencySymbol } from '../../lib/currencyMath';
 import { totalsByMoment } from '../../lib/momentMoney';
 import { persistJournalPhoto } from '../../lib/media';
 import { VOICE_NOTE_PRESET, cancelVoiceRecording, startVoiceRecording, stopVoiceRecordingToDraft, type VoiceDraft } from '../../lib/voiceNote';
+import { startWriteOutRecording, writeOutEnabled, type WriteOutRecording } from '../../lib/voiceTranscribe';
+import { bodyWithTranscripts } from '../../lib/transcript';
+import { persistFile } from '../../lib/upload';
 import { fetchWeatherSummary } from '../../lib/weather';
 import { useAppTheme } from '../../theme';
 import { EmptyState } from '../../ui/EmptyState';
@@ -23,6 +26,8 @@ import { MomentComposer, type MomentMoney } from './MomentComposer';
 import { pickPhotos, type PickedPhoto } from './photoPicker';
 import { Pill } from '../../ui/Pill';
 import { datePills, tripDayLabel } from './dayStripCells';
+import { TripGalleryCard } from './TripGalleryCard';
+import { galleryAvailable } from '../../lib/galleryPhotos';
 import { PhotoGrid } from './PhotoGrid';
 import { placeFromCoords, type FoundPlace } from '../../lib/reverseGeocode';
 import { canEditTrip, isSharedTrip } from '../../lib/crew';
@@ -79,6 +84,9 @@ export function JournalTab({ trip, onChanged, everyday = false, crewNames = {}, 
   const [recording, setRecording] = useState(false);
   // Voice notes recorded for the moment being written; saved with it, like photos.
   const [voices, setVoices] = useState<VoiceDraft[]>([]);
+  // "Write out voice notes" (Settings): the recording in progress and the words heard so far.
+  const writeOut = useRef<WriteOutRecording | null>(null);
+  const [liveWords, setLiveWords] = useState('');
   const recorder = useAudioRecorder(VOICE_NOTE_PRESET);
   const [mediaKey, setMediaKey] = useState(0);
   // Years of daily pages would render all at once; show recent days and load older ones on request.
@@ -126,6 +134,8 @@ export function JournalTab({ trip, onChanged, everyday = false, crewNames = {}, 
   useEffect(
     () => () => {
       void cancelVoiceRecording(recorder).catch(() => undefined);
+      writeOut.current?.cancel();
+      writeOut.current = null;
     },
     [recorder]
   );
@@ -214,7 +224,7 @@ export function JournalTab({ trip, onChanged, everyday = false, crewNames = {}, 
     if (recording || (!text.trim() && !photos.length && !money && !voices.length)) return;
     setSaving(true);
     try {
-      const entry = await createEntry(text.trim() || (photos.length ? '📷' : voices.length ? '🎙 Voice note' : '💰'));
+      const entry = await createEntry(bodyWithTranscripts(text, voices.map(v => v.transcript)) ?? (photos.length ? '📷' : voices.length ? '🎙 Voice note' : '💰'));
       if (photos.length) await attachPhotos(entry.id, photos);
       for (const v of voices) {
         await upsertEntryMedia({
@@ -223,7 +233,7 @@ export function JournalTab({ trip, onChanged, everyday = false, crewNames = {}, 
           entry_id: entry.id,
           local_uri: v.uri,
           storage_path: null,
-          mime_type: 'audio/m4a',
+          mime_type: v.mime ?? 'audio/m4a',
           sync_status: 'pending',
           updated_at: new Date().toISOString(),
         });
@@ -275,15 +285,30 @@ export function JournalTab({ trip, onChanged, everyday = false, crewNames = {}, 
     setVoiceBusy(true);
     try {
       if (!recording) {
-        await startVoiceRecording(recorder);
+        if (await writeOutEnabled()) {
+          setLiveWords('');
+          writeOut.current = await startWriteOutRecording(setLiveWords);
+        } else await startVoiceRecording(recorder);
         setRecording(true);
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => undefined);
+      } else if (writeOut.current) {
+        const rec = writeOut.current;
+        writeOut.current = null;
+        const { uri, transcript } = await rec.stop();
+        const id = uuid();
+        const stored = await persistFile(uri, 'voice', `${id}.wav`);
+        setRecording(false);
+        setLiveWords('');
+        setVoices(prev => [...prev, { id, uri: stored, mime: 'audio/wav', transcript }]);
       } else {
         const draft = await stopVoiceRecordingToDraft(recorder);
         setRecording(false);
         setVoices(prev => [...prev, draft]);
       }
     } catch (e) {
+      writeOut.current?.cancel();
+      writeOut.current = null;
+      setLiveWords('');
       await cancelVoiceRecording(recorder).catch(() => undefined);
       setRecording(false);
       toast(e instanceof Error ? e.message : 'Could not record');
@@ -373,6 +398,7 @@ export function JournalTab({ trip, onChanged, everyday = false, crewNames = {}, 
         voiceCount={voices.length}
         onRemoveVoice={i => setVoices(prev => prev.filter((_, j) => j !== i))}
         voiceBusy={voiceBusy}
+        liveWords={liveWords}
         onToggleVoice={toggleVoice}
         saving={saving}
         canSave={!recording && Boolean(text.trim() || photos.length || money || voices.length)}
@@ -381,6 +407,11 @@ export function JournalTab({ trip, onChanged, everyday = false, crewNames = {}, 
       ) : (
         <Notice text="You're a member of this journey: you see every moment. An admin can make you an admin so you can add your own." />
       )}
+
+      {/* Gallery photos taken during this journey, offered once it has started. */}
+      {galleryAvailable && canEdit && !everyday && trip.starts_on && trip.starts_on <= toDayString(new Date()) ? (
+        <TripGalleryCard trip={trip} onAdded={() => { void load(); onChanged(); }} />
+      ) : null}
 
       {!groups.length ? (
         <EmptyState

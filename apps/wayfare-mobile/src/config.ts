@@ -21,6 +21,11 @@ export function getLiveShareBaseUrl() {
   return envValue(process.env.EXPO_PUBLIC_WAYFARE_LIVE_BASE) ?? `${PAGES_BASE}/wayfare-live/index.html`;
 }
 
+/** A journey's story page for family and friends (no app needed). */
+export function storyLinkUrl(shareId: string) {
+  return `${PAGES_BASE}/wayfare-story/index.html?s=${encodeURIComponent(shareId)}`;
+}
+
 /** Page a crew invite link opens; it hands the invite to the app (wayfare://invite/<token>). */
 export function inviteLinkUrl(token: string) {
   return `${PAGES_BASE}/wayfare-invite/index.html?t=${encodeURIComponent(token)}`;

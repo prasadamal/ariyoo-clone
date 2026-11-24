@@ -35,6 +35,8 @@ type Props = {
   voiceCount?: number;
   onRemoveVoice?: (index: number) => void;
   voiceBusy: boolean;
+  /** Words heard so far while a written-out voice note records. */
+  liveWords?: string;
   onToggleVoice: () => void;
   saving: boolean;
   canSave: boolean;
@@ -137,6 +139,11 @@ export function MomentComposer(p: Props) {
           {p.recording ? <TrayPill icon="record-circle" label="Recording… tap ■ to stop" danger /> : null}
         </ScrollView>
         </View>
+      ) : null}
+      {p.recording && p.liveWords ? (
+        <Text style={{ color: colors.muted, fontStyle: 'italic', paddingHorizontal: 8, paddingBottom: 6 }} numberOfLines={3}>
+          “{p.liveWords}”
+        </Text>
       ) : null}
 
       <TextInput

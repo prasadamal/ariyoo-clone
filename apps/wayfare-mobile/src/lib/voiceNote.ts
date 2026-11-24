@@ -46,7 +46,8 @@ export function stopVoiceRecordingAndSave(recorder: AudioRecorder, tripId: strin
   }));
 }
 
-export type VoiceDraft = { id: string; uri: string };
+/** A voice note waiting in the moment box. Written-out notes are .wav with the words heard. */
+export type VoiceDraft = { id: string; uri: string; mime?: string; transcript?: string };
 
 /**
  * Stop and keep the recording as part of the moment being written: nothing is posted until Save.
