@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert, Pressable, View } from 'react-native';
-import { Button, Checkbox, Dialog, IconButton, Menu, Portal, Text, TextInput } from 'react-native-paper';
+import { Button, IconButton, Menu, Text } from 'react-native-paper';
 import { uuid } from '../../lib/id';
 import { getDestination } from '../../content/destinations';
 import { dayCount, formatDay, parseDay, toDayString } from '../../lib/format';
@@ -10,6 +10,9 @@ import { fetchForecast, weatherCodeIcon, weatherCodeLabel, type ForecastDay } fr
 import { useAppTheme } from '../../theme';
 import { EmptyState } from '../../ui/EmptyState';
 import { Icon } from '../../ui/Icon';
+import { Meter } from '../../ui/Meter';
+import { Sheet, SheetTextInput } from '../../ui/Sheet';
+import { sortPlan, QUICK_TIMES } from './planRules';
 
 /** readOnly: a crew member (not an admin) sees the plan but can't change it. */
 type Props = { trip: LocalTrip; onChanged: () => void; readOnly?: boolean };
@@ -25,15 +28,12 @@ export function PlanTab({ trip, onChanged, readOnly = false }: Props) {
   const { colors } = useAppTheme();
   const [items, setItems] = useState<LocalItineraryItem[]>([]);
   const [extraDays, setExtraDays] = useState(0);
-  const [drafts, setDrafts] = useState<Record<number, { title: string; time: string }>>({});
   const [forecast, setForecast] = useState<Record<string, ForecastDay>>({});
   const [menuDay, setMenuDay] = useState<number | null>(null);
-  // Only the day you're adding to shows the time and plan boxes; the rest show a small "Add a plan" link.
-  const [openDay, setOpenDay] = useState<number | null>(null);
-  const [editing, setEditing] = useState<LocalItineraryItem | null>(null);
-  const [editTitle, setEditTitle] = useState('');
-  const [editTime, setEditTime] = useState('');
-
+  // One sheet adds or edits a plan: which day, the plan being edited (null: a new one), the words, the time.
+  const [sheet, setSheet] = useState<{ day: number; item: LocalItineraryItem | null } | null>(null);
+  const [title, setTitle] = useState('');
+  const [time, setTime] = useState('');
   const load = useCallback(async () => setItems(await listItinerary(trip.id)), [trip.id]);
   useEffect(() => {
     load();
@@ -62,28 +62,44 @@ export function PlanTab({ trip, onChanged, readOnly = false }: Props) {
     [totalDays, items, trip.starts_on]
   );
 
-  const add = async (day: number) => {
-    const d = drafts[day];
-    if (!d?.title.trim()) return;
-    const time = d.time ? normalizeTime(d.time) : null;
-    if (d.time && !time) {
+  const openAdd = (day: number) => {
+    setTitle('');
+    setTime('');
+    setSheet({ day, item: null });
+  };
+  const openEdit = (item: LocalItineraryItem) => {
+    setTitle(item.title);
+    setTime(item.start_time ?? '');
+    setSheet({ day: item.day_index, item });
+  };
+
+  /** Saves the sheet: a new plan on its day, or the changes to the one being edited. */
+  const saveSheet = async () => {
+    if (!sheet || !title.trim()) return;
+    const t = time ? normalizeTime(time) : null;
+    if (time && !t) {
       Alert.alert('Time format', 'Use 24-hour time like 06:30 or 18:00.');
       return;
     }
-    await upsertItineraryItem({
-      id: uuid(),
-      trip_id: trip.id,
-      day_index: day,
-      title: d.title.trim(),
-      notes: null,
-      start_time: time,
-      place_name: null,
-      done: 0,
-      sort_order: items.filter(i => i.day_index === day).length,
-      sync_status: 'pending',
-      updated_at: new Date().toISOString(),
-    });
-    setDrafts(prev => ({ ...prev, [day]: { title: '', time: '' } }));
+    const now = new Date().toISOString();
+    if (sheet.item) {
+      await upsertItineraryItem({ ...sheet.item, title: title.trim(), start_time: t, sync_status: 'pending', updated_at: now });
+    } else {
+      await upsertItineraryItem({
+        id: uuid(),
+        trip_id: trip.id,
+        day_index: sheet.day,
+        title: title.trim(),
+        notes: null,
+        start_time: t,
+        place_name: null,
+        done: 0,
+        sort_order: items.filter(i => i.day_index === sheet.day).length,
+        sync_status: 'pending',
+        updated_at: now,
+      });
+    }
+    setSheet(null);
     await load();
     onChanged();
   };
@@ -101,31 +117,13 @@ export function PlanTab({ trip, onChanged, readOnly = false }: Props) {
         text: 'Remove',
         style: 'destructive',
         onPress: async () => {
+          setSheet(null);
           await deleteItineraryItem(item.id);
           await load();
           onChanged();
         },
       },
     ]);
-
-  const startEdit = (item: LocalItineraryItem) => {
-    setEditing(item);
-    setEditTitle(item.title);
-    setEditTime(item.start_time ?? '');
-  };
-
-  const saveEdit = async () => {
-    if (!editing || !editTitle.trim()) return;
-    const time = editTime ? normalizeTime(editTime) : null;
-    if (editTime && !time) {
-      Alert.alert('Time format', 'Use 24-hour time like 06:30 or 18:00.');
-      return;
-    }
-    await upsertItineraryItem({ ...editing, title: editTitle.trim(), start_time: time, sync_status: 'pending', updated_at: new Date().toISOString() });
-    setEditing(null);
-    await load();
-    onChanged();
-  };
 
   const clearDay = (day: { index: number; items: LocalItineraryItem[] }) => {
     setMenuDay(null);
@@ -150,138 +148,149 @@ export function PlanTab({ trip, onChanged, readOnly = false }: Props) {
   };
 
   const doneCount = items.filter(i => i.done).length;
+  const today = toDayString(new Date());
 
   return (
     <View>
       {items.length ? (
-        <Text style={{ color: colors.muted, marginBottom: 10 }}>
-          {doneCount}/{items.length} planned stops done
-        </Text>
+        // How far along the plan is.
+        <View style={{ padding: 14, borderRadius: 18, backgroundColor: colors.surfaceVariant, marginBottom: 16 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'baseline', marginBottom: 8 }}>
+            <Text style={{ fontSize: 22, fontWeight: '900' }}>{doneCount}</Text>
+            <Text style={{ color: colors.muted, fontWeight: '600', flex: 1 }}> of {items.length} done</Text>
+            <Text style={{ color: colors.muted, fontSize: 12 }}>{totalDays} {totalDays === 1 ? 'day' : 'days'}</Text>
+          </View>
+          <Meter progress={items.length ? doneCount / items.length : 0} color={colors.primary} />
+        </View>
       ) : (
         <EmptyState
           compact
           icon="calendar-text-outline"
           title={readOnly ? 'No plan yet' : 'Plan each day'}
-          body={readOnly ? 'When the owner or an admin plans the days, you will see them here.' : 'Add stops, timings and ideas per day. Tick them off as you go — it works offline.'}
+          body={readOnly ? 'When the owner or an admin plans the days, you will see them here.' : 'Add stops and timings for each day, then tick them off as you go. It works offline.'}
         />
       )}
       {days.map(day => {
         const f = day.date ? forecast[day.date] : undefined;
-        const draft = drafts[day.index] ?? { title: '', time: '' };
+        const isToday = day.date === today;
+        const list = sortPlan(day.items);
         return (
-          <View key={day.index} style={{ backgroundColor: colors.surface, borderRadius: 16, borderWidth: 1, borderColor: colors.border, padding: 12, marginBottom: 12 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
-              <Text style={{ fontWeight: '800', flex: 1 }}>
-                Day {day.index + 1}
-                {day.date ? <Text style={{ color: colors.muted, fontWeight: '400' }}> · {formatDay(day.date, { weekday: true })}</Text> : null}
-              </Text>
+          <View key={day.index} style={{ marginBottom: 18 }}>
+            {/* The day: its number and date, today's badge, the forecast, and its menu. */}
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6, gap: 8 }}>
+              <View style={{ width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: isToday ? colors.primary : colors.primaryContainer }}>
+                <Text style={{ fontWeight: '900', color: isToday ? colors.onPrimary : colors.onPrimaryContainer }}>{day.index + 1}</Text>
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontWeight: '800', fontSize: 16 }}>
+                  Day {day.index + 1}
+                  {isToday ? <Text style={{ color: colors.primary, fontSize: 13 }}>{'  · Today'}</Text> : null}
+                </Text>
+                {day.date ? <Text style={{ color: colors.muted, fontSize: 12 }}>{formatDay(day.date, { weekday: true })}</Text> : null}
+              </View>
               {f ? (
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }} accessibilityLabel={`${weatherCodeLabel(f.code)}, ${Math.round(f.maxC ?? 0)} degrees`}>
-                  <Icon name={weatherCodeIcon(f.code)} size={16} color={colors.secondary} />
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999, backgroundColor: colors.surfaceVariant }} accessibilityLabel={`${weatherCodeLabel(f.code)}, ${Math.round(f.maxC ?? 0)} degrees`}>
+                  <Icon name={weatherCodeIcon(f.code)} size={15} color={colors.secondary} />
                   <Text style={{ fontSize: 12, color: colors.onSurfaceVariant }}>
-                    {f.maxC != null ? `${Math.round(f.maxC)}°` : ''}/{f.minC != null ? `${Math.round(f.minC)}°` : ''}
+                    {f.maxC != null ? `${Math.round(f.maxC)}°` : ''}
                     {f.precipChance ? ` · ${f.precipChance}%` : ''}
                   </Text>
                 </View>
               ) : null}
               {readOnly ? null : (
-              <Menu
-                visible={menuDay === day.index}
-                onDismiss={() => setMenuDay(null)}
-                anchor={<IconButton icon="dots-vertical" size={18} style={{ margin: 0 }} onPress={() => setMenuDay(day.index)} accessibilityLabel={`Day ${day.index + 1} options`} />}
-              >
-                <Menu.Item leadingIcon="broom" title="Clear this day" disabled={!day.items.length} onPress={() => clearDay(day)} />
-                {day.index >= plannedDays && day.index === totalDays - 1 && !day.items.length && extraDays > 0 ? (
-                  <Menu.Item leadingIcon="delete-outline" title="Delete this day" onPress={removeExtraDay} />
-                ) : null}
-              </Menu>
+                <Menu
+                  visible={menuDay === day.index}
+                  onDismiss={() => setMenuDay(null)}
+                  anchor={<IconButton icon="dots-horizontal" size={20} style={{ margin: 0 }} onPress={() => setMenuDay(day.index)} accessibilityLabel={`Day ${day.index + 1} options`} />}
+                >
+                  <Menu.Item leadingIcon="broom" title="Clear this day" disabled={!day.items.length} onPress={() => clearDay(day)} />
+                  {day.index >= plannedDays && day.index === totalDays - 1 && !day.items.length && extraDays > 0 ? (
+                    <Menu.Item leadingIcon="delete-outline" title="Delete this day" onPress={removeExtraDay} />
+                  ) : null}
+                </Menu>
               )}
             </View>
-            {day.items.map(item => (
-              <Pressable
-                key={item.id}
-                disabled={readOnly}
-                onPress={() => startEdit(item)}
-                onLongPress={() => remove(item)}
-                accessibilityLabel={readOnly ? item.title : `Edit ${item.title}`}
-                style={{ flexDirection: 'row', alignItems: 'center', minHeight: readOnly ? 40 : undefined }}
-              >
-                <Checkbox.Android status={item.done ? 'checked' : 'unchecked'} disabled={readOnly} onPress={() => toggle(item)} />
-                <View style={{ flex: 1 }}>
-                  <Text style={{ textDecorationLine: item.done ? 'line-through' : 'none', color: item.done ? colors.muted : colors.onSurface }}>
-                    {item.start_time ? <Text style={{ fontWeight: '700', color: colors.primary }}>{item.start_time} </Text> : null}
-                    {item.title}
-                  </Text>
-                </View>
-                {readOnly ? null : (
-                  <>
-                    <IconButton icon="pencil-outline" size={16} onPress={() => startEdit(item)} accessibilityLabel={`Edit ${item.title}`} />
-                    <IconButton icon="delete-outline" size={18} onPress={() => remove(item)} accessibilityLabel={`Remove ${item.title}`} />
-                  </>
-                )}
-              </Pressable>
-            ))}
-            {readOnly ? null : openDay !== day.index && !draft.title && !draft.time ? (
-              <Pressable
-                onPress={() => setOpenDay(day.index)}
-                accessibilityRole="button"
-                accessibilityLabel={`Add a plan to day ${day.index + 1}`}
-                style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 8, paddingHorizontal: 4 }}
-              >
-                <Icon name="plus" size={18} color={colors.primary} />
-                <Text style={{ color: colors.primary, fontWeight: '700' }}>Add a plan</Text>
-              </Pressable>
-            ) : (
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 }}>
-              <TextInput
-                dense
-                mode="outlined"
-                placeholder="06:30"
-                value={draft.time}
-                onChangeText={t => setDrafts(prev => ({ ...prev, [day.index]: { ...draft, time: typeTime(t) } }))}
-                style={{ width: 76 }}
-                keyboardType="number-pad"
-                maxLength={5}
-              />
-              <TextInput
-                dense
-                mode="outlined"
-                placeholder="Add a stop or plan…"
-                autoFocus={openDay === day.index}
-                value={draft.title}
-                onChangeText={t => setDrafts(prev => ({ ...prev, [day.index]: { ...draft, title: t } }))}
-                style={{ flex: 1 }}
-                maxLength={200}
-                onSubmitEditing={() => add(day.index)}
-                returnKeyType="done"
-              />
-              <IconButton icon="plus-circle" iconColor={colors.primary} onPress={() => add(day.index)} accessibilityLabel={`Add to day ${day.index + 1}`} />
+
+            {/* Its plans along a thin line: time, a round tick, the plan. Tap a plan to change it. */}
+            <View style={{ marginLeft: 19, paddingLeft: 21, borderLeftWidth: 2, borderLeftColor: isToday ? colors.primary : colors.border }}>
+              {list.map(item => (
+                <Pressable
+                  key={item.id}
+                  disabled={readOnly}
+                  onPress={() => openEdit(item)}
+                  onLongPress={() => remove(item)}
+                  accessibilityRole={readOnly ? undefined : 'button'}
+                  accessibilityLabel={`${item.start_time ? `${item.start_time}, ` : ''}${item.title}${item.done ? ', done' : ''}`}
+                  accessibilityHint={readOnly ? undefined : 'Opens it to change or remove'}
+                  style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 48, borderRadius: 12, paddingRight: 6, backgroundColor: pressed ? colors.surfaceVariant : 'transparent' })}
+                >
+                  <Pressable
+                    onPress={() => toggle(item)}
+                    disabled={readOnly}
+                    hitSlop={10}
+                    accessibilityRole="checkbox"
+                    accessibilityState={{ checked: Boolean(item.done) }}
+                    accessibilityLabel={`Done: ${item.title}`}
+                    style={{ width: 26, height: 26, borderRadius: 13, borderWidth: 2, borderColor: item.done ? colors.primary : colors.outline, backgroundColor: item.done ? colors.primary : 'transparent', alignItems: 'center', justifyContent: 'center' }}
+                  >
+                    {item.done ? <Icon name="check" size={16} color={colors.onPrimary} /> : null}
+                  </Pressable>
+                  <Text style={{ width: 46, fontWeight: '700', fontSize: 13, color: item.start_time ? colors.primary : colors.muted }}>{item.start_time ?? 'Any'}</Text>
+                  <Text style={{ flex: 1, fontSize: 15, textDecorationLine: item.done ? 'line-through' : 'none', color: item.done ? colors.muted : colors.onSurface }}>{item.title}</Text>
+                </Pressable>
+              ))}
+              {readOnly ? null : (
+                <Pressable
+                  onPress={() => openAdd(day.index)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Add a plan to day ${day.index + 1}`}
+                  style={{ flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 44 }}
+                >
+                  <Icon name="plus-circle-outline" size={22} color={colors.primary} />
+                  <Text style={{ color: colors.primary, fontWeight: '700' }}>Add a plan</Text>
+                </Pressable>
+              )}
             </View>
-            )}
           </View>
         );
       })}
       {readOnly ? null : (
-        <Button icon="calendar-plus" onPress={() => setExtraDays(n => n + 1)}>
+        <Button mode="outlined" icon="calendar-plus" onPress={() => setExtraDays(n => n + 1)} style={{ alignSelf: 'center' }}>
           Add a day
         </Button>
       )}
-      <Portal>
-        <Dialog visible={editing !== null} onDismiss={() => setEditing(null)}>
-          <Dialog.Title>Edit plan</Dialog.Title>
-          <Dialog.Content>
-            <TextInput mode="outlined" label="What" value={editTitle} onChangeText={setEditTitle} maxLength={200} autoFocus />
-            <View style={{ height: 10 }} />
-            <TextInput mode="outlined" label="Time (24-hour, optional)" placeholder="06:30" value={editTime} onChangeText={t => setEditTime(typeTime(t))} maxLength={5} keyboardType="number-pad" />
-          </Dialog.Content>
-          <Dialog.Actions>
-            <Button onPress={() => setEditing(null)}>Cancel</Button>
-            <Button mode="contained" disabled={!editTitle.trim()} onPress={saveEdit}>
-              Save
+
+      {/* Add or change a plan: what, when (or a quick time), and remove when editing. */}
+      <Sheet visible={sheet !== null} onDismiss={() => setSheet(null)} title={sheet?.item ? 'Edit plan' : `Add to day ${(sheet?.day ?? 0) + 1}`}>
+        <SheetTextInput mode="outlined" label="What" placeholder="Sunrise at Tiger Hill" value={title} onChangeText={setTitle} maxLength={200} autoFocus={!sheet?.item} />
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 12 }}>
+          <SheetTextInput mode="outlined" label="Time" placeholder="06:30" value={time} onChangeText={t => setTime(typeTime(t))} maxLength={5} keyboardType="number-pad" style={{ width: 96 }} />
+          <View style={{ flex: 1, flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+            {QUICK_TIMES.map(q => (
+              <Pressable
+                key={q.time}
+                onPress={() => setTime(time === q.time ? '' : q.time)}
+                accessibilityRole="button"
+                accessibilityState={{ selected: time === q.time }}
+                style={{ paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999, backgroundColor: time === q.time ? colors.primary : colors.surfaceVariant }}
+              >
+                <Text style={{ fontSize: 12, fontWeight: '700', color: time === q.time ? colors.onPrimary : colors.onSurfaceVariant }}>{q.label}</Text>
+              </Pressable>
+            ))}
+          </View>
+        </View>
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 18, gap: 8 }}>
+          {sheet?.item ? (
+            <Button textColor={colors.danger} icon="delete-outline" onPress={() => sheet.item && remove(sheet.item)}>
+              Remove
             </Button>
-          </Dialog.Actions>
-        </Dialog>
-      </Portal>
+          ) : null}
+          <View style={{ flex: 1 }} />
+          <Button mode="contained" disabled={!title.trim()} onPress={saveSheet} contentStyle={{ paddingHorizontal: 14, height: 44 }}>
+            {sheet?.item ? 'Save' : 'Add plan'}
+          </Button>
+        </View>
+      </Sheet>
     </View>
   );
 }

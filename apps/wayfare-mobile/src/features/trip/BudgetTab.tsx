@@ -474,84 +474,56 @@ export function BudgetTab({ trip, onChanged, readOnly = false }: Props) {
           </View>
         ) : null}
       </Sheet>
-      <Portal>
-        <Dialog visible={formOpen} onDismiss={() => setFormOpen(false)} style={{ maxHeight: '88%' }}>
-          <Dialog.Title>Add expense</Dialog.Title>
-          <Dialog.ScrollArea style={{ paddingHorizontal: 20 }}>
-            <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingVertical: 8 }}>
-
-              <View style={{ gap: 10 }}>
-                <TextInput
-                  mode="outlined"
-                  label={`Amount (${tripCurrency})`}
-                  value={amount}
-                  onChangeText={t => setAmount(t.replace(/[^0-9.]/g, ''))}
-                  keyboardType="decimal-pad"
-                  style={{ flex: 1 }}
-                />
-                <TextInput
-                  mode="outlined"
-                  label="Note"
-                  value={note}
-                  onChangeText={setNote}
-                  onFocus={() => setNoteFocused(true)}
-                  onBlur={() => setTimeout(() => setNoteFocused(false), 200)}
-                  style={{ flex: 1.4 }}
-                />
-              </View>
-              <View style={{ marginTop: 10, gap: 10 }}>
-                {/* Ideas for the note (and the expense's category) appear only while you're writing it. */}
-                {noteFocused ? (
-                  <ChipSelect
-                    scroll
-                    options={EXPENSE_CATEGORIES}
-                    value={category}
-                    onChange={c => {
-                      setCategory(c);
-                      const label = EXPENSE_CATEGORIES.find(x => x.value === c)?.label ?? '';
-                      if (!note.trim()) setNote(label);
-                    }}
-                  />
-                ) : null}
-                {companions.length ? (
-                  <>
-                    <Text style={{ fontWeight: '600' }}>Paid by</Text>
-                    <ChipSelect scroll options={people.map(p => ({ value: p, label: personLabel(p) }))} value={paidBy} onChange={setPaidBy} />
-                    <Text style={{ fontWeight: '600' }}>Split between</Text>
-                    <ChipSelect multi options={people.map(p => ({ value: p, label: personLabel(p) }))} value={splitWith} onChange={setSplitWith} />
-                  </>
-                ) : (
-                  <Text style={{ color: colors.muted, fontSize: 12 }}>Add companions to this journey (Edit) to split costs.</Text>
-                )}
-                <Button mode="contained" icon="check" onPress={add} disabled={!(Number(amount) > 0) || (companions.length > 0 && !splitWith.length)}>
-                  Add {amount ? formatMoney(Number(amount) || 0, currency) : 'expense'}
-                </Button>
-              </View>
-        
-            </ScrollView>
-          </Dialog.ScrollArea>
-        </Dialog>
-      </Portal>
-      <Portal>
-        <Dialog visible={budgetOpen} onDismiss={() => setBudgetOpen(false)}>
-          <Dialog.Title>Expected budget</Dialog.Title>
-          <Dialog.Content>
-            <TextInput
-              mode="outlined"
-              label={`Budget (${tripCurrency})`}
-              value={budgetText}
-              onChangeText={t => setBudgetText(t.replace(/[^0-9.]/g, ''))}
-              keyboardType="decimal-pad"
-              autoFocus
-            />
-            <Text style={{ color: colors.muted, marginTop: 8, fontSize: 12 }}>Leave empty to remove the budget.</Text>
-          </Dialog.Content>
-          <Dialog.Actions>
-            <Button onPress={() => setBudgetOpen(false)}>Cancel</Button>
-            <Button mode="contained" onPress={saveBudget}>Save</Button>
-          </Dialog.Actions>
-        </Dialog>
-      </Portal>
+      {/* Add expense: slides up with the amount ready to type; the panel rises with the keyboard. */}
+      <Sheet visible={formOpen} onDismiss={() => setFormOpen(false)} title="Add expense">
+        <SheetTextInput
+          mode="outlined"
+          label={`Amount (${tripCurrency})`}
+          value={amount}
+          onChangeText={t => setAmount(t.replace(/[^0-9.]/g, ''))}
+          keyboardType="decimal-pad"
+          autoFocus
+        />
+        <SheetTextInput mode="outlined" label="What for (optional)" value={note} onChangeText={setNote} style={{ marginTop: 10 }} maxLength={80} />
+        <View style={{ marginTop: 12 }}>
+          <ChipSelect
+            scroll
+            options={EXPENSE_CATEGORIES}
+            value={category}
+            onChange={c => {
+              setCategory(c);
+              const label = EXPENSE_CATEGORIES.find(x => x.value === c)?.label ?? '';
+              if (!note.trim()) setNote(label);
+            }}
+          />
+        </View>
+        {companions.length ? (
+          <View style={{ marginTop: 12, gap: 8 }}>
+            <Text style={{ fontWeight: '700' }}>Paid by</Text>
+            <ChipSelect scroll options={people.map(p => ({ value: p, label: personLabel(p) }))} value={paidBy} onChange={setPaidBy} />
+            <Text style={{ fontWeight: '700' }}>Split between</Text>
+            <ChipSelect multi options={people.map(p => ({ value: p, label: personLabel(p) }))} value={splitWith} onChange={setSplitWith} />
+          </View>
+        ) : (
+          <Text style={{ color: colors.muted, fontSize: 12, marginTop: 10 }}>Add companions to this journey (Edit) to split costs.</Text>
+        )}
+        <Button mode="contained" icon="check" onPress={add} disabled={!(Number(amount) > 0) || (companions.length > 0 && !splitWith.length)} style={{ marginTop: 16 }} contentStyle={{ height: 48 }}>
+          Add {amount ? formatMoney(Number(amount) || 0, currency) : 'expense'}
+        </Button>
+      </Sheet>
+      <Sheet visible={budgetOpen} onDismiss={() => setBudgetOpen(false)} title="Expected budget" subtitle="Leave it empty to remove the budget.">
+        <SheetTextInput
+          mode="outlined"
+          label={`Budget (${tripCurrency})`}
+          value={budgetText}
+          onChangeText={t => setBudgetText(t.replace(/[^0-9.]/g, ''))}
+          keyboardType="decimal-pad"
+          autoFocus
+        />
+        <Button mode="contained" onPress={saveBudget} style={{ marginTop: 14 }} contentStyle={{ height: 46 }}>
+          Save budget
+        </Button>
+      </Sheet>
     </View>
   );
 }

@@ -50,36 +50,65 @@ export function dayStripCells(startsOn: string | null, endsOn: string | null, mo
 }
 
 /**
- * A day's name inside a journey: "Day 3" during it, "Pre-trip" before it and "After trip" after it
- * (numbered when there are several). Without an end date every day from the start is "Day n".
+ * A day's name inside a journey: "Day 3" during it, "Pre-trip" for any day before it and "After
+ * trip" for any day after it (one each, however many days they cover). Without an end date every
+ * day from the start is "Day n".
  */
-export function tripDayLabel(day: string, startsOn: string | null, endsOn: string | null, allDays: readonly string[] = [day]): string {
+export function tripDayLabel(day: string, startsOn: string | null, endsOn: string | null, _allDays: readonly string[] = [day]): string {
   if (!startsOn) return new Date(`${day}T12:00:00`).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
   const end = endsOn && endsOn >= startsOn ? endsOn : null;
   if (day >= startsOn && (!end || day <= end)) return `Day ${between(startsOn, day) + 1}`;
-  const before = day < startsOn;
-  const same = [...new Set(allDays)].filter(d => (before ? d < startsOn : !!end && d > end)).sort();
-  const name = before ? 'Pre-trip' : 'After trip';
-  return same.length > 1 ? `${name} ${same.indexOf(day) + 1}` : name;
+  return day < startsOn ? 'Pre-trip' : 'After trip';
+}
+
+/** Moments written before the trip share one "Pre-trip" day; after it, one "After trip". */
+export const PRE_TRIP = 'pre';
+export const AFTER_TRIP = 'post';
+
+/** Which day pill a calendar day belongs to: the day itself, or PRE_TRIP / AFTER_TRIP. */
+export function dayBucket(day: string, startsOn: string | null, endsOn: string | null): string {
+  if (!startsOn) return day;
+  if (day < startsOn) return PRE_TRIP;
+  const end = endsOn && endsOn >= startsOn ? endsOn : null;
+  if (end && day > end) return AFTER_TRIP;
+  return day;
 }
 
 export type DatePill = { day: string; label: string };
 
 /**
- * The date pills above a journey's moments: every day of the trip plus any other day that has
- * moments, in date order, labelled just "Day 2" (or "Pre-trip" / "After trip" outside it).
- * startsOn falls back to the first moment's day for a journey without dates.
- * Empty when there's only one day (no need to switch).
+ * The day pills above a journey's moments: one "Pre-trip" (if anything was written before it),
+ * every day of the trip, then one "After trip". startsOn falls back to the first moment's day for a
+ * journey without dates. Empty when there's only one day (no need to switch).
  */
 export function datePills(startsOn: string | null, endsOn: string | null, momentDays: readonly string[]): DatePill[] {
-  const days = new Set(momentDays);
   const start = startsOn ?? ([...momentDays].sort()[0] ?? null);
+  if (!start) return [];
   const end = startsOn && endsOn && endsOn >= startsOn ? endsOn : null;
-  if (start && end) {
+  const days = new Set<string>();
+  let pre = false;
+  let post = false;
+  for (const d of momentDays) {
+    const b = dayBucket(d, start, end);
+    if (b === PRE_TRIP) pre = true;
+    else if (b === AFTER_TRIP) post = true;
+    else days.add(d);
+  }
+  if (end) {
     const span = Math.min(between(start, end) + 1, MAX_STRIP_DAYS);
     for (let i = 0; i < span; i++) days.add(addDays(start, i));
-  } else if (startsOn) days.add(startsOn); // a journey with only a start date still has its Day 1
-  const sorted = [...days].sort();
-  if (sorted.length <= 1) return [];
-  return sorted.map(day => ({ day, label: tripDayLabel(day, start, end, sorted) }));
+  } else days.add(start); // a journey with only a start date still has its Day 1
+  const out: DatePill[] = [
+    ...(pre ? [{ day: PRE_TRIP, label: 'Pre-trip' }] : []),
+    ...[...days].sort().map(day => ({ day, label: tripDayLabel(day, start, end) })),
+    ...(post ? [{ day: AFTER_TRIP, label: 'After trip' }] : []),
+  ];
+  return out.length <= 1 ? [] : out;
+}
+
+/** The pill a sideways swipe moves to: -1 the one before, +1 the next. null is "All days", first. */
+export function swipeDay(order: readonly (string | null)[], current: string | null, step: -1 | 1): string | null | undefined {
+  const i = order.indexOf(current);
+  const next = order[i + step];
+  return i < 0 || next === undefined ? undefined : next;
 }

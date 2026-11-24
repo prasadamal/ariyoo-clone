@@ -1,4 +1,4 @@
-import { tripPhase } from './format';
+import { daysUntil, tripPhase } from './format';
 
 /** Pure helpers for the Journeys list (unit-tested). */
 
@@ -74,4 +74,26 @@ export function statusTrips<T extends DatedTrip>(trips: T[], status: TripStatus,
     if (!a.starts_on !== !b.starts_on) return a.starts_on ? -1 : 1;
     return (a.starts_on ?? a.updated_at ?? '').localeCompare(b.starts_on ?? b.updated_at ?? '');
   });
+}
+
+/**
+ * The big number on the right of every journey tile: days to go, the day you're on, or how long
+ * the trip was. Always something, also for journeys without dates or marked complete early.
+ */
+export function tileCount(t: TripLike, today = new Date()): { value: string; caption: string } {
+  const status = tripStatus(t, today);
+  const until = daysUntil(t.starts_on, today);
+  const length = t.starts_on ? (t.ends_on ? Math.max(1, (daysUntil(t.ends_on, today) ?? 0) - (until ?? 0) + 1) : 1) : null;
+  if (status === 'upcoming') {
+    if (until == null) return { value: '–', caption: 'no dates yet' };
+    if (until <= 0) return { value: 'Today', caption: 'starts' };
+    return { value: String(until), caption: `day${until === 1 ? '' : 's'} to go` };
+  }
+  if (status === 'ongoing') {
+    if (until == null) return { value: 'Now', caption: 'on the road' };
+    const day = -until + 1;
+    return { value: `Day ${day}`, caption: t.ends_on && length ? `of ${length}` : 'on the road' };
+  }
+  if (length) return { value: String(length), caption: 'day trip' };
+  return { value: '✓', caption: 'completed' };
 }
