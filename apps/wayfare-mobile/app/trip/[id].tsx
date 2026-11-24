@@ -346,7 +346,8 @@ export default function TripDetailScreen() {
       ) : null}
 
       <View style={{ marginVertical: 14 }}>
-        <TabStrip tabs={tabs} value={tabs.some(t => t.value === tab) ? tab : 'journal'} onChange={setTab} />
+        {/* Crew opens from the person button on the cover; its tab shows only while you're on it. */}
+        <TabStrip tabs={tabs.filter(t => t.value !== 'crew' || tab === 'crew')} value={tabs.some(t => t.value === tab) ? tab : 'journal'} onChange={setTab} />
       </View>
 
       {tab === 'journal' || !tabs.some(t => t.value === tab) ? <View onLayout={e => (journalY.current = e.nativeEvent.layout.y)}>

@@ -5,7 +5,7 @@ import { Button, Dialog, IconButton, Portal, Text, TextInput } from 'react-nativ
 import { uuid } from '../../lib/id';
 import { getRates, type RatesSnapshot } from '../../lib/currency';
 import { formatMoney, sumInCurrency } from '../../lib/currencyMath';
-import { formatDay, timeAgoPhrase } from '../../lib/format';
+import { formatDay, timeAgoPhrase, toDayString } from '../../lib/format';
 import { deleteExpense, listExpenses, updateTrip, upsertExpense, type LocalExpense, type LocalTrip } from '../../lib/localDb';
 import { computeBalances, isSpending, ME, parseCompanions, parseSplitWith, SETTLEMENT, settlementFor, settleUp } from '../../lib/split';
 import { useAppTheme } from '../../theme';
@@ -115,7 +115,7 @@ export function BudgetTab({ trip, onChanged, readOnly = false }: Props) {
       amount: Math.round(value * 100) / 100,
       currency,
       note: note.trim() || null,
-      spent_on: now.slice(0, 10),
+      spent_on: toDayString(new Date()), // the local day (the ISO string is UTC: wrong before 5:30 am in India)
       paid_by: paidBy === ME ? null : paidBy,
       split_with: JSON.stringify(companions.length ? splitWith : []),
       sync_status: 'pending',
@@ -150,7 +150,7 @@ export function BudgetTab({ trip, onChanged, readOnly = false }: Props) {
               amount: s.amount,
               currency: cur,
               note: `${personLabel(t.from)} paid ${personLabel(t.to)} back`,
-              spent_on: now.slice(0, 10),
+              spent_on: toDayString(new Date()), // the local day (the ISO string is UTC: wrong before 5:30 am in India)
               paid_by: s.paidBy,
               split_with: JSON.stringify(s.splitWith),
               sync_status: 'pending',
@@ -185,14 +185,14 @@ export function BudgetTab({ trip, onChanged, readOnly = false }: Props) {
   const byDay = useMemo(() => {
     const map = new Map<string, LocalExpense[]>();
     for (const e of expenses) {
-      const day = e.spent_on ?? e.updated_at.slice(0, 10);
+      const day = e.spent_on ?? toDayString(new Date(e.updated_at));
       map.set(day, [...(map.get(day) ?? []), e]);
     }
     return [...map.entries()].sort((a, b) => b[0].localeCompare(a[0]));
   }, [expenses]);
   const dayHeading = (day: string) => {
-    const today = new Date().toISOString().slice(0, 10);
-    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+    const today = toDayString(new Date());
+    const yesterday = toDayString(new Date(Date.now() - 86400000));
     return day === today ? 'Today' : day === yesterday ? 'Yesterday' : formatDay(day, { weekday: true });
   };
 
