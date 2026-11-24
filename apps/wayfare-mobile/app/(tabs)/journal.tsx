@@ -127,6 +127,18 @@ export default function DiaryScreen() {
   const [formatOpen, setFormatOpen] = useState(false);
   // Which day is open: 0 is today, then earlier written days.
   const [page, setPage] = useState(0);
+  // The streak and "swipe for other days" show for a few seconds after opening, or until you swipe.
+  const [hint, setHint] = useState(true);
+  useFocusEffect(
+    useCallback(() => {
+      setHint(true);
+      const t = setTimeout(() => setHint(false), 3500);
+      return () => clearTimeout(t);
+    }, [])
+  );
+  useEffect(() => {
+    if (page !== 0) setHint(false);
+  }, [page]);
   const pageRef = useRef(0);
   pageRef.current = page;
   const slide = useRef(new Animated.Value(0)).current;
@@ -574,7 +586,7 @@ export default function DiaryScreen() {
             </Pressable>
           )}
           <Text style={{ color: colors.muted, fontSize: 13, marginTop: 2 }}>
-            {active?.editable ? `Today${streak >= 2 ? ` · 🔥 ${streak}-day streak` : ''}${sheets.length > 1 ? ' · swipe for other days' : ''}` : `${formatDay(active?.day ?? today)} · read only`}
+            {active?.editable ? `Today${hint && streak >= 2 ? ` · 🔥 ${streak}-day streak` : ''}${hint && sheets.length > 1 ? ' · swipe for other days' : ''}` : `${formatDay(active?.day ?? today)} · read only`}
           </Text>
         </View>
         {page !== 0 ? <IconButton icon="calendar-today" onPress={() => goTo(today)} accessibilityLabel="Back to today" /> : null}

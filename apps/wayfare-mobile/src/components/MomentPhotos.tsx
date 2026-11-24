@@ -14,7 +14,7 @@ import { Glass } from '../ui/Glass';
  * (two cards peek out behind it) with a "1/3" counter, and you swipe sideways through them. Tap to view
  * full screen; long-press to remove. Renders nothing when there are no photos.
  */
-export function MomentPhotos({ entryId, refreshKey = 0, onChanged, canEdit = true }: { entryId: string; refreshKey?: number; onChanged?: () => void; canEdit?: boolean }) {
+export function MomentPhotos({ entryId, refreshKey = 0, onChanged, canEdit = true, inset = 12 }: { entryId: string; refreshKey?: number; onChanged?: () => void; canEdit?: boolean; /** Space at the sides (0: as wide as the moment). */ inset?: number }) {
   const { colors } = useAppTheme();
   const [items, setItems] = useState<{ media: LocalEntryMedia; uri: string }[]>([]);
   const [open, setOpen] = useState<number | null>(null);
@@ -59,7 +59,7 @@ export function MomentPhotos({ entryId, refreshKey = 0, onChanged, canEdit = tru
   };
 
   return (
-    <View style={{ paddingHorizontal: 12, paddingTop: many ? 12 : 4 }}>
+    <View style={{ paddingHorizontal: inset, paddingTop: many ? 12 : 4 }}>
       {many ? (
         <>
           {/* The stack: two cards peeking out behind the photo say "there are more". */}

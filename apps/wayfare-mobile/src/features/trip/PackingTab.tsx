@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, Pressable, View } from 'react-native';
-import { Button, Checkbox, Dialog, IconButton, Menu, Portal, Text, TextInput } from 'react-native-paper';
+import { Button, IconButton, Menu, Text, TextInput } from 'react-native-paper';
 import { uuid } from '../../lib/id';
 import { addPackingItem, deletePackingItem, listPacking, upsertPackingItem, type LocalPackingItem, type LocalTrip } from '../../lib/localDb';
 import {
@@ -22,6 +22,7 @@ import { useAppTheme } from '../../theme';
 import { FloatingTabs } from '../../ui/FloatingTabs';
 import { Meter } from '../../ui/Meter';
 import { Icon } from '../../ui/Icon';
+import { Sheet, SheetTextInput } from '../../ui/Sheet';
 import { getDestination } from '../../content/destinations';
 import { tripForecast, weatherTip, type WeatherTip } from '../../lib/packingNudges';
 import { fetchForecast } from '../../lib/weather';
@@ -40,10 +41,17 @@ export function PackingTab({ trip, onChanged }: Props) {
   const [items, setItems] = useState<LocalPackingItem[]>([]);
   const [lists, setLists] = useState<PackingLists | null>(null);
   const [selected, setSelected] = useState<string>(defaultListFor(trip.starts_on, trip.ends_on));
-  const [label, setLabel] = useState('');
+  const [label, setLabelState] = useState('');
+  // The box's words as typed, read by Enter (which can fire before the screen redraws).
+  const labelNow = useRef('');
+  const setLabel = (t: string) => {
+    labelNow.current = t;
+    setLabelState(t);
+  };
   const [menu, setMenu] = useState(false);
   const [naming, setNaming] = useState(false);
   const [newName, setNewName] = useState('');
+  const [showPacked, setShowPacked] = useState(false);
   // One thing to pack from the trip's forecast (rain jacket, warm layer…), unless skipped.
   const [tip, setTip] = useState<WeatherTip | null>(null);
   const tipKey = `wayfare_pack_tip_skip_${trip.id}`;
@@ -110,8 +118,9 @@ export function PackingTab({ trip, onChanged }: Props) {
   const current = listOrDefault(lists, selected);
 
   const add = async () => {
-    if (!label.trim()) return;
-    const next = addToList(current.items, label);
+    const text = labelNow.current;
+    if (!text.trim()) return;
+    const next = addToList(current.items, text);
     setLabel('');
     if (next.length !== current.items.length) await saveLists(updateItems(lists, current.id, next));
   };
@@ -157,18 +166,67 @@ export function PackingTab({ trip, onChanged }: Props) {
   const packed = all.filter(Boolean).length;
   const progress = all.length ? packed / all.length : 0;
 
+  // A row: a big round tick and the item. Tap to pack or unpack; long-press to remove.
   const Row = ({ text, checked, onPress, onRemove }: { text: string; checked: boolean; onPress: () => void; onRemove?: () => void }) => (
-    <Pressable onPress={onPress} onLongPress={onRemove} style={{ flexDirection: 'row', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: colors.border }} accessibilityRole="checkbox" accessibilityState={{ checked }}>
-      <Checkbox.Android status={checked ? 'checked' : 'unchecked'} onPress={onPress} />
-      <Text style={{ flex: 1, paddingVertical: 12, textDecorationLine: checked ? 'line-through' : 'none', color: checked ? colors.muted : colors.onSurface }}>{text}</Text>
-      {onRemove ? <IconButton icon="close" size={16} onPress={onRemove} accessibilityLabel={`Remove ${text}`} /> : null}
+    <Pressable
+      onPress={onPress}
+      onLongPress={onRemove}
+      accessibilityRole="checkbox"
+      accessibilityState={{ checked }}
+      accessibilityHint={onRemove ? 'Long-press to remove' : undefined}
+      style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 14, minHeight: 52, paddingHorizontal: 6, borderRadius: 14, backgroundColor: pressed ? colors.surfaceVariant : 'transparent' })}
+    >
+      <View style={{ width: 26, height: 26, borderRadius: 13, borderWidth: 2, borderColor: checked ? colors.secondary : colors.outline, backgroundColor: checked ? colors.secondary : 'transparent', alignItems: 'center', justifyContent: 'center' }}>
+        {checked ? <Icon name="check" size={16} color="#fff" /> : null}
+      </View>
+      <Text style={{ flex: 1, fontSize: 16, textDecorationLine: checked ? 'line-through' : 'none', color: checked ? colors.muted : colors.onSurface }}>{text}</Text>
     </Pressable>
   );
 
   const tipNeeded = tip && !rows.some(r => labelKey(r.label) === labelKey(tip.item)) && !extras.some(e => labelKey(e.label) === labelKey(tip.item));
+  // Still to pack on top; packed things fold away underneath.
+  const todo = [
+    ...rows.filter(r => !r.packed).map(r => ({ key: `l-${r.label}`, text: r.label, checked: false, press: () => toggleLabel(r.label, r.item), remove: () => removeFromChecklist(r.label) })),
+    ...extras.filter(e => !e.packed).map(e => ({ key: e.id, text: e.label, checked: false, press: () => toggleLabel(e.label, e), remove: () => removeExtra(e) })),
+  ];
+  const done = [
+    ...rows.filter(r => r.packed).map(r => ({ key: `l-${r.label}`, text: r.label, checked: true, press: () => toggleLabel(r.label, r.item), remove: () => removeFromChecklist(r.label) })),
+    ...extras.filter(e => e.packed).map(e => ({ key: e.id, text: e.label, checked: true, press: () => toggleLabel(e.label, e), remove: () => removeExtra(e) })),
+  ];
 
   return (
     <View>
+      {/* How much is packed, and which checklist this journey uses. */}
+      <View style={{ padding: 14, borderRadius: 18, backgroundColor: colors.surfaceVariant, marginBottom: 14 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'baseline', marginBottom: 8 }} accessible accessibilityLabel={`${packed} of ${all.length} packed`}>
+          <Text style={{ fontSize: 22, fontWeight: '900' }}>{packed}</Text>
+          <Text style={{ color: colors.muted, fontWeight: '600', flex: 1 }}> of {all.length} packed</Text>
+          {progress === 1 && all.length ? <Text style={{ color: colors.success, fontWeight: '800' }}>All packed 🎒</Text> : null}
+        </View>
+        <Meter progress={progress} color={colors.secondary} height={8} />
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 12 }}>
+          <View style={{ flex: 1 }}>
+            <FloatingTabs
+              accessibilityLabel="Packing checklist for this journey"
+              tabs={lists.map(l => ({ value: l.id, label: l.name }))}
+              value={current.id}
+              onChange={choose}
+            />
+          </View>
+          <Menu
+            visible={menu}
+            onDismiss={() => setMenu(false)}
+            anchor={<IconButton icon="dots-horizontal" onPress={() => setMenu(true)} accessibilityLabel="Checklist options" style={{ margin: 0 }} />}
+          >
+            <Menu.Item leadingIcon="playlist-plus" title="New checklist" onPress={() => { setMenu(false); setNaming(true); }} />
+            {packed ? <Menu.Item leadingIcon="restore" title="Unpack all (for the return)" onPress={() => { setMenu(false); void uncheckAll(); }} /> : null}
+            {BUILT_IN_LISTS.includes(current.id) ? null : (
+              <Menu.Item leadingIcon="delete-outline" title={`Delete “${current.name}”`} onPress={() => { setMenu(false); removeList(); }} />
+            )}
+          </Menu>
+        </View>
+      </View>
+
       {tipNeeded ? (
         // From the forecast: one suggestion, added to this checklist with a tap.
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, borderRadius: 16, backgroundColor: colors.primaryContainer, marginBottom: 12 }}>
@@ -191,64 +249,36 @@ export function PackingTab({ trip, onChanged }: Props) {
           />
         </View>
       ) : null}
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 12 }}>
-        <View style={{ flex: 1 }}>
-          <FloatingTabs
-            accessibilityLabel="Packing checklist for this journey"
-            tabs={lists.map(l => ({ value: l.id, label: l.name }))}
-            value={current.id}
-            onChange={choose}
-          />
-        </View>
-        <Menu
-          visible={menu}
-          onDismiss={() => setMenu(false)}
-          anchor={<IconButton icon="dots-horizontal" onPress={() => setMenu(true)} accessibilityLabel="Checklist options" style={{ margin: 0 }} />}
-        >
-          <Menu.Item leadingIcon="playlist-plus" title="New checklist" onPress={() => { setMenu(false); setNaming(true); }} />
-          {BUILT_IN_LISTS.includes(current.id) ? null : (
-            <Menu.Item leadingIcon="delete-outline" title={`Delete “${current.name}”`} onPress={() => { setMenu(false); removeList(); }} />
-          )}
-        </Menu>
-      </View>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 12 }}>
+
+      {!all.length ? <Text style={{ color: colors.muted, marginBottom: 6 }}>This checklist is empty. Add what you want to carry.</Text> : null}
+      {todo.map(r => (
+        <Row key={r.key} text={r.text} checked={false} onPress={r.press} onRemove={r.remove} />
+      ))}
+      {all.length && !todo.length ? <Text style={{ color: colors.muted, paddingVertical: 8, paddingHorizontal: 6 }}>Nothing left to pack.</Text> : null}
+
+      {/* Add an item: it joins this checklist for next time too. */}
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 6 }}>
         <TextInput dense mode="outlined" placeholder={`Add to ${current.name}`} value={label} onChangeText={setLabel} style={{ flex: 1 }} onSubmitEditing={add} returnKeyType="done" />
-        <IconButton icon="plus-circle" iconColor={colors.primary} onPress={add} accessibilityLabel="Add packing item" style={{ margin: 0 }} />
+        {label.trim() ? <Button mode="contained" compact onPress={add}>Add</Button> : null}
       </View>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-        <Meter progress={progress} color={colors.secondary} height={8} style={{ flex: 1 }} />
-        <Text style={{ fontWeight: '700' }}>
-          {packed}/{all.length}
-        </Text>
-      </View>
-      {progress === 1 && all.length ? <Text style={{ color: colors.success, fontWeight: '700', marginBottom: 8 }}>All packed — have a great trip! 🎒</Text> : null}
-      {rows.length ? null : <Text style={{ color: colors.muted, marginBottom: 6 }}>This checklist is empty. Add what you want to carry.</Text>}
-      {rows.map(r => (
-        <Row key={r.label} text={r.label} checked={r.packed} onPress={() => toggleLabel(r.label, r.item)} onRemove={() => removeFromChecklist(r.label)} />
-      ))}
-      {extras.length ? <Text style={{ color: colors.muted, fontSize: 12, fontWeight: '700', marginTop: 16, letterSpacing: 0.4 }}>ALSO ON THIS JOURNEY</Text> : null}
-      {extras.map(e => (
-        <Row key={e.id} text={e.label} checked={Boolean(e.packed)} onPress={() => toggleLabel(e.label, e)} onRemove={() => removeExtra(e)} />
-      ))}
-      {packed ? (
-        <Button style={{ marginTop: 8 }} icon="restore" onPress={uncheckAll}>
-          Unpack all (reuse for the return)
-        </Button>
+      <Text style={{ color: colors.muted, fontSize: 12, marginTop: 6, marginLeft: 4 }}>Tap to pack · long-press to remove</Text>
+
+      {done.length ? (
+        <View style={{ marginTop: 18 }}>
+          <Pressable onPress={() => setShowPacked(v => !v)} accessibilityRole="button" accessibilityState={{ expanded: showPacked }} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 8 }}>
+            <Text style={{ fontSize: 13, fontWeight: '800', letterSpacing: 0.6, color: colors.onSurfaceVariant, flex: 1 }}>PACKED · {done.length}</Text>
+            <Icon name={showPacked ? 'chevron-up' : 'chevron-down'} size={20} color={colors.muted} />
+          </Pressable>
+          {showPacked ? done.map(r => <Row key={r.key} text={r.text} checked onPress={r.press} onRemove={r.remove} />) : null}
+        </View>
       ) : null}
-      <Portal>
-        <Dialog visible={naming} onDismiss={() => setNaming(false)}>
-          <Dialog.Title>New checklist</Dialog.Title>
-          <Dialog.Content>
-            <TextInput mode="outlined" label="Name (e.g. Trek, Wedding, Work)" value={newName} onChangeText={setNewName} maxLength={30} autoFocus onSubmitEditing={createList} />
-          </Dialog.Content>
-          <Dialog.Actions>
-            <Button onPress={() => setNaming(false)}>Cancel</Button>
-            <Button mode="contained" disabled={!newName.trim()} onPress={createList}>
-              Create
-            </Button>
-          </Dialog.Actions>
-        </Dialog>
-      </Portal>
+
+      <Sheet visible={naming} onDismiss={() => setNaming(false)} title="New checklist" subtitle="Reuse it on any journey, like Trek, Wedding or Work.">
+        <SheetTextInput mode="outlined" label="Name" value={newName} onChangeText={setNewName} maxLength={30} autoFocus onSubmitEditing={createList} />
+        <Button mode="contained" disabled={!newName.trim()} onPress={createList} style={{ marginTop: 14 }} contentStyle={{ height: 46 }}>
+          Create checklist
+        </Button>
+      </Sheet>
     </View>
   );
 }

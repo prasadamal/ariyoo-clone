@@ -69,7 +69,7 @@ async function plan(trips: LocalTrip[]) {
       const content = nudgeContent(p.kind, t.title, left, tip);
       await Notifications.scheduleNotificationAsync({
         identifier: `${PREFIX}${t.id}-${p.kind}`,
-        content: { ...content, data: { url: `/trip/${t.id}?tab=plan` } },
+        content: { ...content, data: { url: `/trip/${t.id}?tab=pack` } },
         trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: p.at, channelId: 'social' },
       }).catch(() => undefined);
     }

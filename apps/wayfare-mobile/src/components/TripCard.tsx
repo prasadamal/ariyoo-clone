@@ -3,9 +3,9 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { Text } from 'react-native-paper';
 import { getDestination } from '../content/destinations';
 import { SOCIAL_ENABLED } from '../lib/features';
-import { daysUntil, formatDateRange } from '../lib/format';
+import { formatDateRange } from '../lib/format';
 import type { LocalTrip } from '../lib/localDb';
-import { tripStatus, type TripStatus } from '../lib/tripList';
+import { tileCount, tripStatus, type TripStatus } from '../lib/tripList';
 import { useAppTheme } from '../theme';
 import { coverArtFor } from '../ui/coverArt';
 import { Icon } from '../ui/Icon';
@@ -74,17 +74,8 @@ export function TripCard({ trip, synopsis, tracking, coverUri, showUpload = true
   const { colors } = useAppTheme();
   const status = tripStatus(trip);
   const dest = getDestination(trip.place_key);
-  const until = daysUntil(trip.starts_on);
-  const dayOf = trip.starts_on ? -(until ?? 0) + 1 : null;
-  const totalDays = trip.starts_on && trip.ends_on ? (daysUntil(trip.ends_on) ?? 0) - (until ?? 0) + 1 : null;
-  const big =
-    status === 'upcoming' && until != null && until > 0
-      ? { value: String(until), caption: `day${until === 1 ? '' : 's'} to go` }
-      : status === 'ongoing' && dayOf
-        ? { value: `Day ${dayOf}`, caption: totalDays ? `of ${totalDays}` : 'on the road' }
-        : status === 'completed' && totalDays && totalDays > 0
-          ? { value: String(totalDays), caption: 'day trip' }
-          : null;
+  // Every tile: days to go, the day you're on, or how many days it was.
+  const big = tileCount(trip);
   const details = synopsis || [dest?.name ?? trip.destination, formatDateRange(trip.starts_on, trip.ends_on)].filter(Boolean).join(' · ') || 'Add a destination and dates';
   const stacked = (groupCount ?? 0) > 1;
   const card = (
@@ -127,7 +118,7 @@ export function TripCard({ trip, synopsis, tracking, coverUri, showUpload = true
             ) : null}
           </View>
           {big ? (
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginLeft: 12 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginLeft: 12 }} accessible accessibilityLabel={`${big.value} ${big.caption}`}>
               <View style={{ width: 1.5, alignSelf: 'stretch', backgroundColor: '#ffffffb0', marginRight: 12 }} />
               <View style={{ alignItems: 'center' }}>
                 <Text style={{ color: '#fff', fontSize: big.value.length > 3 ? 24 : 34, fontWeight: '900', lineHeight: 38 }}>{big.value}</Text>

@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { holdLock } from './lockHold';
 import * as MediaLibrary from 'expo-media-library/legacy';
 import { Platform } from 'react-native';
 import { uuid } from './id';
@@ -22,7 +23,7 @@ export async function galleryAccess(): Promise<'granted' | 'ask' | 'denied'> {
 }
 
 export async function askGalleryAccess() {
-  const p = await MediaLibrary.requestPermissionsAsync(false, ['photo']);
+  const p = await holdLock(() => MediaLibrary.requestPermissionsAsync(false, ['photo']));
   return p.granted;
 }
 

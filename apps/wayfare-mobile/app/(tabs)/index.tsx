@@ -47,6 +47,9 @@ export default function JourneysTab() {
   // Where the full list starts, and whether you've scrolled into it (the floating pill then says "Top").
   const [listTop, setListTop] = useState(0);
   const [inList, setInList] = useState(false);
+  // The full list stays hidden under the three tiles until you tap "All trips" or swipe up.
+  const [listOpen, setListOpen] = useState(false);
+  const touchY = useRef<number | null>(null);
   // Room on screen for the three tiles: the list's height and the greeting's.
   const [viewHeight, setViewHeight] = useState(0);
   const [greetHeight, setGreetHeight] = useState(72);
@@ -170,7 +173,17 @@ export default function JourneysTab() {
         ? `Backed up ${timeAgoPhrase(lastSyncAt)}`
         : backupLabel(backup);
 
-  const showList = all.length > featured.length || all.length > 1;
+  const hasList = all.length > featured.length || all.length > 1;
+  const showList = hasList && listOpen;
+  const openList = () => {
+    if (!listOpen) setListOpen(true);
+    // Wait a frame for the list to appear, then scroll to it.
+    setTimeout(() => listRef.current?.scrollToOffset({ offset: Math.max(0, listTop + 8), animated: true }), 60);
+  };
+  const closeList = () => {
+    listRef.current?.scrollToOffset({ offset: 0, animated: true });
+    setTimeout(() => setListOpen(false), 450);
+  };
   const fabBottom = Math.max(insets.bottom, 10) + 84;
 
   // Your year so far (the year in travel recap), beside your name.
@@ -196,9 +209,9 @@ export default function JourneysTab() {
           {firstName ? (
             <>
               <Text style={{ color: colors.muted, fontWeight: '600' }}>{greeting()},</Text>
-              {/* Your name, with your year so far beside it. */}
+              {/* Your name, with your year so far at the right edge of the screen. */}
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                <Text variant="headlineMedium" style={{ fontWeight: '800', flexShrink: 1 }} numberOfLines={1} adjustsFontSizeToFit>
+                <Text variant="headlineMedium" style={{ fontWeight: '800', flex: 1 }} numberOfLines={1} adjustsFontSizeToFit>
                   {firstName}
                 </Text>
                 {yearPill}
@@ -206,7 +219,7 @@ export default function JourneysTab() {
             </>
           ) : (
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-              <Text variant="headlineSmall" style={{ fontWeight: '800', flexShrink: 1 }} numberOfLines={1}>
+              <Text variant="headlineSmall" style={{ fontWeight: '800', flex: 1 }} numberOfLines={1}>
                 {greeting()}
               </Text>
               {yearPill}
@@ -258,11 +271,15 @@ export default function JourneysTab() {
         </View>
       ) : null}
 
-      {/* Where the full list begins (the floating "All trips" pill brings you here). */}
-      {showList ? (
-        <View onLayout={e => setListTop(e.nativeEvent.layout.y)} style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6, marginTop: 10, marginBottom: 10 }}>
-          <Text style={{ fontSize: 13, fontWeight: '800', color: colors.onSurfaceVariant, letterSpacing: 0.6 }}>ALL TRIPS</Text>
-          <Text style={{ fontSize: 13, color: colors.muted }}>{all.length}</Text>
+            {/* Always measured (so "All trips" knows where to scroll); the heading shows once the list is open. */}
+      {hasList ? (
+        <View onLayout={e => setListTop(e.nativeEvent.layout.y)} style={showList ? { flexDirection: 'row', alignItems: 'baseline', gap: 6, marginTop: 10, marginBottom: 10 } : { height: 0 }}>
+          {showList ? (
+            <>
+              <Text style={{ fontSize: 13, fontWeight: '800', color: colors.onSurfaceVariant, letterSpacing: 0.6 }}>ALL TRIPS</Text>
+              <Text style={{ fontSize: 13, color: colors.muted }}>{all.length}</Text>
+            </>
+          ) : null}
         </View>
       ) : null}
     </View>
@@ -275,16 +292,25 @@ export default function JourneysTab() {
         onLayout={e => setViewHeight(e.nativeEvent.layout.height)}
         data={showList ? rows : []}
         onScroll={e => setInList(listTop > 0 && e.nativeEvent.contentOffset.y > listTop - 60)}
+        // A swipe up on the tiles opens the full list (the tiles alone don't scroll).
+        onTouchStart={e => {
+          touchY.current = e.nativeEvent.pageY;
+        }}
+        onTouchEnd={e => {
+          const from = touchY.current;
+          touchY.current = null;
+          if (!listOpen && hasList && from != null && from - e.nativeEvent.pageY > 80) openList();
+        }}
         scrollEventThrottle={64}
         onScrollToIndexFailed={() => listRef.current?.scrollToOffset({ offset: 0, animated: true })}
         keyExtractor={t => t.id}
         ListHeaderComponent={header}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} colors={[colors.primary]} />}
         contentContainerStyle={{ padding: 16, paddingBottom: TAB_BAR_SPACE + 80 }}
-        onEndReached={loadMore}
+        onEndReached={showList ? loadMore : undefined}
         onEndReachedThreshold={0.4}
         ListFooterComponent={
-          loadingMore || hasMore ? (
+          showList && (loadingMore || hasMore) ? (
             <View style={{ paddingVertical: 18, alignItems: 'center' }} accessibilityLabel="Loading more journeys">
               <ActivityIndicator color={colors.primary} />
             </View>
@@ -319,17 +345,13 @@ export default function JourneysTab() {
         )}
       />
       {/* All trips: a small pill (like "2026 so far") centred above the tab bar; jumps to the full list, then back to the top. */}
-      {loaded && showList ? (
+      {loaded && hasList ? (
         <View pointerEvents="box-none" style={{ position: 'absolute', left: 0, right: 0, bottom: fabBottom + 17, alignItems: 'center' }}>
           <View style={{ borderRadius: 999, shadowColor: '#000', shadowOpacity: 0.12, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 3 }}>
             <Pill
-              icon={inList ? 'arrow-up' : 'format-list-bulleted'}
-              label={inList ? 'Top' : 'All trips'}
-              onPress={() =>
-                inList
-                  ? listRef.current?.scrollToOffset({ offset: 0, animated: true })
-                  : listRef.current?.scrollToOffset({ offset: listTop + 8, animated: true }) // the list's 16 px padding, less a little air
-              }
+              icon={showList && inList ? 'arrow-up' : 'format-list-bulleted'}
+              label={showList && inList ? 'Top' : 'All trips'}
+              onPress={() => (showList && inList ? closeList() : openList())}
             />
           </View>
         </View>

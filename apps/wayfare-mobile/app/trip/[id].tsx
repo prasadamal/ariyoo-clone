@@ -18,7 +18,8 @@ import { isEverydayTrip } from '../../src/lib/everydayMemories';
 import { Glass } from '../../src/ui/Glass';
 import { tripCoverUri } from '../../src/lib/tripCover';
 import { JournalTab } from '../../src/features/trip/JournalTab';
-import { PlanPackTab } from '../../src/features/trip/PlanPackTab';
+import { PackingTab } from '../../src/features/trip/PackingTab';
+import { PlanTab } from '../../src/features/trip/PlanTab';
 import { RouteTab } from '../../src/features/trip/RouteTab';
 import { daysUntil, formatDateRange, formatKm, tripPhase } from '../../src/lib/format';
 import { deleteTrip, getTrip, setTripCover, updateTrip, type LocalTrip } from '../../src/lib/localDb';
@@ -40,11 +41,12 @@ import { BudgetBar } from '../../src/ui/BudgetBar';
 import { getRates, type RatesSnapshot } from '../../src/lib/currency';
 import { splitSpend } from '../../src/lib/currencyMath';
 
-type Tab = 'journal' | 'plan' | 'budget' | 'route' | 'crew';
+type Tab = 'journal' | 'plan' | 'pack' | 'budget' | 'route' | 'crew';
 
 const ALL_TABS: TabItem<Tab>[] = [
   { value: 'journal', label: 'Journal', icon: 'notebook-outline' },
-  { value: 'plan', label: 'Plan & Pack', icon: 'clipboard-check-outline' },
+  { value: 'plan', label: 'Plan', icon: 'calendar-text-outline' },
+  { value: 'pack', label: 'Pack', icon: 'bag-checked' },
   { value: 'budget', label: 'Budget', icon: 'wallet-outline' },
   { value: 'route', label: 'Route', icon: 'map-marker-path' },
   { value: 'crew', label: 'Crew', icon: 'account-group-outline' },
@@ -387,7 +389,8 @@ export default function TripDetailScreen() {
             onJumpTo={y => pageRef.current?.scrollTo({ y: Math.max(0, journalY.current + y - 8), animated: true })}
           />
         </View> : null}
-      {tab === 'plan' ? <PlanPackTab trip={trip} onChanged={load} readOnly={!canEdit} /> : null}
+      {tab === 'plan' ? <PlanTab trip={trip} onChanged={load} readOnly={!canEdit} /> : null}
+      {tab === 'pack' ? <PackingTab trip={trip} onChanged={load} /> : null}
       {tab === 'budget' ? <BudgetTab trip={trip} onChanged={load} readOnly={!canEdit} /> : null}
       {tab === 'route' && canEdit ? <RouteTab trip={trip} onChanged={load} /> : null}
       {tab === 'crew' && !everyday ? (
