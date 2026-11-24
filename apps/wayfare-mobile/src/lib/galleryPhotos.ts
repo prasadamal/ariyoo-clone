@@ -11,7 +11,11 @@ import { galleryWindow, newPhotos, photosByDay, type GalleryPhoto } from './trip
  * "Add photos from these dates": looks in the phone's gallery for photos taken during a journey.
  * Asks for photo access only when you tap; photos stay on the phone unless you add them.
  */
-export const galleryAvailable = Platform.OS === 'android' || Platform.OS === 'ios';
+// Off for the first Play release: reading the gallery by date needs READ_MEDIA_IMAGES, which Play
+// allows only for apps whose core purpose needs it. Turn back on (and restore the permission in
+// app.config.ts) once that declaration is approved.
+export const GALLERY_BY_DATE_ENABLED = false;
+export const galleryAvailable = GALLERY_BY_DATE_ENABLED && (Platform.OS === 'android' || Platform.OS === 'ios');
 
 const addedKey = (tripId: string) => `wayfare_gallery_added_${tripId}`;
 const snoozeKey = (tripId: string) => `wayfare_gallery_snooze_${tripId}`;

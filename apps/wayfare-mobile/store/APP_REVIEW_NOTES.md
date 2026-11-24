@@ -1,40 +1,45 @@
-# App Review notes — Wayfare 2.0
+# App review notes — Wayfare first release (Android)
 
-Paste the "Notes" section into App Store Connect / Play Console review notes. Create the demo
-accounts first (sign up in the app, then run `supabase/scripts/reviewer_demo_seed.sql`).
+Paste the "Notes for the reviewer" into Play Console → App content → App access. Put the demo
+account's email and password in the credential fields there (never in this repository).
 
-## Demo accounts
+## Demo account
 
 | Account | Email | Purpose |
 | --- | --- | --- |
-| Reviewer | wayfare.reviewer@example.com | Main account (password in your password manager) |
-| Second traveller | wayfare.buddy@example.com | Has an overlapping trip, a board post and a chat so community features have content |
+| Reviewer | `demo.traveller@example.com` | Twelve journeys with moments, photos, voice notes, plans, packing, expenses and routes |
 
 ## Notes for the reviewer
 
-Wayfare is a travel journal plus a traveller community.
+Wayfare is a private travel journal. It works offline; an account backs the journal up and lets
+the user share a journey with people they choose.
 
-1. **Journal (works offline):** Journeys → open "Hampta Pass (demo)" → Journal: write a moment, add a photo, record a voice note. Plan / Budget / Pack tabs work offline too.
-2. **Route recording:** Route tab → *Start recording route* → allow location (*While using the app* is all Wayfare asks for). Recording keeps running with the screen off — iOS shows the blue location indicator, Android a persistent notification. Tap *Stop recording* to end.
-3. **Community:** accept the Community Guidelines when prompted (shown once before any community feature).
-   - Discover → Feed: posts from the demo buddy.
-   - Connect → Board: open the demo ride share → *Ask to join*.
-   - Connect → My trips: the demo trip is "open to meet" and matches the buddy's trip.
-   - Inbox → chat with the buddy.
-4. **Moderation (Guideline 1.2):** every post, comment, message, tip, board post and profile has **Report** (… menu or long-press) and **Block**. Content reported by 3 travellers is hidden automatically; our team reviews reports within 24 hours (`supabase/MODERATION.md`). An on-device filter blocks slurs and payment-scam phrasing before posting. Users must accept the guidelines (with a zero-tolerance clause) before using community features.
-5. **Account deletion (Guideline 5.1.1(v)):** You tab → Settings & privacy → *Delete account* (type DELETE). This deletes the account and all its data immediately.
-6. **Safety:** Journeys → shield icon → Safety: SOS opens the SMS composer pre-filled with location for the user's own emergency contacts (nothing is sent automatically); live-location links are user-started and expire.
+1. **Journal:** Journeys → open "Ladakh road trip" → Journal: write a moment, add a photo
+   (system photo picker), record a voice note. Swipe the moments sideways to change day.
+2. **Plan / Pack / Budget:** the tabs beside Journal. All work offline.
+3. **Route recording (foreground service, location):** Route tab → Start recording → allow
+   location *While using the app* (the only location access Wayfare asks for). A notification
+   shows while recording, with the screen off too. Tap Stop recording to end.
+4. **Sharing:** the journey's ⋯ menu → Share story link (asks to confirm first; never includes
+   money, routes or voice notes) and Stop sharing story. The person icon on the cover adds people
+   to the journey by username or invite link.
+5. **Account deletion:** You tab → gear (Settings) → Delete account → type DELETE. Deletes the
+   account and its cloud data at once. Web: https://ariyoo-docs.onrender.com/privacy/wayfare-delete-account.html
+6. **Safety:** Journeys → shield icon: SOS opens the SMS app pre-filled for the user's own
+   emergency contacts; nothing is sent automatically. Live-location links are user-started and
+   end within 72 hours.
 
 Privacy policy: https://ariyoo-docs.onrender.com/privacy/wayfare.html
 Terms of use: https://ariyoo-docs.onrender.com/privacy/wayfare-terms.html
 
-## Permission strings (why each is requested)
+## Why each permission is requested
 
 | Permission | When it is requested |
 | --- | --- |
-| Location (while using the app) | Saving a moment with "Add location", Nearby, chat location, SOS, *Start recording route*, *Share live*. Wayfare never asks for "Always": recording continues in the background through the iOS location background mode / an Android foreground service started by the user. |
-| Camera | Taking a photo for an entry, post or chat |
-| Photos | None needed — the system photo picker shares only the photos the user picks |
+| Location (while using the app) | Adding a location to a moment, Start recording route, Share live location, SOS. Never "all the time": recording continues through a foreground service the user starts. |
+| Foreground service (location) | Only while route recording or a live-location link the user started is running |
+| Camera | Taking a photo for a moment or trip cover |
+| Photos | None: the system photo picker shares only the photos the user picks |
 | Microphone | Recording a voice note |
-| Notifications | Turning on notifications (Inbox prompt or Settings), check-in reminders |
-| Face ID | Turning on App lock |
+| Notifications | Reminders the user turns on (daily diary, packing) and journey updates |
+| Biometrics | Turning on App lock |

@@ -129,3 +129,10 @@ Checked here: typecheck, 169 unit tests, the three browser suites (79/79), the 3
 - **Plan and Pack** are separate tabs again. Plan: progress strip, a timeline per day (today highlighted, plans sorted by time), tap a plan to edit or remove it in a sheet with quick times. Pack: progress card with the checklist switch, big round ticks, packed items fold into "Packed", the add box under the list, new checklist in a sheet. Packing reminders open the Pack tab.
 - **Diary**: the streak / "swipe for other days" line shows for a few seconds or until you swipe.
 - **Add expense / budget**: sheets that open with the amount focused and rise with the keyboard.
+
+## Release-readiness round (November 2026)
+
+- **Gallery by date off for the first Play release** (`GALLERY_BY_DATE_ENABLED = false` in `galleryPhotos.ts`): it needs `READ_MEDIA_IMAGES`, which Play allows only when broad photo access is core to the app. The expo-media-library plugin is removed from `app.config.ts` and every `READ_MEDIA_*` / storage permission is blocked; photos come from the system picker, which needs none. The code and tests stay for a later release.
+- **Sign-up asks "I am 18 or older"** (required to create an account); under-18s would need verifiable parental consent under the DPDP Act. Guest journaling (no account, nothing leaves the phone) is unchanged.
+- **Home tiles on short phones**: the minimum tile height dropped to 96 px and tiles under 132 px become compact (title and count only), so the three tiles clear the tab bar on 360×640 screens.
+- **Public pages rewritten for this release**: privacy policy (DPDP Data Fiduciary, rights, Grievance Officer, data in Mumbai, current providers including OpenFreeMap and speech recognition, story links with photos), terms (IT Rules 2021 prohibited content list, grievance timelines), account deletion page; Play Data safety answers and reviewer notes updated (`store/`).
