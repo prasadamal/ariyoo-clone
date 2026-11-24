@@ -26,6 +26,9 @@ import { SectionHeader } from '../src/ui/SectionHeader';
 import { SOCIAL_ENABLED } from '../src/lib/features';
 import { cleanUpiId, isValidUpiId } from '../src/lib/upi';
 import { getUpiIds, MY_UPI, setUpiId } from '../src/lib/upiIds';
+import { packingNudgesEnabled, setPackingNudgesEnabled } from '../src/lib/packingReminders';
+import { journeysOnly } from '../src/lib/everydayMemories';
+import { listTrips } from '../src/lib/localDb';
 
 function ToggleRow({ icon, title, body, value, onChange, disabled }: { icon: string; title: string; body: string; value: boolean; onChange: (v: boolean) => void; disabled?: boolean }) {
   const { colors } = useAppTheme();
@@ -46,6 +49,10 @@ export default function SettingsScreen() {
   const toast = useToast();
   const [reminder, setReminder] = useState<DiaryReminder>({ on: false, hour: 21 });
   const [myUpi, setMyUpi] = useState('');
+  const [packNudges, setPackNudges] = useState(true);
+  useEffect(() => {
+    packingNudgesEnabled().then(setPackNudges).catch(() => undefined);
+  }, []);
   const [upiOpen, setUpiOpen] = useState(false);
   const [upiDraft, setUpiDraft] = useState('');
   useEffect(() => {
@@ -261,7 +268,7 @@ export default function SettingsScreen() {
         Remove journals from this phone
       </Button>
 
-      <SectionHeader title="Diary" />
+      <SectionHeader title="Reminders" />
       <ToggleRow
         icon="notebook-edit-outline"
         title="Daily reminder"
@@ -276,6 +283,20 @@ export default function SettingsScreen() {
           onChange={h => changeReminder({ ...reminder, hour: Number(h) })}
         />
       ) : null}
+      <ToggleRow
+        icon="bag-checked"
+        title="Packing reminders"
+        body="3 days before a journey and the evening before: what's left to pack, with a tip from the forecast."
+        value={packNudges}
+        onChange={async on => {
+          try {
+            await setPackingNudgesEnabled(on, journeysOnly(await listTrips()));
+            setPackNudges(on);
+          } catch (e) {
+            toast(e instanceof Error ? e.message : 'Could not change packing reminders');
+          }
+        }}
+      />
 
       <SectionHeader title="Payments" />
       {/* Your UPI ID: used by "Request" in a journey's Settle up. Saved on this phone only. */}

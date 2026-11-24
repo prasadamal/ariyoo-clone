@@ -11,6 +11,7 @@ import { timeAgoPhrase } from '../../src/lib/format';
 import { journeysOnly } from '../../src/lib/everydayMemories';
 import { listTrips, type LocalTrip } from '../../src/lib/localDb';
 import { prepareTripRows, type TripRow } from '../../src/lib/tripRows';
+import { refreshPackingNudges } from '../../src/lib/packingReminders';
 import { getActiveTrackingTripId } from '../../src/lib/locationTask';
 import { backupLabel, backupState } from '../../src/lib/backupStatus';
 import { featuredTrips, recentFirst, statusCounts, tripStatus, type TripStatus } from '../../src/lib/tripList';
@@ -58,6 +59,7 @@ export default function JourneysTab() {
   const [showStatus, setShowStatus] = useState(false);
   const statusTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const busy = useRef(false);
+  const nudgedAt = useRef(0);
   const shown = useRef(PAGE_SIZE);
   const listRef = useRef<FlatList<TripRow>>(null);
   const insets = useSafeAreaInsets();
@@ -73,6 +75,11 @@ export default function JourneysTab() {
     const [page, topRows] = await Promise.all([prepareTripRows(sorted.slice(0, count)), prepareTripRows(top)]);
     shown.current = count;
     setAll(list);
+    // Packing nudges follow packing and date changes; re-planned at most every 10 minutes.
+    if (Date.now() - nudgedAt.current > 10 * 60 * 1000) {
+      nudgedAt.current = Date.now();
+      void refreshPackingNudges(list);
+    }
     setRows(page);
     setFeatured(topRows);
     setCounts(statusCounts(list));

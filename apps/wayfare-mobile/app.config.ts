@@ -123,6 +123,16 @@ export default ({ config }: ConfigContext): ExpoConfig =>
       ],
       'expo-secure-store',
       'expo-sqlite',
+      [
+        // "Add photos from these dates": reads photos only (no saving, no videos, no locations).
+        'expo-media-library',
+        {
+          photosPermission: 'Wayfare looks for photos you took during a journey so you can add them to its days. Photos stay on your phone unless you add them.',
+          savePhotosPermission: false,
+          isAccessMediaLocationEnabled: false,
+          granularPermissions: ['photo'],
+        },
+      ],
       'expo-localization',
       [
         'expo-location',

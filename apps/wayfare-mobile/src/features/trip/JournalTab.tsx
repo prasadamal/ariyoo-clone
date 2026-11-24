@@ -23,6 +23,8 @@ import { MomentComposer, type MomentMoney } from './MomentComposer';
 import { pickPhotos, type PickedPhoto } from './photoPicker';
 import { Pill } from '../../ui/Pill';
 import { datePills, tripDayLabel } from './dayStripCells';
+import { TripGalleryCard } from './TripGalleryCard';
+import { galleryAvailable } from '../../lib/galleryPhotos';
 import { PhotoGrid } from './PhotoGrid';
 import { placeFromCoords, type FoundPlace } from '../../lib/reverseGeocode';
 import { canEditTrip, isSharedTrip } from '../../lib/crew';
@@ -381,6 +383,11 @@ export function JournalTab({ trip, onChanged, everyday = false, crewNames = {}, 
       ) : (
         <Notice text="You're a member of this journey: you see every moment. An admin can make you an admin so you can add your own." />
       )}
+
+      {/* Gallery photos taken during this journey, offered once it has started. */}
+      {galleryAvailable && canEdit && !everyday && trip.starts_on && trip.starts_on <= toDayString(new Date()) ? (
+        <TripGalleryCard trip={trip} onAdded={() => { void load(); onChanged(); }} />
+      ) : null}
 
       {!groups.length ? (
         <EmptyState
