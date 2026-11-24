@@ -210,7 +210,7 @@ export default function ProfileTab() {
 
         <YearTile year={year} />
 
-        <Tile title="Places visited">
+        <Tile title="Places visited" action={<Pill icon="passport" label="Passport" onPress={() => router.push('/passport' as never)} />}>
           {countries.length ? (
             // One card per country (flag, name, how many places); tap to see its states. A fixed box
             // that scrolls inside, so a hundred countries don't stretch the page.

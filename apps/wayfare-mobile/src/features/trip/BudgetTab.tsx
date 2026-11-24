@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { track } from '../../lib/telemetry';
-import { Alert, Pressable, ScrollView, View } from 'react-native';
+import { Alert, Linking, Pressable, ScrollView, Share, View } from 'react-native';
 import { Button, Dialog, IconButton, Portal, Text, TextInput } from 'react-native-paper';
 import { uuid } from '../../lib/id';
 import { getRates, type RatesSnapshot } from '../../lib/currency';
@@ -14,6 +14,9 @@ import { Icon } from '../../ui/Icon';
 import { Notice } from '../../ui/Notice';
 import { Meter } from '../../ui/Meter';
 import { capitalizeName, firstName } from '../../lib/names';
+import { cleanUpiId, isValidUpiId, upiKey, upiPayLink, upiRequestMessage } from '../../lib/upi';
+import { getUpiIds, MY_UPI, setUpiId } from '../../lib/upiIds';
+import { useToast } from '../../context/ToastContext';
 
 /** How a person shows on a chip or row: "You" for yourself, otherwise just a first name. */
 const personLabel = (name: string) => (name === ME ? 'You' : firstName(name));
@@ -56,6 +59,35 @@ export function BudgetTab({ trip, onChanged, readOnly = false }: Props) {
   const [budgetText, setBudgetText] = useState('');
   const [formOpen, setFormOpen] = useState(false);
   const [showSettle, setShowSettle] = useState(false);
+  // UPI: IDs remembered on this phone, and the "what's their UPI ID?" box when one is missing.
+  const [upiIds, setUpiIds] = useState<Record<string, string>>({});
+  const [upiAsk, setUpiAsk] = useState<{ who: string; then: (id: string) => void } | null>(null);
+  const [upiText, setUpiText] = useState('');
+  const upiToast = useToast();
+  useEffect(() => {
+    getUpiIds().then(setUpiIds).catch(() => undefined);
+  }, []);
+  /** A UPI ID for someone (MY_UPI for yourself): remembered, or asked for once. */
+  const withUpiId = (who: string, then: (id: string) => void) => {
+    const known = upiIds[upiKey(who)];
+    if (known) return then(known);
+    setUpiText('');
+    setUpiAsk({ who, then });
+  };
+  const payByUpi = (to: string, amount: number) =>
+    withUpiId(to, async id => {
+      const link = upiPayLink({ upiId: id, name: firstName(to), amount, note: trip.title });
+      try {
+        await Linking.openURL(link);
+      } catch {
+        upiToast('No UPI app found on this phone');
+      }
+    });
+  const requestByUpi = (from: string, amount: number) =>
+    withUpiId(MY_UPI, id => {
+      const link = upiPayLink({ upiId: id, name: 'Wayfare', amount, note: trip.title });
+      void Share.share({ message: upiRequestMessage({ to: firstName(from), amount: formatMoney(amount, 'INR'), trip: trip.title, myUpiId: id, link }) });
+    });
   const [showExpenses, setShowExpenses] = useState(false);
   const [note, setNote] = useState('');
   const [paidBy, setPaidBy] = useState(ME);
@@ -295,16 +327,31 @@ export function BudgetTab({ trip, onChanged, readOnly = false }: Props) {
             s.transfers.map((t, i, arr) => (
               <View
                 key={`${s.currency}-${t.from}-${t.to}`}
-                style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 8, borderBottomWidth: i === arr.length - 1 ? 0 : 1, borderBottomColor: colors.border }}
+                style={{ paddingVertical: 8, borderBottomWidth: i === arr.length - 1 ? 0 : 1, borderBottomColor: colors.border, gap: 6 }}
               >
-                <Text style={{ fontWeight: '700' }} numberOfLines={1}>{personLabel(t.from)}</Text>
-                <Icon name="arrow-right" size={16} color={colors.muted} />
-                <Text style={{ fontWeight: '700', flex: 1 }} numberOfLines={1}>{personLabel(t.to)}</Text>
-                <Text style={{ fontWeight: '800', color: colors.secondary }}>{formatMoney(t.amount, s.currency)}</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <Text style={{ fontWeight: '700' }} numberOfLines={1}>{personLabel(t.from)}</Text>
+                  <Icon name="arrow-right" size={16} color={colors.muted} />
+                  <Text style={{ fontWeight: '700', flex: 1 }} numberOfLines={1}>{personLabel(t.to)}</Text>
+                  <Text style={{ fontWeight: '800', color: colors.secondary }}>{formatMoney(t.amount, s.currency)}</Text>
+                </View>
                 {readOnly ? null : (
-                  <Button compact mode="contained-tonal" onPress={() => markPaid(t, s.currency)} accessibilityLabel={`Mark ${personLabel(t.from)} paid ${personLabel(t.to)}`}>
-                    Paid
-                  </Button>
+                  // UPI for rupees: "Pay" when you owe, "Request" when you're owed. "Paid" records it.
+                  <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 8 }}>
+                    {s.currency === 'INR' && t.from === ME ? (
+                      <Button compact mode="contained" icon="cellphone-arrow-down" onPress={() => payByUpi(t.to, t.amount)} accessibilityLabel={`Pay ${personLabel(t.to)} with UPI`}>
+                        Pay with UPI
+                      </Button>
+                    ) : null}
+                    {s.currency === 'INR' && t.to === ME ? (
+                      <Button compact mode="contained-tonal" icon="send-outline" onPress={() => requestByUpi(t.from, t.amount)} accessibilityLabel={`Ask ${personLabel(t.from)} to pay with UPI`}>
+                        Request
+                      </Button>
+                    ) : null}
+                    <Button compact mode="outlined" onPress={() => markPaid(t, s.currency)} accessibilityLabel={`Mark ${personLabel(t.from)} paid ${personLabel(t.to)}`}>
+                      Paid
+                    </Button>
+                  </View>
                 )}
               </View>
             ))
@@ -359,6 +406,44 @@ export function BudgetTab({ trip, onChanged, readOnly = false }: Props) {
           ) : null}
         </View>
       ) : null}
+      <Portal>
+        <Dialog visible={!!upiAsk} onDismiss={() => setUpiAsk(null)}>
+          <Dialog.Title>{upiAsk?.who === MY_UPI ? 'Your UPI ID' : `${upiAsk ? firstName(upiAsk.who) : ''}\u2019s UPI ID`}</Dialog.Title>
+          <Dialog.Content>
+            <TextInput
+              mode="outlined"
+              label="UPI ID"
+              placeholder="name@okaxis"
+              value={upiText}
+              onChangeText={setUpiText}
+              autoCapitalize="none"
+              autoCorrect={false}
+              keyboardType="email-address"
+              error={!!upiText.trim() && !isValidUpiId(upiText)}
+            />
+            <Text style={{ color: colors.muted, fontSize: 12, marginTop: 8 }}>
+              {upiAsk?.who === MY_UPI ? 'Friends pay this ID from the link you send.' : 'Saved on this phone for next time.'} It\u2019s shown in GPay, PhonePe or Paytm under your profile.
+            </Text>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setUpiAsk(null)}>Cancel</Button>
+            <Button
+              mode="contained"
+              disabled={!isValidUpiId(upiText)}
+              onPress={async () => {
+                const ask = upiAsk;
+                if (!ask) return;
+                const id = cleanUpiId(upiText);
+                setUpiIds(await setUpiId(ask.who, id));
+                setUpiAsk(null);
+                ask.then(id);
+              }}
+            >
+              Continue
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
       <Portal>
         <Dialog visible={formOpen} onDismiss={() => setFormOpen(false)} style={{ maxHeight: '88%' }}>
           <Dialog.Title>Add expense</Dialog.Title>

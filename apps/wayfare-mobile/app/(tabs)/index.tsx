@@ -3,6 +3,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { ActivityIndicator, FlatList, Pressable, RefreshControl, View } from 'react-native';
 import { IconButton, Text } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { AnnouncementBanner } from '../../src/components/AnnouncementBanner';
 import { TripCard } from '../../src/components/TripCard';
 import { useAuth } from '../../src/context/AuthContext';
 import { useSync } from '../../src/context/SyncContext';
@@ -48,6 +49,7 @@ export default function JourneysTab() {
   // Room on screen for the three tiles: the list's height and the greeting's.
   const [viewHeight, setViewHeight] = useState(0);
   const [greetHeight, setGreetHeight] = useState(72);
+  const [bannerHeight, setBannerHeight] = useState(0);
   const [recordingTripId, setRecordingTripId] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -171,7 +173,7 @@ export default function JourneysTab() {
   // tab bar, less the gaps (a stacked group tile needs a little more room underneath).
   const gaps = featured.reduce((sum, t) => sum + (counts[tripStatus(t)] > 1 ? 30 : 14), 0) + 14;
   const tileHeight = viewHeight && featured.length
-    ? Math.max(118, Math.min(200, Math.floor((viewHeight - 16 - greetHeight - gaps - (fabBottom + 70)) / Math.max(featured.length, 3))))
+    ? Math.max(118, Math.min(200, Math.floor((viewHeight - 16 - greetHeight - bannerHeight - gaps - (fabBottom + 70)) / Math.max(featured.length, 3))))
     : undefined;
   /** A tile: the journey itself when it's the only one in its group, else that group's list. */
   const openTile = (t: TripRow) => {
@@ -213,6 +215,9 @@ export default function JourneysTab() {
           ) : null}
         </View>
       </View>
+
+      {/* A short message from the Wayfare team (admin console), if there is one. */}
+      <AnnouncementBanner onHeight={setBannerHeight} />
 
       {recordingTrip ? (
         <Pressable onPress={() => router.push(`/trip/${recordingTrip.id}`)} accessibilityRole="button">
