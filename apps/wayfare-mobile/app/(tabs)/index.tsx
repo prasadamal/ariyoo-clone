@@ -1,6 +1,6 @@
 import { router, useFocusEffect, useNavigation } from 'expo-router';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, FlatList, Pressable, RefreshControl, View } from 'react-native';
 import { IconButton, Text } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { OnThisDayCard } from '../../src/components/OnThisDayCard';
@@ -308,23 +308,21 @@ export default function JourneysTab() {
           />
         )}
       />
-      {/* All trips: a glass pill left of the + button; jumps to the full list, or back to the top. */}
+      {/* All trips: a small pill (like "2026 so far") centred above the tab bar; jumps to the full list, then back to the top. */}
       {loaded && showList ? (
-        <Pressable
-          onPress={() =>
-            inList
-              ? listRef.current?.scrollToOffset({ offset: 0, animated: true })
-              : listRef.current?.scrollToOffset({ offset: listTop + 8, animated: true }) // the list's 16 px padding, less a little air
-          }
-          accessibilityRole="button"
-          accessibilityLabel={inList ? 'Back to the top' : `All trips, ${all.length}`}
-          style={({ pressed }) => ({ position: 'absolute', right: 18 + 60 + 10, bottom: fabBottom + 8, transform: [{ scale: pressed ? 0.95 : 1 }] })}
-        >
-          <Glass radius={22} interactive style={{ height: 44, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border }}>
-            <Icon name={inList ? 'arrow-up' : 'format-list-bulleted'} size={18} color={colors.primary} />
-            <Text style={{ fontWeight: '700', color: colors.onSurface }}>{inList ? 'Top' : 'All trips'}</Text>
-          </Glass>
-        </Pressable>
+        <View pointerEvents="box-none" style={{ position: 'absolute', left: 0, right: 0, bottom: fabBottom + 17, alignItems: 'center' }}>
+          <View style={{ borderRadius: 999, shadowColor: '#000', shadowOpacity: 0.12, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 3 }}>
+            <Pill
+              icon={inList ? 'arrow-up' : 'format-list-bulleted'}
+              label={inList ? 'Top' : 'All trips'}
+              onPress={() =>
+                inList
+                  ? listRef.current?.scrollToOffset({ offset: 0, animated: true })
+                  : listRef.current?.scrollToOffset({ offset: listTop + 8, animated: true }) // the list's 16 px padding, less a little air
+              }
+            />
+          </View>
+        </View>
       ) : null}
       {/* New journey: a brand-coloured glass button floating above the tab bar (the empty screen has its own button). */}
       {loaded && !all.length ? null : (
