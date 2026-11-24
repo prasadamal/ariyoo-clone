@@ -4,7 +4,6 @@ import { useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Animated,
-  KeyboardAvoidingView,
   PanResponder,
   Modal,
   Platform,
@@ -15,6 +14,7 @@ import {
   View,
 } from 'react-native';
 import { ActivityIndicator, Button, Dialog, IconButton, Portal, Text, TextInput } from 'react-native-paper';
+import { KeyboardAvoidingView, useKeyboardState } from 'react-native-keyboard-controller';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MomentPhotos } from '../../src/components/MomentPhotos';
 import { useSync } from '../../src/context/SyncContext';
@@ -341,7 +341,9 @@ export default function DiaryScreen() {
   };
 
   // Room for the floating tab bar (its height plus the phone's own bottom inset).
-  const tabBarRoom = 80 + Math.max(insets.bottom, 10);
+  // While typing, the keyboard covers the tab bar, so the page reaches down to the keyboard.
+  const keyboardUp = useKeyboardState(k => k.isVisible);
+  const tabBarRoom = keyboardUp ? 8 : 80 + Math.max(insets.bottom, 10);
 
   /** Slide to the next day in a direction, then bring the new page in from the other side. */
   const turn = (dir: 'older' | 'newer') => {

@@ -295,6 +295,7 @@ export default function JourneysTab() {
             all.length ? null : (
               <EmptyState
                 icon="map-marker-path"
+                animation="travel"
                 title="Where to next?"
                 body="Start a journey to journal moments offline, plan each day, split costs and add your crew."
                 action="Start a journey"

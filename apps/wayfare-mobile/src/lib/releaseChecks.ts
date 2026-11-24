@@ -67,8 +67,5 @@ export function checkRelease(i: ReleaseInputs): ReleaseProblem[] {
   if (!i.hasGoogleServices) {
     warning('No google-services.json: Android builds will not receive push notifications (local reminders still work).');
   }
-  if (!envValue(i.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY)) {
-    warning('EXPO_PUBLIC_GOOGLE_MAPS_API_KEY is not set: Android maps show a blank grid.');
-  }
   return problems;
 }

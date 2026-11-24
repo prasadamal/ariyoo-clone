@@ -8,7 +8,6 @@ const ready: ReleaseInputs = {
   env: {
     EXPO_PUBLIC_SUPABASE_URL: 'https://abcd1234.supabase.co',
     EXPO_PUBLIC_SUPABASE_ANON_KEY: 'sb_publishable_real',
-    EXPO_PUBLIC_GOOGLE_MAPS_API_KEY: 'AIzaReal',
   },
   eas: { submit: { production: { ios: { appleId: 'owner@icloud.test', ascAppId: '6700000000', appleTeamId: 'ABCDE12345' } } } },
   webConfig: webConfig('https://abcd1234.supabase.co', 'sb_publishable_real'),
@@ -35,7 +34,7 @@ test('the repository as committed is not ready, and says why', () => {
   assert.match(found, /EAS project id/);
   assert.match(found, /SUPABASE/);
   assert.match(found, /wayfare-config\.js still has placeholders/);
-  assert.equal(warnings(committed).length, 3);
+  assert.equal(warnings(committed).length, 2);
 });
 
 test('placeholder and insecure backend values are errors', () => {

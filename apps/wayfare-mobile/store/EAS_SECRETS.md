@@ -28,8 +28,7 @@ expo.dev → Project settings → Environment variables, or with EAS CLI:
 ```bash
 eas env:set --environment production --visibility plaintext --name EXPO_PUBLIC_SUPABASE_URL --value https://YOUR_PROJECT.supabase.co
 eas env:set --environment production --visibility sensitive --name EXPO_PUBLIC_SUPABASE_ANON_KEY --value YOUR_ANON_KEY
-# Optional
-eas env:set --environment production --visibility sensitive --name EXPO_PUBLIC_GOOGLE_MAPS_API_KEY --value YOUR_MAPS_KEY
+# Optional (maps need no key: they use free OpenStreetMap tiles from OpenFreeMap)
 eas env:set --environment production --visibility plaintext --name EXPO_PUBLIC_WAYFARE_SHARE_BASE --value https://YOUR_PAGES/wayfare-share/index.html
 eas env:set --environment production --visibility plaintext --name EXPO_PUBLIC_WAYFARE_LIVE_BASE --value https://YOUR_PAGES/wayfare-live/index.html
 ```

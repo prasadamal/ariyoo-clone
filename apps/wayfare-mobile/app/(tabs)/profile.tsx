@@ -1,3 +1,4 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -6,6 +7,9 @@ import { Button, IconButton, Text } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth, useCanConnect } from '../../src/context/AuthContext';
 import { computeBadges, sortBadges } from '../../src/lib/badges';
+import { badgeLevels, badgeToast, isLevelMap, newBadgeLevels, parseSeen } from '../../src/lib/celebrations';
+import { useToast } from '../../src/context/ToastContext';
+import { Confetti } from '../../src/ui/Confetti';
 import { displayName, formatKm } from '../../src/lib/format';
 import { fillMissingPlaces } from '../../src/lib/reverseGeocode';
 import { computeTravelStats, countryName, countryPlaces, countrySummary, flagEmoji, type TravelStats } from '../../src/lib/travelStats';
@@ -17,6 +21,8 @@ import { Avatar } from '../../src/ui/Avatar';
 import { Icon } from '../../src/ui/Icon';
 import { Screen } from '../../src/ui/Screen';
 import { TAB_BAR_SPACE } from '../../src/ui/GlassTabBar';
+
+const BADGES_SEEN_KEY = 'wayfare_badge_levels_seen_v1';
 
 /** A rounded light tile: every block on this page sits in one. */
 function Tile({ title, action, children }: { title?: string; action?: React.ReactNode; children: React.ReactNode }) {
@@ -121,6 +127,28 @@ export default function ProfileTab() {
   }, [signedIn, profile?.id]);
 
   const allBadgeList = useMemo(() => (stats ? sortBadges(computeBadges(stats)) : []), [stats]);
+
+  // A badge reaching a new level since you last looked: confetti and a toast. The first look only
+  // remembers the levels you already have.
+  const toast = useToast();
+  const [burst, setBurst] = useState(0);
+  useEffect(() => {
+    if (!stats) return;
+    let alive = true;
+    (async () => {
+      const seen = parseSeen(await AsyncStorage.getItem(BADGES_SEEN_KEY), isLevelMap);
+      const fresh = newBadgeLevels(seen, allBadgeList);
+      await AsyncStorage.setItem(BADGES_SEEN_KEY, JSON.stringify({ ...(seen ?? {}), ...badgeLevels(allBadgeList) }));
+      const words = badgeToast(fresh);
+      if (alive && words) {
+        setBurst(n => n + 1);
+        toast(words);
+      }
+    })().catch(() => undefined);
+    return () => {
+      alive = false;
+    };
+  }, [stats, allBadgeList, toast]);
   const earned = allBadgeList.filter(b => b.earned);
   const allBadges = allBadgeList.length;
   const km = Math.max(stats?.km ?? 0, profile?.verified_km ?? 0);
@@ -145,6 +173,7 @@ export default function ProfileTab() {
   };
 
   return (
+    <View style={{ flex: 1 }}>
     <Screen refreshing={false} onRefresh={() => { refreshProfile(); load(); }} padded={false} bottomSpace={TAB_BAR_SPACE}>
       <View style={{ paddingHorizontal: 16, paddingTop: insets.top + 12 }}>
         {/* Who you are: photo and name, one quiet line of handle and home, then the bio. */}
@@ -300,5 +329,7 @@ export default function ProfileTab() {
         <View style={{ height: 16 }} />
       </View>
     </Screen>
+    <Confetti burst={burst} />
+    </View>
   );
 }
