@@ -428,23 +428,27 @@
           "text": "import { useEffect, useMemo, useRef, useState } from 'react';"
         },
         {
-          "line": 35,
+          "line": 43,
+          "text": "const t = setTimeout(() => {"
+        },
+        {
+          "line": 55,
           "text": "const [busy, setBusy] = useState(false);"
         },
         {
-          "line": 36,
+          "line": 56,
           "text": "const [error, setError] = useState<string | null>(null);"
         },
         {
-          "line": 72,
+          "line": 92,
           "text": "const sub = AppState.addEventListener('change', state => {"
         },
         {
-          "line": 73,
+          "line": 93,
           "text": "if (state === 'active') {"
         },
         {
-          "line": 93,
+          "line": 113,
           "text": "const [exitError, setExitError] = useState<string | null>(null);"
         }
       ]
@@ -540,52 +544,64 @@
           "text": "import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';"
         },
         {
-          "line": 66,
+          "line": 41,
           "text": "const [all, setAll] = useState<LocalTrip[]>([]);"
         },
         {
-          "line": 67,
+          "line": 42,
           "text": "const [rows, setRows] = useState<TripRow[]>([]);"
         },
         {
-          "line": 68,
+          "line": 43,
           "text": "const [featured, setFeatured] = useState<TripRow[]>([]);"
         },
         {
-          "line": 69,
+          "line": 44,
           "text": "const [counts, setCounts] = useState<Record<TripStatus, number>>({ ongoing: 0, upcoming: 0, completed: 0 });"
         },
         {
-          "line": 71,
+          "line": 46,
           "text": "const [listTop, setListTop] = useState(0);"
         },
         {
-          "line": 72,
+          "line": 47,
           "text": "const [inList, setInList] = useState(false);"
         },
         {
-          "line": 73,
+          "line": 49,
+          "text": "const [viewHeight, setViewHeight] = useState(0);"
+        },
+        {
+          "line": 50,
+          "text": "const [greetHeight, setGreetHeight] = useState(72);"
+        },
+        {
+          "line": 51,
           "text": "const [recordingTripId, setRecordingTripId] = useState<string | null>(null);"
         },
         {
-          "line": 74,
+          "line": 52,
           "text": "const [loaded, setLoaded] = useState(false);"
         },
         {
-          "line": 75,
+          "line": 53,
           "text": "const [loadingMore, setLoadingMore] = useState(false);"
         },
         {
-          "line": 76,
+          "line": 54,
           "text": "const [refreshing, setRefreshing] = useState(false);"
         },
         {
-          "line": 78,
+          "line": 56,
           "text": "const [showStatus, setShowStatus] = useState(false);"
         },
         {
-          "line": 153,
+          "line": 131,
           "text": "statusTimer.current = setTimeout(() => setShowStatus(false), 6000);"
+        },
+        {
+          "line": 178,
+          "text": "const status = tripStatus(t);"
         }
       ]
     },
@@ -597,27 +613,27 @@
           "text": "import { useCallback, useEffect, useMemo, useRef, useState } from 'react';"
         },
         {
-          "line": 123,
+          "line": 122,
           "text": "const [trip, setTrip] = useState<LocalTrip | null>(null);"
         },
         {
-          "line": 124,
+          "line": 123,
           "text": "const [failed, setFailed] = useState(false);"
         },
         {
-          "line": 125,
+          "line": 124,
           "text": "const [entries, setEntries] = useState<LocalEntry[]>([]);"
         },
         {
-          "line": 126,
+          "line": 125,
           "text": "const [today, setToday] = useState(dayOf(new Date()));"
         },
         {
-          "line": 127,
-          "text": "const [themeId, setThemeId] = useState<DiaryThemeId>('diary');"
+          "line": 126,
+          "text": "const [themeId, setThemeId] = useState<DiaryThemeId>('lavender');"
         },
         {
-          "line": 128,
+          "line": 127,
           "text": "const [formatOpen, setFormatOpen] = useState(false);"
         },
         {
@@ -625,76 +641,64 @@
           "text": "const [page, setPage] = useState(0);"
         },
         {
-          "line": 130,
+          "line": 135,
           "text": "const [editingName, setEditingName] = useState(false);"
         },
         {
-          "line": 131,
+          "line": 136,
           "text": "const [name, setName] = useState('');"
         },
         {
-          "line": 132,
+          "line": 137,
           "text": "const [pickerOpen, setPickerOpen] = useState(false);"
         },
         {
-          "line": 133,
+          "line": 138,
           "text": "const [mediaKey, setMediaKey] = useState(0);"
         },
         {
-          "line": 135,
-          "text": "const [pageHeight, setPageHeight] = useState(0);"
-        },
-        {
-          "line": 140,
+          "line": 142,
           "text": "const [todayKeys, setTodayKeys] = useState<string[]>(['new-0']);"
         },
         {
-          "line": 141,
+          "line": 143,
           "text": "const [drafts, setDrafts] = useState<Record<string, string>>({});"
         },
         {
-          "line": 149,
+          "line": 151,
           "text": "const [editorKey, setEditorKey] = useState(0);"
         },
         {
-          "line": 150,
+          "line": 152,
           "text": "const [forcedSelection, setForcedSelection] = useState<Selection | undefined>(undefined);"
         },
         {
-          "line": 200,
+          "line": 202,
           "text": "const next = { ...current, body: body || (hasPhotos ? '📷' : ''), sync_status: 'pending', updated_at: now };"
         },
         {
-          "line": 216,
+          "line": 218,
           "text": "sync_status: 'pending',"
         },
         {
-          "line": 232,
+          "line": 234,
           "text": "timers.current[key] = setTimeout(() => save(key, t), SAVE_DELAY_MS);"
         },
         {
-          "line": 246,
+          "line": 248,
           "text": "const [moodEntries, setMoodEntries] = useState<LocalEntry[]>([]);"
         },
         {
-          "line": 251,
+          "line": 253,
           "text": "const active = sheets[page] ?? sheets[0];"
         },
         {
-          "line": 268,
-          "text": "setTimeout(() => list.current?.scrollToIndex({ index: 0, animated: true }), 50);"
-        },
-        {
-          "line": 279,
+          "line": 270,
           "text": "const created: LocalEntry = { id: uuid(), trip_id: trip.id, recorded_at: now, body: drafts[activeKey] || '📷', mood: null, place_name: null, weather: null, latitude: null, longitude: null, altitude_m: null, sync_status: 'pending', updated_a"
         },
         {
-          "line": 287,
+          "line": 278,
           "text": "await upsertEntryMedia({ id: mediaId, trip_id: trip.id, entry_id: entry.id, local_uri: stored.uri, storage_path: null, mime_type: stored.mimeType, sync_status: 'pending', updated_at: new Date().toISOString() });"
-        },
-        {
-          "line": 319,
-          "text": "const t = setTimeout(() => list.current?.scrollToOffset({ offset: page * width, animated: false }), 0);"
         }
       ]
     },
@@ -1764,6 +1768,27 @@
       ]
     },
     {
+      "path": "apps/wayfare-mobile/app/trips/[status].tsx",
+      "evidence": [
+        {
+          "line": 2,
+          "text": "import { useCallback, useState } from 'react';"
+        },
+        {
+          "line": 19,
+          "text": "const params = useLocalSearchParams<{ status: string }>();"
+        },
+        {
+          "line": 20,
+          "text": "const status: TripStatus = params.status === 'upcoming' || params.status === 'ongoing' ? params.status : 'completed';"
+        },
+        {
+          "line": 21,
+          "text": "const [rows, setRows] = useState<TripRow[] | null>(null);"
+        }
+      ]
+    },
+    {
       "path": "apps/wayfare-mobile/app/user/[id].tsx",
       "evidence": [
         {
@@ -1847,11 +1872,11 @@
           "text": "import { useCallback, useEffect, useRef, useState } from 'react';"
         },
         {
-          "line": 9,
+          "line": 12,
           "text": "const [clips, setClips] = useState<LocalEntryMedia[]>([]);"
         },
         {
-          "line": 10,
+          "line": 13,
           "text": "const [playing, setPlaying] = useState<string | null>(null);"
         }
       ]
@@ -1973,23 +1998,27 @@
           "text": "function StatusChip({ status, count }: { status: TripStatus; count?: number }) {"
         },
         {
-          "line": 71,
+          "line": 75,
           "text": "const status = tripStatus(trip);"
         },
         {
-          "line": 77,
+          "line": 81,
           "text": "status === 'upcoming' && until != null && until > 0"
         },
         {
-          "line": 79,
+          "line": 83,
           "text": ": status === 'ongoing' && dayOf"
         },
         {
-          "line": 93,
+          "line": 85,
+          "text": ": status === 'completed' && totalDays && totalDays > 0"
+        },
+        {
+          "line": 99,
           "text": "<StatusChip status={status} count={groupCount} />"
         },
         {
-          "line": 103,
+          "line": 109,
           "text": "{showUpload && trip.sync_status === 'pending' ? <Icon name=\"cloud-upload-outline\" size={16} color=\"#ffffffaa\" /> : null}"
         }
       ]
@@ -2103,11 +2132,11 @@
           "text": "return () => { active = false; };"
         },
         {
-          "line": 189,
+          "line": 190,
           "text": "setOwnership({ userId: null, phase: 'ready' });"
         },
         {
-          "line": 222,
+          "line": 223,
           "text": "setOwnership({ userId: null, phase: 'ready' });"
         }
       ]
@@ -2651,7 +2680,7 @@
           "text": "const [category, setCategory] = useState('food');"
         },
         {
-          "line": 92,
+          "line": 95,
           "text": "const tool = (icon: string, label: string, onPress: () => void, active = false, disabled = false) => ("
         }
       ]
@@ -2849,43 +2878,39 @@
           "text": "import { useCallback, useEffect, useRef, useState } from 'react';"
         },
         {
-          "line": 48,
+          "line": 47,
           "text": "const [people, setPeople] = useState<CrewPerson[] | null>(null);"
         },
         {
-          "line": 49,
+          "line": 48,
           "text": "const [error, setError] = useState<string | null>(null);"
         },
         {
-          "line": 50,
+          "line": 49,
           "text": "const [handle, setHandle] = useState('');"
         },
         {
-          "line": 51,
-          "text": "const [newRole, setNewRole] = useState<'member' | 'admin'>('member');"
-        },
-        {
-          "line": 52,
+          "line": 50,
           "text": "const [found, setFound] = useState<Traveller | null | undefined>(undefined);"
         },
         {
-          "line": 53,
+          "line": 51,
           "text": "const [busy, setBusy] = useState(false);"
         },
         {
-          "line": 54,
+          "line": 52,
           "text": "const [menuFor, setMenuFor] = useState<string | null>(null);"
         },
         {
-          "line": 66,
+          "line": 64,
           "text": "setError(trip.sync_status === 'pending' && role === 'owner' ? null : crewError(e));"
         },
         {
-          "line": 82,
+          "line": 80,
           "text": "const timer = setTimeout(() => {"
         },
         {
-          "line": 176,
+          "line": 175,
           "text": "const [inviting, setInviting] = useState(false);"
         }
       ]
@@ -3487,6 +3512,14 @@
         {
           "line": 36,
           "text": "if (phase === 'past') return 'completed';"
+        },
+        {
+          "line": 70,
+          "text": "export function statusTrips<T extends DatedTrip>(trips: T[], status: TripStatus, today = new Date()): T[] {"
+        },
+        {
+          "line": 72,
+          "text": "if (status === 'completed') return list.sort((a, b) => (b.ends_on ?? b.starts_on ?? '').localeCompare(a.ends_on ?? a.starts_on ?? ''));"
         }
       ]
     },

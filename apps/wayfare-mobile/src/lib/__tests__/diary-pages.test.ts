@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { dayOf, diaryPages, diarySheets, pageIndexFor, todayPageKeys } from '../../features/diary/diaryPages';
+import { dayOf, diaryPages, diarySheets, linesToTap, pageIndexFor, swipeOutcome, todayPageKey, todayPageKeys } from '../../features/diary/diaryPages';
 
 const at = (day: string, time = '10:00') => ({ recorded_at: new Date(`${day}T${time}:00`).toISOString() });
 
@@ -36,4 +36,27 @@ test('several pages today (newest first), then earlier days as single sheets', (
   ]);
   assert.equal(sheets[1].entry?.id, 'b');
   assert.deepEqual(todayPageKeys([], '2026-11-22'), ['new-0'], 'a blank page when nothing is written yet');
+});
+
+test('one page per day: today writes to its first entry, or a blank page', () => {
+  const e = (id: string, at: string) => ({ id, recorded_at: at });
+  assert.equal(todayPageKey([e('b', '2026-11-22T12:00:00'), e('a', '2026-11-22T08:00:00')], '2026-11-22'), 'a');
+  assert.equal(todayPageKey([e('old', '2026-11-20T08:00:00')], '2026-11-22'), 'new-0');
+});
+
+test('swiping moves one day at a time and never past today or the first day', () => {
+  assert.equal(swipeOutcome(120, 10, 0, 5), 'older', 'drag right: back in time');
+  assert.equal(swipeOutcome(-120, 10, 2, 5), 'newer', 'drag left: toward today');
+  assert.equal(swipeOutcome(-120, 10, 0, 5), 'stay', 'no pages after today');
+  assert.equal(swipeOutcome(120, 10, 4, 5), 'stay', 'no pages before the first written day');
+  assert.equal(swipeOutcome(30, 0, 1, 5), 'stay', 'a short drag settles back');
+  assert.equal(swipeOutcome(90, 120, 1, 5), 'stay', 'a mostly vertical drag is scrolling, not swiping');
+});
+
+test('write anywhere: a tap below the writing adds lines down to it', () => {
+  assert.equal(linesToTap(50, 60, 30), 0, 'tap on the writing');
+  assert.equal(linesToTap(61, 60, 30), 1, 'the next line');
+  assert.equal(linesToTap(155, 60, 30), 4);
+  assert.equal(linesToTap(10000, 60, 30), 40, 'capped');
+  assert.equal(linesToTap(Number.NaN, 60, 30), 0, 'no tap position: nothing added');
 });

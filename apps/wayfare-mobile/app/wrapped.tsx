@@ -46,7 +46,6 @@ export default function WrappedScreen() {
     if (!summary) return [] as { label: string; value: string }[];
     const out: { label: string; value: string }[] = [];
     const st = summary.stats;
-    if (summary.topMood) out.push({ label: 'Mood of the year', value: summary.topMood });
     if (summary.busiestMonth) out.push({ label: 'Busiest month', value: summary.busiestMonth });
     if (st.longestTripDays >= 2) out.push({ label: 'Longest trip', value: `${st.longestTripDays} days` });
     if (st.longestStreakDays >= 2) out.push({ label: 'Writing streak', value: `${st.longestStreakDays} days` });
@@ -109,8 +108,6 @@ export default function WrappedScreen() {
                   <BigStat value={formatKm(summary.stats.km)} label="on recorded routes" />
                   <BigStat value={String(summary.stats.entries)} label={summary.stats.entries === 1 ? 'moment written' : 'moments written'} />
                   <BigStat value={summary.stats.maxAltitudeM ? `${summary.stats.maxAltitudeM.toLocaleString('en-IN')} m` : '—'} label="highest point" />
-                  <BigStat value={String(summary.stats.photos)} label={summary.stats.photos === 1 ? 'photo' : 'photos'} />
-                  <BigStat value={String(summary.stats.destinations)} label={summary.stats.destinations === 1 ? 'destination' : 'destinations'} />
                 </View>
                 {/* Where you went: a statement to show off, not a list to tap. */}
                 {went ? (
@@ -119,9 +116,16 @@ export default function WrappedScreen() {
                     <Text style={{ color: '#fff', fontSize: 26, fontWeight: '900', marginTop: 2 }}>
                       {went.count} {went.noun}
                     </Text>
-                    <Text style={{ color: '#ffffffe6', fontSize: 15, lineHeight: 24, marginTop: 6 }}>
-                      {went.items.map(i => (i.flag ? `${i.flag}\u00a0${i.name.replace(/ /g, '\u00a0')}` : i.name.replace(/ /g, '\u00a0'))).join('   ')}
-                    </Text>
+                    {went.items.some(i => i.flag) ? (
+                      // Countries: just the flags, a little apart.
+                      <Text style={{ fontSize: 26, lineHeight: 36, marginTop: 6, letterSpacing: 6 }} accessibilityLabel={went.items.map(i => i.name).join(', ')}>
+                        {went.items.map(i => i.flag).join(' ')}
+                      </Text>
+                    ) : (
+                      <Text style={{ color: '#ffffffe6', fontSize: 15, lineHeight: 24, marginTop: 6 }}>
+                        {went.items.map(i => i.name.replace(/ /g, '\u00a0')).join('   ')}
+                      </Text>
+                    )}
                   </View>
                 ) : null}
 

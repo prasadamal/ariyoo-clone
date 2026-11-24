@@ -59,13 +59,17 @@ type Props = {
   large?: boolean;
   /** How many journeys this tile stands for (the newest is shown); more than one draws a stack behind it. */
   groupCount?: number;
+  /** What a tap does (default: open the journey). A group tile opens its list instead. */
+  onPress?: () => void;
+  /** Tile height (the three tiles on Journeys share the screen). */
+  height?: number;
 };
 
 /**
  * A journey tile: its cover photo (or an illustration for its type) with a status chip, the title
  * and a line or two of details; upcoming and ongoing journeys show the day count on the right.
  */
-export function TripCard({ trip, synopsis, tracking, coverUri, showUpload = true, large = false, groupCount }: Props) {
+export function TripCard({ trip, synopsis, tracking, coverUri, showUpload = true, large = false, groupCount, onPress, height }: Props) {
   const cover = coverUri === undefined ? trip.cover_uri : coverUri;
   const { colors } = useAppTheme();
   const status = tripStatus(trip);
@@ -78,17 +82,19 @@ export function TripCard({ trip, synopsis, tracking, coverUri, showUpload = true
       ? { value: String(until), caption: `day${until === 1 ? '' : 's'} to go` }
       : status === 'ongoing' && dayOf
         ? { value: `Day ${dayOf}`, caption: totalDays ? `of ${totalDays}` : 'on the road' }
-        : null;
+        : status === 'completed' && totalDays && totalDays > 0
+          ? { value: String(totalDays), caption: 'day trip' }
+          : null;
   const details = synopsis || [dest?.name ?? trip.destination, formatDateRange(trip.starts_on, trip.ends_on)].filter(Boolean).join(' · ') || 'Add a destination and dates';
   const stacked = (groupCount ?? 0) > 1;
   const card = (
     <Pressable
-      onPress={() => router.push(`/trip/${trip.id}`)}
+      onPress={onPress ?? (() => router.push(`/trip/${trip.id}`))}
       style={({ pressed }) => ({ marginBottom: stacked ? 0 : 14, borderRadius: 22, overflow: 'hidden', opacity: pressed ? 0.92 : 1, transform: [{ scale: pressed ? 0.99 : 1 }] })}
       accessibilityRole="button"
       accessibilityLabel={`${trip.title}, ${STATUS[status].label}${stacked ? `, newest of ${groupCount}` : ''}`}
     >
-      <TripCover uri={cover} art={coverArtFor(trip.trip_type)} gradient={[colors.heroStart, colors.heroEnd]} style={{ borderRadius: 22, padding: 18, minHeight: large ? 190 : 160, justifyContent: 'space-between' }}>
+      <TripCover uri={cover} art={coverArtFor(trip.trip_type)} gradient={[colors.heroStart, colors.heroEnd]} style={{ borderRadius: 22, padding: 18, minHeight: height ?? (large ? 190 : 160), justifyContent: 'space-between' }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
           <StatusChip status={status} count={groupCount} />
           <View style={{ flex: 1 }} />
@@ -104,12 +110,13 @@ export function TripCard({ trip, synopsis, tracking, coverUri, showUpload = true
         </View>
         <View style={{ flexDirection: 'row', alignItems: 'flex-end', marginTop: 18 }}>
           <View style={{ flex: 1 }}>
-            <Text style={{ color: '#fff', fontWeight: '900', fontSize: large ? 28 : 24, letterSpacing: -0.3 }} numberOfLines={2}>
+            {/* A sized tile (the three on Journeys) keeps to one line each, so all three fit the screen. */}
+            <Text style={{ color: '#fff', fontWeight: '900', fontSize: large ? 28 : 24, letterSpacing: -0.3 }} numberOfLines={height ? 1 : 2} adjustsFontSizeToFit={Boolean(height)} minimumFontScale={0.75}>
               {trip.title}
             </Text>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 6 }}>
               <Icon name="calendar-month-outline" size={16} color="#ffffffd9" />
-              <Text style={{ color: '#ffffffe6', flexShrink: 1 }} numberOfLines={2}>
+              <Text style={{ color: '#ffffffe6', flexShrink: 1 }} numberOfLines={height ? 1 : 2}>
                 {details}
               </Text>
             </View>

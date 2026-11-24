@@ -3,19 +3,15 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { ActivityIndicator, FlatList, Pressable, RefreshControl, View } from 'react-native';
 import { IconButton, Text } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { OnThisDayCard } from '../../src/components/OnThisDayCard';
 import { TripCard } from '../../src/components/TripCard';
 import { useAuth } from '../../src/context/AuthContext';
 import { useSync } from '../../src/context/SyncContext';
 import { timeAgoPhrase } from '../../src/lib/format';
 import { journeysOnly } from '../../src/lib/everydayMemories';
 import { listTrips, type LocalTrip } from '../../src/lib/localDb';
+import { prepareTripRows, type TripRow } from '../../src/lib/tripRows';
 import { getActiveTrackingTripId } from '../../src/lib/locationTask';
-import { buildTripSynopsis, computeTripStats } from '../../src/lib/tripStats';
-import { getRates } from '../../src/lib/currency';
 import { backupLabel, backupState } from '../../src/lib/backupStatus';
-import { splitSpend, type MoneyAmount } from '../../src/lib/currencyMath';
-import { tripCoverUri } from '../../src/lib/tripCover';
 import { featuredTrips, recentFirst, statusCounts, tripStatus, type TripStatus } from '../../src/lib/tripList';
 import { useAppTheme } from '../../src/theme';
 import { EmptyState } from '../../src/ui/EmptyState';
@@ -24,8 +20,6 @@ import { Pill } from '../../src/ui/Pill';
 import { SOCIAL_ENABLED } from '../../src/lib/features';
 import { Glass } from '../../src/ui/Glass';
 import { TAB_BAR_SPACE } from '../../src/ui/GlassTabBar';
-
-type TripRow = LocalTrip & { synopsis: string; packingRatio: number; spentAmount: number; unconverted: MoneyAmount[]; cover: string | null };
 
 /** Journeys are prepared (stats, money, cover) a few at a time as you scroll, not all at once. */
 const PAGE_SIZE = 5;
@@ -37,25 +31,6 @@ function greeting() {
   if (h < 12) return 'Good morning';
   if (h < 17) return 'Good afternoon';
   return 'Good evening';
-}
-
-/** Stats, spend in the journey's currency and the cover picture, for the cards being shown. */
-async function prepare(list: LocalTrip[]): Promise<TripRow[]> {
-  const rates = await getRates().catch(() => null);
-  return Promise.all(
-    list.map(async t => {
-      const stats = await computeTripStats(t.id, t);
-      const spend = splitSpend(stats.spendByCurrency, t.currency || 'INR', rates?.rates ?? null);
-      return {
-        ...t,
-        synopsis: buildTripSynopsis(t.title, stats, tripStatus(t) === 'completed'),
-        packingRatio: stats.packingTotal ? stats.packingDone / stats.packingTotal : 0,
-        spentAmount: spend.total,
-        unconverted: spend.pending,
-        cover: await tripCoverUri(t).catch(() => null),
-      };
-    })
-  );
 }
 
 export default function JourneysTab() {
@@ -70,6 +45,9 @@ export default function JourneysTab() {
   // Where the full list starts, and whether you've scrolled into it (the floating pill then says "Top").
   const [listTop, setListTop] = useState(0);
   const [inList, setInList] = useState(false);
+  // Room on screen for the three tiles: the list's height and the greeting's.
+  const [viewHeight, setViewHeight] = useState(0);
+  const [greetHeight, setGreetHeight] = useState(72);
   const [recordingTripId, setRecordingTripId] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -90,7 +68,7 @@ export default function JourneysTab() {
     const sorted = recentFirst(list);
     // Keep as many cards as were already on screen, at least one page.
     const count = Math.max(PAGE_SIZE, Math.min(shown.current, sorted.length));
-    const [page, topRows] = await Promise.all([prepare(sorted.slice(0, count)), prepare(top)]);
+    const [page, topRows] = await Promise.all([prepareTripRows(sorted.slice(0, count)), prepareTripRows(top)]);
     shown.current = count;
     setAll(list);
     setRows(page);
@@ -121,7 +99,7 @@ export default function JourneysTab() {
     busy.current = true;
     setLoadingMore(true);
     try {
-      const more = await prepare(sortedAll.slice(rows.length, rows.length + PAGE_SIZE));
+      const more = await prepareTripRows(sortedAll.slice(rows.length, rows.length + PAGE_SIZE));
       setRows(prev => {
         const seen = new Set(prev.map(r => r.id));
         const next = [...prev, ...more.filter(r => !seen.has(r.id))];
@@ -186,21 +164,44 @@ export default function JourneysTab() {
   const showList = all.length > featured.length || all.length > 1;
   const fabBottom = Math.max(insets.bottom, 10) + 84;
 
+  // Your year so far (the year in travel recap), beside your name.
+  const yearPill = <Pill icon="party-popper" label={`${new Date().getFullYear()} so far`} onPress={() => router.push('/wrapped')} />;
+
+  // The three tiles share one screen: what's left between the greeting and the + button above the
+  // tab bar, less the gaps (a stacked group tile needs a little more room underneath).
+  const gaps = featured.reduce((sum, t) => sum + (counts[tripStatus(t)] > 1 ? 30 : 14), 0) + 14;
+  const tileHeight = viewHeight && featured.length
+    ? Math.max(118, Math.min(200, Math.floor((viewHeight - 16 - greetHeight - gaps - (fabBottom + 70)) / Math.max(featured.length, 3))))
+    : undefined;
+  /** A tile: the journey itself when it's the only one in its group, else that group's list. */
+  const openTile = (t: TripRow) => {
+    const status = tripStatus(t);
+    if (status !== 'ongoing' && counts[status] > 1) router.push({ pathname: '/trips/[status]', params: { status } } as never);
+    else router.push(`/trip/${t.id}`);
+  };
+
   const header = (
     <View style={{ paddingBottom: 6 }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center' }} onLayout={e => setGreetHeight(e.nativeEvent.layout.height)}>
         <View style={{ flex: 1 }}>
           {firstName ? (
             <>
               <Text style={{ color: colors.muted, fontWeight: '600' }}>{greeting()},</Text>
-              <Text variant="headlineMedium" style={{ fontWeight: '800' }} numberOfLines={1} adjustsFontSizeToFit>
-                {firstName}
-              </Text>
+              {/* Your name, with your year so far beside it. */}
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                <Text variant="headlineMedium" style={{ fontWeight: '800', flexShrink: 1 }} numberOfLines={1} adjustsFontSizeToFit>
+                  {firstName}
+                </Text>
+                {yearPill}
+              </View>
             </>
           ) : (
-            <Text variant="headlineSmall" style={{ fontWeight: '800' }} numberOfLines={1}>
-              {greeting()}
-            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+              <Text variant="headlineSmall" style={{ fontWeight: '800', flexShrink: 1 }} numberOfLines={1}>
+                {greeting()}
+              </Text>
+              {yearPill}
+            </View>
           )}
           {/* Shown after tapping the cloud, or when something needs your attention. */}
           {showStatus || syncing || lastErrors.length || guest || !user ? (
@@ -212,13 +213,6 @@ export default function JourneysTab() {
           ) : null}
         </View>
       </View>
-
-      {/* Your year so far (the year in travel recap). */}
-      <View style={{ flexDirection: 'row', marginTop: 6 }}>
-        <Pill icon="party-popper" label={`${new Date().getFullYear()} so far`} onPress={() => router.push('/wrapped')} />
-      </View>
-
-      <OnThisDayCard refreshKey={lastSyncAt} />
 
       {recordingTrip ? (
         <Pressable onPress={() => router.push(`/trip/${recordingTrip.id}`)} accessibilityRole="button">
@@ -241,6 +235,8 @@ export default function JourneysTab() {
               trip={t}
               synopsis={t.synopsis}
               large
+              height={tileHeight}
+              onPress={() => openTile(t)}
               groupCount={counts[tripStatus(t)]}
               tracking={t.id === recordingTripId}
               coverUri={t.cover}
@@ -264,6 +260,7 @@ export default function JourneysTab() {
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <FlatList
         ref={listRef}
+        onLayout={e => setViewHeight(e.nativeEvent.layout.height)}
         data={showList ? rows : []}
         onScroll={e => setInList(listTop > 0 && e.nativeEvent.contentOffset.y > listTop - 60)}
         scrollEventThrottle={64}

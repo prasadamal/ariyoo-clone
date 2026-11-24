@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { applyTripFilter, featuredTrips, pickNextUp, recentFirst, statusCounts, tripStatus } from '../tripList';
+import { applyTripFilter, featuredTrips, pickNextUp, recentFirst, statusCounts, statusTrips, tripStatus } from '../tripList';
 
 const today = new Date('2026-11-22T10:00:00');
 const trip = (id: string, starts_on: string | null, ends_on: string | null = starts_on, status = 'active') => ({ id, starts_on, ends_on, status });
@@ -55,4 +55,17 @@ test('status counts group every journey once', () => {
     { id: 'e', status: 'active', starts_on: '2026-01-01', ends_on: '2026-01-03' },
   ];
   assert.deepEqual(statusCounts(trips, today), { ongoing: 1, upcoming: 2, completed: 2 });
+});
+
+test('a group list: upcoming soonest first (undated plans last), completed newest first', () => {
+  const today = new Date('2026-11-23T10:00:00');
+  const trips = [
+    { id: 'late', status: 'active', starts_on: '2027-02-01', ends_on: '2027-02-05' },
+    { id: 'plan', status: 'active', starts_on: null, ends_on: null, updated_at: '2026-11-01' },
+    { id: 'soon', status: 'active', starts_on: '2026-12-15', ends_on: '2026-12-22' },
+    { id: 'old', status: 'completed', starts_on: '2026-03-12', ends_on: '2026-03-16' },
+    { id: 'recent', status: 'completed', starts_on: '2026-10-01', ends_on: '2026-10-05' },
+  ];
+  assert.deepEqual(statusTrips(trips, 'upcoming', today).map(t => t.id), ['soon', 'late', 'plan']);
+  assert.deepEqual(statusTrips(trips, 'completed', today).map(t => t.id), ['recent', 'old']);
 });

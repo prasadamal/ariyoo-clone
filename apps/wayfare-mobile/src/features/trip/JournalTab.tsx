@@ -22,7 +22,7 @@ import { MomentCard } from './MomentCard';
 import { MomentComposer, type MomentMoney } from './MomentComposer';
 import { pickPhotos, type PickedPhoto } from './photoPicker';
 import { Pill } from '../../ui/Pill';
-import { datePills } from './dayStripCells';
+import { datePills, tripDayLabel } from './dayStripCells';
 import { PhotoGrid } from './PhotoGrid';
 import { placeFromCoords, type FoundPlace } from '../../lib/reverseGeocode';
 import { canEditTrip, isSharedTrip } from '../../lib/crew';
@@ -310,15 +310,19 @@ export function JournalTab({ trip, onChanged, everyday = false, crewNames = {}, 
   // Newest first, grouped by calendar day with "Day n" relative to the trip start.
   // Oldest first, like reading a diary. Journeys group by "Day 1, Day 2…" from the start date (or the
   // first moment); the everyday journal groups by date. Each moment shows its own date and time.
-  /** "Day 3", "Before the trip", or the date in the everyday journal. */
-  function labelFor(day: string, forStrip = false) {
+  /** "Day 3", "Pre-trip", or the date in the everyday journal. */
+  function labelFor(day: string) {
     const firstDay = times[0] ? toDayString(new Date(times[0])) : entries[0] ? toDayString(new Date(entries[0].recorded_at)) : null;
     const startDay = everyday ? null : trip.starts_on ?? firstDay;
     if (!startDay) return formatDay(day, { weekday: true, year: day.slice(0, 4) !== String(new Date().getFullYear()) });
-    const n = Math.round((new Date(`${day}T00:00:00`).getTime() - new Date(`${startDay}T00:00:00`).getTime()) / 86400000) + 1;
-    // In the day strip, days before the trip show their date so each chip is different.
-    return n > 0 ? `Day ${n}` : forStrip ? formatDay(day) : 'Before the trip';
+    // The same names as the date pills: Day 1, Day 2… or Pre-trip / After trip.
+    return tripDayLabel(day, startDay, trip.starts_on ? trip.ends_on : null, allDaysRef.current);
   }
+
+  // Every day of the journey (not just the loaded ones), for the strip of Day 1, Day 2… to jump to.
+  const allDays = useMemo(() => [...new Set(times.map(t => toDayString(new Date(t))))], [times]);
+  const allDaysRef = useRef(allDays);
+  allDaysRef.current = allDays;
 
   const groups = useMemo(() => {
     const byDay = new Map<string, LocalEntry[]>();
@@ -331,8 +335,7 @@ export function JournalTab({ trip, onChanged, everyday = false, crewNames = {}, 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [entries, trip.starts_on, everyday, times, newestFirst]);
 
-  // Every day of the journey (not just the loaded ones), for the strip of Day 1, Day 2… to jump to.
-  const allDays = useMemo(() => [...new Set(times.map(t => toDayString(new Date(t))))], [times]);
+
 
   const pills = useMemo(() => (everyday ? [] : datePills(trip.starts_on, trip.ends_on, allDays)), [everyday, trip.starts_on, trip.ends_on, allDays]);
   const pickDay = (day: string | null) => {

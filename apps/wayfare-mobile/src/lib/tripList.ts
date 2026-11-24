@@ -65,3 +65,13 @@ export function statusCounts<T extends TripLike>(trips: T[], today = new Date())
   for (const t of trips) out[tripStatus(t, today)]++;
   return out;
 }
+
+/** One group's journeys, as its list shows them: on the road and coming up soonest first, finished newest first. */
+export function statusTrips<T extends DatedTrip>(trips: T[], status: TripStatus, today = new Date()): T[] {
+  const list = trips.filter(t => tripStatus(t, today) === status);
+  if (status === 'completed') return list.sort((a, b) => (b.ends_on ?? b.starts_on ?? '').localeCompare(a.ends_on ?? a.starts_on ?? ''));
+  return list.sort((a, b) => {
+    if (!a.starts_on !== !b.starts_on) return a.starts_on ? -1 : 1;
+    return (a.starts_on ?? a.updated_at ?? '').localeCompare(b.starts_on ?? b.updated_at ?? '');
+  });
+}

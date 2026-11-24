@@ -81,3 +81,27 @@ export function todayPageKeys<T extends Dated & { id: string }>(mine: T[], today
     .map(e => e.id);
   return keys.length ? keys : ['new-0'];
 }
+
+/** Today's one page: the first thing written today (or a blank page). Older multi-page days keep their extra entries read-only. */
+export function todayPageKey<T extends Dated & { id: string }>(mine: T[], today: string): string {
+  return todayPageKeys(mine, today)[0];
+}
+
+/**
+ * What a sideways drag on the diary does. Days run newest (index 0, today) to oldest. Dragging right
+ * goes back in time, left comes toward today. A short or mostly-vertical drag stays on the page.
+ */
+export function swipeOutcome(dx: number, dy: number, index: number, count: number, threshold = 60): 'older' | 'newer' | 'stay' {
+  if (Math.abs(dx) < threshold || Math.abs(dx) < Math.abs(dy) * 1.5) return 'stay';
+  if (dx > 0) return index < count - 1 ? 'older' : 'stay';
+  return index > 0 ? 'newer' : 'stay';
+}
+
+/**
+ * "Write anywhere": a tap on an empty ruled line below the writing moves the pen there. Returns how
+ * many new lines to add so the cursor lands on the tapped line (0 when the tap is on the writing).
+ */
+export function linesToTap(tapY: number, contentHeight: number, lineHeight: number, maxLines = 40): number {
+  if (!(lineHeight > 0) || !Number.isFinite(tapY) || !Number.isFinite(contentHeight) || tapY <= contentHeight) return 0;
+  return Math.min(maxLines, Math.floor((tapY - contentHeight) / lineHeight) + 1);
+}
