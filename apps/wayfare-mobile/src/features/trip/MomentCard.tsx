@@ -1,5 +1,4 @@
 import { router } from 'expo-router';
-import { Image as ExpoImage } from 'expo-image';
 import { stripRich } from '../../lib/richText';
 import { useState } from 'react';
 import { Pressable, View } from 'react-native';
@@ -40,7 +39,6 @@ const PLACEHOLDER_BODIES = new Set(['📷', '🎙 Voice note', '💰']);
  * One moment, like a post without a name: a header (mood and when), the photos in one fixed window,
  * the words (folded when long), voice notes, then where and how much.
  */
-const LOGO = require('../../../assets/logo-mark.png');
 
 export function MomentCard({ entry: e, money, currencySymbol, mediaKey, canShare, canEdit = true, author, tripId, onChanged, onAddPhotos, onDelete }: Props) {
   const { colors } = useAppTheme();
@@ -74,37 +72,38 @@ export function MomentCard({ entry: e, money, currencySymbol, mediaKey, canShare
     money ? detail('currency-inr', formatMoney(money, currencySymbol)) : null,
   ].filter(Boolean);
 
+  const toggle = long ? () => setExpanded(x => !x) : undefined;
   return (
-    <View style={{ backgroundColor: colors.surface, borderRadius: 18, borderWidth: 1, borderColor: colors.border, marginBottom: 14, overflow: 'hidden' }}>
-      {/* Header: what a name and handle are to a post, the mood and the moment's date and time are here. */}
-      <View style={{ flexDirection: 'row', alignItems: 'center', paddingLeft: 12, paddingRight: 2, paddingTop: 8, paddingBottom: 4, gap: 10 }}>
-        {/* The app's mark on every moment; the mood's emoji sits beside the time instead. */}
-        <View style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: colors.surfaceVariant, alignItems: 'center', justifyContent: 'center' }}>
-          <ExpoImage source={LOGO} style={{ width: 22, height: 13 }} contentFit="contain" accessibilityElementsHidden />
-        </View>
+    // An open page, not a box: the time and mood, photos as wide as the page, the words in a
+    // reading size, then where and how much. Tapping a long moment anywhere opens or folds it.
+    <Pressable
+      onPress={toggle}
+      disabled={!long}
+      accessibilityRole={long ? 'button' : undefined}
+      accessibilityHint={long ? (expanded ? 'Shows less of this moment' : 'Shows the whole moment') : undefined}
+      style={{ marginBottom: 22, paddingBottom: 18, borderBottomWidth: 1, borderBottomColor: colors.border }}
+    >
+      <View style={{ flexDirection: 'row', alignItems: 'center', minHeight: 40 }}>
+        {emoji ? <Text style={{ fontSize: 20, marginRight: 8 }}>{emoji}</Text> : null}
         <View style={{ flex: 1 }}>
           {author ? (
             <Text style={{ fontWeight: '700', fontSize: 14, color: colors.primary }} numberOfLines={1}>
               {author}
             </Text>
           ) : null}
-          <Text style={{ color: colors.muted, fontSize: 13 }} accessibilityLabel={e.mood ? `${when}, mood ${moodWord}` : when}>
+          <Text style={{ color: colors.muted, fontSize: 13, fontWeight: '600' }} accessibilityLabel={e.mood ? `${when}, mood ${moodWord}` : when}>
             {when}
-            {emoji ? <Text style={{ fontSize: 14 }}>{`  ${emoji}`}</Text> : null}
+            {moodWord ? <Text style={{ color: colors.muted, fontWeight: '400' }}>{`  ·  ${moodWord}`}</Text> : null}
           </Text>
         </View>
-        {canEdit ? (
-          <IconButton icon="dots-horizontal" size={20} onPress={() => setMenu(true)} accessibilityLabel="Moment options" />
-        ) : (
-          <View style={{ width: 12, height: 40 }} />
-        )}
+        {canEdit ? <IconButton icon="dots-horizontal" size={20} onPress={() => setMenu(true)} accessibilityLabel="Moment options" style={{ margin: 0 }} /> : null}
       </View>
 
-      <MomentPhotos entryId={e.id} refreshKey={mediaKey} onChanged={onChanged} canEdit={canEdit} />
+      <MomentPhotos entryId={e.id} refreshKey={mediaKey} onChanged={onChanged} canEdit={canEdit} inset={0} />
 
       {body ? (
-        <View style={{ paddingHorizontal: 14, paddingTop: 10 }}>
-          <Text style={{ lineHeight: 22, fontSize: 16 }} numberOfLines={long && !expanded ? FOLD_LINES : undefined}>
+        <View style={{ paddingTop: 10 }}>
+          <Text style={{ lineHeight: 26, fontSize: 17 }} numberOfLines={long && !expanded ? FOLD_LINES : undefined}>
             {splitMentions(body).map((part, i) =>
               part.mention ? (
                 <Text key={i} style={{ color: colors.primary, fontWeight: '700' }}>
@@ -116,22 +115,20 @@ export function MomentCard({ entry: e, money, currencySymbol, mediaKey, canShare
             )}
           </Text>
           {long ? (
-            <Pressable onPress={() => setExpanded(x => !x)} accessibilityRole="button" hitSlop={8} style={{ alignSelf: 'flex-start', marginTop: 4 }}>
-              <Text style={{ color: colors.primary, fontWeight: '700', fontSize: 14 }}>{expanded ? 'See less' : 'See more'}</Text>
-            </Pressable>
+            <Text style={{ color: colors.primary, fontWeight: '700', fontSize: 14, marginTop: 4 }} accessibilityElementsHidden>
+              {expanded ? 'Show less' : 'Read more'}
+            </Text>
           ) : null}
         </View>
       ) : null}
 
-      <EntryVoiceNotes entryId={e.id} refreshKey={mediaKey} />
+      <EntryVoiceNotes entryId={e.id} refreshKey={mediaKey} inset={0} />
 
       {details.length ? (
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: 12, rowGap: 4, paddingHorizontal: 14, paddingTop: 10, paddingBottom: 12 }}>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: 12, rowGap: 4, paddingTop: 10 }}>
           {details}
         </View>
-      ) : (
-        <View style={{ height: 12 }} />
-      )}
+      ) : null}
       {canEdit ? (
         // The moment's options slide up from the bottom: big rows, easy to hit with a thumb.
         <Sheet visible={menu} onDismiss={() => setMenu(false)} title="Moment" subtitle={body ? `${when} · ${body.split('\n')[0].slice(0, 60)}` : when}>
@@ -147,6 +144,6 @@ export function MomentCard({ entry: e, money, currencySymbol, mediaKey, canShare
           />
         </Sheet>
       ) : null}
-    </View>
+    </Pressable>
   );
 }

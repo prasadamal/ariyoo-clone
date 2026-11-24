@@ -1,7 +1,8 @@
 import * as LocalAuthentication from 'expo-local-authentication';
-import { createContext, useCallback, useContext, useEffect, useState } from 'react';
-import { AppState, View } from 'react-native';
-import { ActivityIndicator, Button, Text } from 'react-native-paper';
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { AppState, StyleSheet, View } from 'react-native';
+import { isLockHeld, shouldLockOnReturn } from '../lib/lockHold';
+import { ActivityIndicator, Button, Portal, Text } from 'react-native-paper';
 import { getBiometricLockEnabled, setBiometricLockEnabled } from '../lib/settings';
 import { useAppTheme } from '../theme';
 import { Icon } from '../ui/Icon';
@@ -56,25 +57,44 @@ export function AppLockProvider({ children }: { children: React.ReactNode }) {
       .finally(() => setChecking(false));
   }, [promptUnlock]);
 
+  // Leaving the app covers it (so the app switcher shows nothing private). Coming back asks to
+  // unlock only after a real absence: not when Wayfare itself opened the camera or a photo picker,
+  // and not after a few seconds in a share sheet or the UPI app.
+  const [covered, setCovered] = useState(false);
+  const leftAt = useRef<{ at: number; held: boolean } | null>(null);
   useEffect(() => {
     if (!enabled) return;
     const sub = AppState.addEventListener('change', s => {
-      if (s === 'background') setUnlocked(false);
-      if (s === 'active') promptUnlock();
+      if (s === 'background') {
+        if (!leftAt.current) leftAt.current = { at: Date.now(), held: isLockHeld() };
+        if (!isLockHeld()) setCovered(true);
+      }
+      if (s === 'active') {
+        const left = leftAt.current;
+        leftAt.current = null;
+        setCovered(false);
+        if (left && shouldLockOnReturn(Date.now() - left.at, left.held || isLockHeld())) {
+          setUnlocked(false);
+          promptUnlock();
+        }
+      }
     });
     return () => sub.remove();
   }, [enabled, promptUnlock]);
 
-  let body = children;
+  // The screens stay mounted underneath: the lock is an opaque cover on top. (Swapping the whole
+  // app for the lock page threw away the open screen, so a photo coming back from the camera
+  // landed on a screen that no longer existed and the app closed.)
+  let cover: React.ReactNode = null;
   if (checking) {
-    body = (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background }}>
+    cover = (
+      <View style={[StyleSheet.absoluteFill, { justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background }]}>
         <ActivityIndicator />
       </View>
     );
   } else if (enabled && !unlocked) {
-    body = (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24, backgroundColor: colors.background }}>
+    cover = (
+      <View style={[StyleSheet.absoluteFill, { justifyContent: 'center', alignItems: 'center', padding: 24, backgroundColor: colors.background }]}>
         <Icon name="lock-outline" size={48} color={colors.primary} />
         <Text variant="headlineSmall" style={{ marginTop: 12, marginBottom: 8, fontWeight: '700' }}>
           Wayfare is locked
@@ -87,9 +107,22 @@ export function AppLockProvider({ children }: { children: React.ReactNode }) {
         </Button>
       </View>
     );
+  } else if (enabled && covered) {
+    cover = <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.background }]} />;
   }
 
-  return <AppLockContext.Provider value={{ enabled, setEnabled }}>{body}</AppLockContext.Provider>;
+  return (
+    <AppLockContext.Provider value={{ enabled, setEnabled }}>
+      <View style={{ flex: 1 }}>
+        {/* While locked, the app underneath can't be reached by touch or by screen readers. */}
+        <View style={{ flex: 1 }} pointerEvents={cover ? 'none' : 'auto'} importantForAccessibility={cover ? 'no-hide-descendants' : 'auto'} accessibilityElementsHidden={!!cover}>
+          {children}
+        </View>
+        {/* In a portal, so it also covers dialogs and menus that were open. */}
+        {cover ? <Portal>{cover}</Portal> : null}
+      </View>
+    </AppLockContext.Provider>
+  );
 }
 
 export function useAppLock() {

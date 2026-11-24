@@ -1,5 +1,6 @@
 import { capitalizeWords } from '../../src/lib/names';
 import * as ImagePicker from 'expo-image-picker';
+import { holdLock } from '../../src/lib/lockHold';
 import { router, Stack } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { Pressable, View } from 'react-native';
@@ -67,7 +68,7 @@ export default function EditProfileScreen() {
   if (!profile) return null;
 
   const pickAvatar = async () => {
-    const res = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], allowsEditing: true, aspect: [1, 1], quality: 0.9 });
+    const res = await holdLock(() => ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], allowsEditing: true, aspect: [1, 1], quality: 0.9 }));
     if (res.canceled || !res.assets[0]) return;
     setAvatarUri(res.assets[0].uri);
     setAvatarSize({ width: res.assets[0].width, height: res.assets[0].height });

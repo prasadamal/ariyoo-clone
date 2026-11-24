@@ -7,7 +7,7 @@ import { Icon } from '../ui/Icon';
 import { deleteEntryMedia, listEntryMedia, type LocalEntryMedia } from '../lib/localDb';
 import { isAudio, resolveMediaUri } from '../lib/media';
 
-export function EntryVoiceNotes({ entryId, refreshKey = 0 }: { entryId: string; refreshKey?: number }) {
+export function EntryVoiceNotes({ entryId, refreshKey = 0, inset = 14 }: { entryId: string; refreshKey?: number; inset?: number }) {
   const { colors } = useAppTheme();
   const [clips, setClips] = useState<LocalEntryMedia[]>([]);
   const [playing, setPlaying] = useState<string | null>(null);
@@ -79,7 +79,7 @@ export function EntryVoiceNotes({ entryId, refreshKey = 0 }: { entryId: string; 
 
   // Small pills inside the card's padding (the old outlined buttons were tall and sat on its edge).
   return (
-    <View style={{ marginTop: 10, paddingHorizontal: 14, gap: 8, flexDirection: 'row', flexWrap: 'wrap' }}>
+    <View style={{ marginTop: 10, paddingHorizontal: inset, gap: 8, flexDirection: 'row', flexWrap: 'wrap' }}>
       {clips.map((c, i) => {
         const on = playing === c.id;
         return (

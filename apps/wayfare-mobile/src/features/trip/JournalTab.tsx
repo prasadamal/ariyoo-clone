@@ -4,7 +4,7 @@ import * as Haptics from 'expo-haptics';
 import * as Location from 'expo-location';
 import { router } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, ScrollView, View } from 'react-native';
+import { ActivityIndicator, Alert, Animated, PanResponder, ScrollView, View } from 'react-native';
 import { Button, IconButton, Menu, Text } from 'react-native-paper';
 import { uuid } from '../../lib/id';
 import { useCanConnect, useSocial } from '../../context/AuthContext';
@@ -25,7 +25,7 @@ import { MomentCard } from './MomentCard';
 import { MomentComposer, type MomentMoney } from './MomentComposer';
 import { pickPhotos, type PickedPhoto } from './photoPicker';
 import { Pill } from '../../ui/Pill';
-import { datePills, tripDayLabel } from './dayStripCells';
+import { AFTER_TRIP, datePills, dayBucket, PRE_TRIP, swipeDay, tripDayLabel } from './dayStripCells';
 import { TripGalleryCard } from './TripGalleryCard';
 import { galleryAvailable } from '../../lib/galleryPhotos';
 import { PhotoGrid } from './PhotoGrid';
@@ -105,7 +105,17 @@ export function JournalTab({ trip, onChanged, everyday = false, crewNames = {}, 
     if (everyday) setEntries(await listEntries(trip.id));
     else {
       const [page, count, all] = await Promise.all([
-        dayFilter ? listEntriesOnDay(trip.id, dayFilter) : listEntriesPage(trip.id, limit, newestFirst),
+        dayFilter === PRE_TRIP || dayFilter === AFTER_TRIP
+          ? listEntries(trip.id).then(list => {
+              // Pre-trip / After trip: every moment before (or after) the journey, whatever the day.
+              const first = list[0] ? toDayString(new Date(list[0].recorded_at)) : null;
+              const start = trip.starts_on ?? first;
+              const end = trip.starts_on ? trip.ends_on : null;
+              return list.filter(e => dayBucket(toDayString(new Date(e.recorded_at)), start, end) === dayFilter);
+            })
+          : dayFilter
+            ? listEntriesOnDay(trip.id, dayFilter)
+            : listEntriesPage(trip.id, limit, newestFirst),
         countEntries(trip.id),
         listEntryTimes(trip.id),
       ]);
@@ -115,7 +125,7 @@ export function JournalTab({ trip, onChanged, everyday = false, crewNames = {}, 
       setLoadingMore(false);
     }
     setExpenses(await listExpenses(trip.id));
-  }, [trip.id, everyday, limit, dayFilter, newestFirst]);
+  }, [trip.id, trip.starts_on, trip.ends_on, everyday, limit, dayFilter, newestFirst]);
 
   useEffect(() => {
     load();
@@ -349,24 +359,75 @@ export function JournalTab({ trip, onChanged, everyday = false, crewNames = {}, 
   const allDaysRef = useRef(allDays);
   allDaysRef.current = allDays;
 
+  // Journeys group by Day 1, Day 2… with every moment before the trip under one "Pre-trip" (and
+  // after it under one "After trip"); the everyday journal groups by date.
   const groups = useMemo(() => {
-    const byDay = new Map<string, LocalEntry[]>();
+    const firstDay = times[0] ? toDayString(new Date(times[0])) : entries[0] ? toDayString(new Date(entries[0].recorded_at)) : null;
+    const start = everyday ? null : trip.starts_on ?? firstDay;
+    const end = trip.starts_on ? trip.ends_on : null;
+    const byKey = new Map<string, { day: string; list: LocalEntry[] }>();
     for (const e of entries) {
       const day = toDayString(new Date(e.recorded_at));
-      byDay.set(day, [...(byDay.get(day) ?? []), e]);
+      const key = dayBucket(day, start, end);
+      const g = byKey.get(key) ?? { day, list: [] };
+      if (day < g.day) g.day = day;
+      g.list.push(e);
+      byKey.set(key, g);
     }
-    const out = [...byDay.entries()].map(([day, list]) => ({ day, label: labelFor(day), list: newestFirst ? [...list].sort((a, b) => b.recorded_at.localeCompare(a.recorded_at)) : list }));
-    return newestFirst ? out.sort((a, b) => b.day.localeCompare(a.day)) : out;
+    const out = [...byKey.entries()].map(([key, g]) => ({
+      day: key,
+      first: g.day,
+      label: key === PRE_TRIP ? 'Pre-trip' : key === AFTER_TRIP ? 'After trip' : labelFor(key),
+      list: newestFirst ? [...g.list].sort((a, b) => b.recorded_at.localeCompare(a.recorded_at)) : g.list,
+    }));
+    out.sort((a, b) => a.first.localeCompare(b.first));
+    return newestFirst ? out.reverse() : out;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [entries, trip.starts_on, everyday, times, newestFirst]);
-
-
+  }, [entries, trip.starts_on, trip.ends_on, everyday, times, newestFirst]);
 
   const pills = useMemo(() => (everyday ? [] : datePills(trip.starts_on, trip.ends_on, allDays)), [everyday, trip.starts_on, trip.ends_on, allDays]);
   const pickDay = (day: string | null) => {
     setDayFilter(day);
     setLimit(MOMENTS_PER_PAGE);
   };
+
+  // Swipe the moments sideways to turn to the next day (or back), like pages: All days, Pre-trip,
+  // Day 1, Day 2… The page slides out, the day changes, the next one slides in, and its pill scrolls
+  // into view.
+  const pillsRef = useRef<ScrollView>(null);
+  const pillX = useRef<Record<string, number>>({});
+  const slide = useRef(new Animated.Value(0)).current;
+  const order = useMemo(() => [null, ...pills.map(p => p.day)], [pills]);
+  const turn = useRef<(step: -1 | 1) => boolean>(() => false);
+  turn.current = step => {
+    const next = swipeDay(order, dayFilter, step);
+    if (next === undefined) return false;
+    Animated.timing(slide, { toValue: -step * 360, duration: 140, useNativeDriver: true }).start(() => {
+      pickDay(next);
+      slide.setValue(step * 360);
+      Animated.spring(slide, { toValue: 0, useNativeDriver: true, bounciness: 0, speed: 18 }).start();
+    });
+    void Haptics.selectionAsync().catch(() => undefined);
+    return true;
+  };
+  const swipe = useMemo(
+    () =>
+      PanResponder.create({
+        onMoveShouldSetPanResponder: (_e, g) => Math.abs(g.dx) > 18 && Math.abs(g.dx) > Math.abs(g.dy) * 2,
+        onPanResponderTerminationRequest: () => false,
+        onPanResponderMove: (_e, g) => slide.setValue(g.dx * 0.6),
+        onPanResponderRelease: (_e, g) => {
+          const step = g.dx < -60 || g.vx < -0.5 ? 1 : g.dx > 60 || g.vx > 0.5 ? -1 : 0;
+          if (!step || !turn.current(step as -1 | 1)) Animated.spring(slide, { toValue: 0, useNativeDriver: true, bounciness: 6 }).start();
+        },
+        onPanResponderTerminate: () => Animated.spring(slide, { toValue: 0, useNativeDriver: true }).start(),
+      }),
+    [slide]
+  );
+  useEffect(() => {
+    const x = dayFilter ? pillX.current[dayFilter] : 0;
+    if (x != null) pillsRef.current?.scrollTo({ x: Math.max(0, x - 60), animated: true });
+  }, [dayFilter]);
 
   const moneyByMoment = useMemo(() => totalsByMoment(expenses), [expenses]);
   const canEdit = canEditTrip(trip);
@@ -431,25 +492,23 @@ export function JournalTab({ trip, onChanged, everyday = false, crewNames = {}, 
           Show earlier days ({groups.length - shownDays} more)
         </Button>
       ) : null}
-      {pills.length && allDays.length ? (
-        // Date pills (only once there are moments to filter): tap one to show just that day's moments (the pills stay where they are).
-        // A fixed height keeps the sideways list from stretching inside the page on Android.
-        <View style={{ height: 44, marginBottom: 6 }}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0 }} contentContainerStyle={{ gap: 8, alignItems: 'center' }} accessibilityRole="tablist" accessibilityLabel="Days of this journey">
-            <Pill label="All days" selected={!dayFilter} onPress={() => pickDay(null)} />
-            {pills.map(p => (
-              <Pill key={p.day} label={p.label} selected={dayFilter === p.day} onPress={() => pickDay(p.day)} />
-            ))}
-          </ScrollView>
-        </View>
-      ) : null}
-
-      {groups.length ? (
-        // Just before the moments: their order (oldest or newest first).
-        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
-          <Text style={{ flex: 1, color: colors.muted, fontWeight: '700', fontSize: 13 }}>
-            {dayFilter ? `${entries.length} ${entries.length === 1 ? 'moment' : 'moments'} this day` : `${total || entries.length} ${(total || entries.length) === 1 ? 'moment' : 'moments'}`}
-          </Text>
+      {groups.length || dayFilter ? (
+        // One row above the moments: the day pills (tap, or swipe the moments sideways), then the
+        // grid / list switch and the order.
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
+          <View style={{ flex: 1, height: 44 }}>
+            {pills.length && allDays.length ? (
+              // A fixed height keeps the sideways list from stretching inside the page on Android.
+              <ScrollView ref={pillsRef} horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0 }} contentContainerStyle={{ gap: 8, alignItems: 'center', paddingRight: 8 }} accessibilityRole="tablist" accessibilityLabel="Days of this journey. Swipe the moments sideways to change day">
+                <Pill label="All days" selected={!dayFilter} onPress={() => pickDay(null)} />
+                {pills.map(p => (
+                  <View key={p.day} onLayout={e => (pillX.current[p.day] = e.nativeEvent.layout.x)}>
+                    <Pill label={p.label} selected={dayFilter === p.day} onPress={() => pickDay(p.day)} />
+                  </View>
+                ))}
+              </ScrollView>
+            ) : null}
+          </View>
           <IconButton
             icon={grid ? 'view-agenda-outline' : 'view-grid-outline'}
             size={20}
@@ -469,6 +528,7 @@ export function JournalTab({ trip, onChanged, everyday = false, crewNames = {}, 
       ) : null}
 
       {grid ? <PhotoGrid tripId={trip.id} refreshKey={mediaKey} /> : null}
+      <Animated.View style={{ transform: [{ translateX: slide }] }} {...(pills.length ? swipe.panHandlers : {})}>
       {(grid ? [] : groups.slice(-shownDays)).map(g => (
         <View
           key={g.day}
@@ -481,10 +541,13 @@ export function JournalTab({ trip, onChanged, everyday = false, crewNames = {}, 
             }
           }}
         >
-          {/* The same pill as the Journal / Plan / Budget tabs above. */}
-          <View style={{ marginBottom: 10, marginTop: 4, alignSelf: 'flex-start' }} accessibilityRole="header">
-            <Pill label={g.label} icon="calendar-blank-outline" selected />
-          </View>
+          {/* Which day these are, as a quiet heading (not a button). One day picked above: no heading. */}
+          {dayFilter ? null : (
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 8, marginTop: 4 }} accessibilityRole="header">
+              <Text style={{ fontSize: 13, fontWeight: '800', letterSpacing: 0.8, color: colors.primary }}>{g.label.toUpperCase()}</Text>
+              <View style={{ flex: 1, height: 1, backgroundColor: colors.border }} />
+            </View>
+          )}
           {g.list.map(e => (
             <MomentCard
               key={e.id}
@@ -503,6 +566,10 @@ export function JournalTab({ trip, onChanged, everyday = false, crewNames = {}, 
           ))}
         </View>
       ))}
+      {dayFilter && !grid && !entries.length ? (
+        <Text style={{ color: colors.muted, textAlign: 'center', paddingVertical: 28 }}>Nothing written this day yet.</Text>
+      ) : null}
+      </Animated.View>
       {hasMore && !grid ? (
         <View style={{ alignItems: 'center', paddingVertical: 16 }}>
           {loadingMore ? (
