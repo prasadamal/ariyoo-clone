@@ -1,3 +1,4 @@
+import { toDayString } from './format';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 import { APP_VERSION } from '../config';
@@ -54,7 +55,7 @@ async function push(e: QueuedEvent) {
 /** Counts one use of a feature (no content, ever). */
 export async function track(name: UsageEvent) {
   try {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = toDayString(new Date()); // "once a day" by the phone's own calendar
     if (name === 'app_open') {
       const last = await AsyncStorage.getItem(OPEN_DAY_KEY).catch(() => null);
       if (!shouldCount(name, last, today)) return;

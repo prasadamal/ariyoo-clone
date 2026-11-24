@@ -158,7 +158,7 @@ export function JournalTab({ trip, onChanged, everyday = false, crewNames = {}, 
       amount: money.amount,
       currency: trip.currency || 'INR',
       note: null,
-      spent_on: when.slice(0, 10),
+      spent_on: toDayString(new Date(when)), // local day, not the UTC one
       paid_by: null,
       split_with: '[]',
       entry_id: entryId,

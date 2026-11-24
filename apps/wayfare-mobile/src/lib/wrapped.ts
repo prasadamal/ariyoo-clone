@@ -1,7 +1,7 @@
 /** "Year in travel" summary (pure). */
 import { getDestination } from '../content/destinations';
 import { computeTravelStats, stateWord, type StatsInput, type TravelStats } from './travelStats';
-import { parseDay } from './format';
+import { parseDay, toDayString } from './format';
 
 export type Persona = { title: string; blurb: string; icon: string };
 
@@ -58,7 +58,7 @@ export function buildWrapped(
   year: number,
   input: StatsInput,
   media: DatedMedia[] = [],
-  today: string = new Date().toISOString().slice(0, 10)
+  today: string = toDayString(new Date()) // the local day
 ): WrappedSummary {
   const entries = input.entries.filter(e => inYear(e.recorded_at, year));
   const tripIds = new Set(entries.map(e => e.trip_id));
