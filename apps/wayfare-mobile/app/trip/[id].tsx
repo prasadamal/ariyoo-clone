@@ -361,7 +361,7 @@ export default function TripDetailScreen() {
                 const next = await updateTrip(trip.id, { status: 'completed' });
                 if (next) setTrip(next);
                 refreshPending();
-                router.push(`/trip/recap/${trip.id}` as never);
+                router.push(`/trip/recap/${trip.id}?celebrate=1` as never);
               }}
             >
               Complete & see recap

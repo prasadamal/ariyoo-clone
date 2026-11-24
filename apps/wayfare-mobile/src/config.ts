@@ -37,5 +37,3 @@ export const SUPPORT_EMAIL = 'amalprasadappu@gmail.com';
 
 export const APP_VERSION = Constants.expoConfig?.version ?? '2.0.0';
 
-export const googleMapsApiKey =
-  envValue(process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY) ?? envValue(extra.googleMapsApiKey) ?? '';

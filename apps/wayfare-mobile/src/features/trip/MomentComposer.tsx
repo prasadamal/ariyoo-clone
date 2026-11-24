@@ -1,7 +1,7 @@
 import { Image } from 'expo-image';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import { Button, Chip, Dialog, IconButton, Menu, Portal, Text, TextInput } from 'react-native-paper';
+import { Button, Chip, IconButton, Menu, Text, TextInput } from 'react-native-paper';
 import { MOODS } from '../../components/MoodChips';
 import { parseAmount, formatMoney } from '../../lib/momentMoney';
 import { typingMention } from '../../lib/mentions';
@@ -9,6 +9,7 @@ import { useAppTheme } from '../../theme';
 import { ChipSelect } from '../../ui/ChipSelect';
 import { Icon } from '../../ui/Icon';
 import { PlaceField } from '../../ui/PlaceField';
+import { Sheet, SheetTextInput } from '../../ui/Sheet';
 import type { Destination } from '../../content/destinations';
 import { EXPENSE_CATEGORIES } from './BudgetTab';
 import type { PickedPhoto } from './photoPicker';
@@ -225,77 +226,69 @@ export function MomentComposer(p: Props) {
         />
       </View>
 
-      <Portal>
-        <Dialog visible={placeOpen} onDismiss={() => setPlaceOpen(false)}>
-          <Dialog.Title>Where was this?</Dialog.Title>
-          <Dialog.Content>
-            <PlaceField
-              label="Place"
-              value={placeText}
-              onChange={(t, d) => {
-                setPlaceText(t);
-                setPlaceMatch(d);
-              }}
-            />
-            <Text style={{ color: colors.muted, marginTop: 8, fontSize: 12 }}>Pick from the list to add it to Places visited. No GPS is used.</Text>
-          </Dialog.Content>
-          <Dialog.Actions>
-            {p.place ? (
-              <Button
-                textColor={colors.danger}
-                onPress={() => {
-                  p.onPlace?.(null);
-                  setPlaceOpen(false);
-                }}
-              >
-                Remove place
-              </Button>
-            ) : null}
-            <Button onPress={() => setPlaceOpen(false)}>Cancel</Button>
+      {/* Place and money slide up from the bottom; typing lifts them above the keyboard. */}
+      <Sheet visible={placeOpen} onDismiss={() => setPlaceOpen(false)} title="Where was this?" subtitle="Pick from the list to add it to Places visited. No GPS is used.">
+        <PlaceField
+          label="Place"
+          inSheet
+          value={placeText}
+          onChange={(t, d) => {
+            setPlaceText(t);
+            setPlaceMatch(d);
+          }}
+        />
+        <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 8, marginTop: 16 }}>
+          {p.place ? (
             <Button
-              mode="contained"
-              disabled={!placeText.trim()}
+              textColor={colors.danger}
               onPress={() => {
-                p.onPlace?.({ name: placeText.trim(), region: placeMatch?.region ?? null, countryCode: placeMatch?.countryCode ?? null });
+                p.onPlace?.(null);
                 setPlaceOpen(false);
               }}
             >
-              Add
+              Remove place
             </Button>
-          </Dialog.Actions>
-        </Dialog>
-        <Dialog visible={moneyOpen} onDismiss={() => setMoneyOpen(false)}>
-          <Dialog.Title>Money spent here</Dialog.Title>
-          <Dialog.Content>
-            <TextInput
-              mode="outlined"
-              label="Amount"
-              value={amountText}
-              onChangeText={t => setAmountText(t.replace(/[^0-9.]/g, ''))}
-              keyboardType="decimal-pad"
-              left={<TextInput.Affix text={p.currencySymbol} />}
-              autoFocus
-              error={amountText.length > 0 && amount === null}
-            />
-            <View style={{ height: 12 }} />
-            <ChipSelect scroll options={EXPENSE_CATEGORIES} value={category} onChange={setCategory} />
-            <Text style={{ color: colors.muted, marginTop: 8, fontSize: 12 }}>It is added to this journey's budget and total.</Text>
-          </Dialog.Content>
-          <Dialog.Actions>
-            <Button onPress={() => setMoneyOpen(false)}>Cancel</Button>
-            <Button
-              mode="contained"
-              disabled={amount === null}
-              onPress={() => {
-                if (amount !== null) p.onMoney({ amount, category });
-                setMoneyOpen(false);
-              }}
-            >
-              Add
-            </Button>
-          </Dialog.Actions>
-        </Dialog>
-      </Portal>
+          ) : null}
+          <View style={{ flex: 1 }} />
+          <Button
+            mode="contained"
+            disabled={!placeText.trim()}
+            contentStyle={{ paddingHorizontal: 12 }}
+            onPress={() => {
+              p.onPlace?.({ name: placeText.trim(), region: placeMatch?.region ?? null, countryCode: placeMatch?.countryCode ?? null });
+              setPlaceOpen(false);
+            }}
+          >
+            Add place
+          </Button>
+        </View>
+      </Sheet>
+      <Sheet visible={moneyOpen} onDismiss={() => setMoneyOpen(false)} title="Money spent here" subtitle="It is added to this journey's budget and total.">
+        <SheetTextInput
+          mode="outlined"
+          label="Amount"
+          value={amountText}
+          onChangeText={t => setAmountText(t.replace(/[^0-9.]/g, ''))}
+          keyboardType="decimal-pad"
+          left={<TextInput.Affix text={p.currencySymbol} />}
+          autoFocus
+          error={amountText.length > 0 && amount === null}
+        />
+        <View style={{ height: 12 }} />
+        <ChipSelect scroll options={EXPENSE_CATEGORIES} value={category} onChange={setCategory} />
+        <Button
+          mode="contained"
+          disabled={amount === null}
+          style={{ marginTop: 16 }}
+          contentStyle={{ height: 48 }}
+          onPress={() => {
+            if (amount !== null) p.onMoney({ amount, category });
+            setMoneyOpen(false);
+          }}
+        >
+          Add to moment
+        </Button>
+      </Sheet>
     </View>
   );
 }

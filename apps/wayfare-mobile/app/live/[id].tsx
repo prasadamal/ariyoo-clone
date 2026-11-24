@@ -1,9 +1,6 @@
 import { useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { Linking, Platform, View } from 'react-native';
-import MapView, { Circle, Marker } from 'react-native-maps';
-import { googleMapsApiKey } from '../../src/config';
-import { mapsSupported } from '../../src/lib/mapSupport';
+import { Linking } from 'react-native';
 import { ActivityIndicator, Button, Text } from 'react-native-paper';
 import { timeAgo, timeAgoPhrase } from '../../src/lib/format';
 import { fetchLiveShare, type LiveShareView } from '../../src/lib/liveShare';
@@ -12,6 +9,7 @@ import { useAppTheme } from '../../src/theme';
 import { EmptyState } from '../../src/ui/EmptyState';
 import { Notice } from '../../src/ui/Notice';
 import { Screen } from '../../src/ui/Screen';
+import { mapAvailable, TripMap } from '../../src/ui/TripMap';
 
 export default function LiveViewerScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -30,9 +28,7 @@ export default function LiveViewerScreen() {
   if (!data) return <EmptyState icon="map-marker-off-outline" title="Link expired" body="This live location is no longer shared." />;
 
   const hasFix = data.latitude != null && data.longitude != null;
-  const region = hasFix
-    ? { latitude: data.latitude as number, longitude: data.longitude as number, latitudeDelta: 0.05, longitudeDelta: 0.05 }
-    : undefined;
+  const pin = hasFix ? [{ id: 'person', kind: 'person' as const, latitude: data.latitude as number, longitude: data.longitude as number }] : [];
 
   return (
     <Screen>
@@ -45,14 +41,9 @@ export default function LiveViewerScreen() {
       ) : (
         <Notice tone="warning" text={`Sharing ended. Last position from ${timeAgoPhrase(data.updated_at)}.`} />
       )}
-      {region && mapsSupported(Platform.OS, googleMapsApiKey) ? (
-        <View style={{ height: 360, borderRadius: 18, overflow: 'hidden', marginTop: 8 }}>
-          <MapView style={{ flex: 1 }} region={region}>
-            <Marker coordinate={region} title={data.display_name} pinColor={colors.primary} />
-            {data.accuracy_m ? <Circle center={region} radius={data.accuracy_m} fillColor="#6a01a322" strokeColor="#6a01a366" /> : null}
-          </MapView>
-        </View>
-      ) : region ? null : (
+      {hasFix && mapAvailable ? (
+        <TripMap pins={pin} style={{ height: 360, borderRadius: 18, marginTop: 8 }} />
+      ) : hasFix ? null : (
         <Text style={{ color: colors.muted, marginTop: 12 }}>Waiting for the first position…</Text>
       )}
       {hasFix ? (

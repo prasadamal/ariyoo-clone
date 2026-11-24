@@ -14,13 +14,15 @@ import { track } from '../../../src/lib/telemetry';
 import { tripCoverUri } from '../../../src/lib/tripCover';
 import { computeTripStats, type TripStats } from '../../../src/lib/tripStats';
 import { useAppTheme } from '../../../src/theme';
+import { Confetti } from '../../../src/ui/Confetti';
 import { coverArtFor } from '../../../src/ui/coverArt';
 
 const LOGO = require('../../../assets/logo-mark.png');
 
 /** A one-tap picture of a journey (cover, days, moments, photos, km, spend) to share anywhere. */
 export default function TripRecapScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  // celebrate=1: opened by "Complete & see recap", so the journey's end gets a burst of confetti.
+  const { id, celebrate } = useLocalSearchParams<{ id: string; celebrate?: string }>();
   const { colors } = useAppTheme();
   const card = useRef<View>(null);
   const [trip, setTrip] = useState<LocalTrip | null>(null);
@@ -28,6 +30,7 @@ export default function TripRecapScreen() {
   const [cover, setCover] = useState<string | null>(null);
   const [spent, setSpent] = useState<string | null>(null);
   const [sharing, setSharing] = useState(false);
+  const [burst, setBurst] = useState(0);
 
   useEffect(() => {
     (async () => {
@@ -36,12 +39,13 @@ export default function TripRecapScreen() {
       setTrip(t);
       const s = await computeTripStats(t.id, t);
       setStats(s);
+      if (celebrate === '1') setBurst(1);
       setCover(await tripCoverUri(t).catch(() => null));
       const rates = await getRates().catch(() => null);
       const total = splitSpend(s.spendByCurrency, t.currency || 'INR', rates?.rates ?? null).total;
       setSpent(total > 0 ? formatMoney(total, t.currency || 'INR', { compact: true }) : null);
     })().catch(() => undefined);
-  }, [id]);
+  }, [id, celebrate]);
 
   const share = async () => {
     if (!trip) return;
@@ -69,6 +73,7 @@ export default function TripRecapScreen() {
   ].filter(Boolean) as { value: string; label: string }[];
 
   return (
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
     <ScrollView contentContainerStyle={{ padding: 16, alignItems: 'center', backgroundColor: colors.background, flexGrow: 1 }}>
       {/* The picture that gets shared: square-ish, cover on top, the journey in numbers below. */}
       <View ref={card} collapsable={false} style={{ width: '100%', maxWidth: 420, borderRadius: 28, overflow: 'hidden', backgroundColor: '#ffffff' }}>
@@ -105,5 +110,7 @@ export default function TripRecapScreen() {
         Done
       </Button>
     </ScrollView>
+    <Confetti burst={burst} />
+    </View>
   );
 }
