@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Wayfare journey</title>
+  <meta name="description" content="A travel journey shared from Wayfare." />
+  <meta name="robots" content="noindex" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" />
+  <style>
+    :root { --ink: #1c1917; --muted: #71717a; --bg: #ffffff; --card: #ffffff; --line: #eadcf4; --accent: #6a01a3; --soft: #f6effb; }
+    @media (prefers-color-scheme: dark) { :root { --ink: #f3eef8; --muted: #a89fb5; --bg: #110d16; --card: #1b1622; --line: #33124a; --accent: #c77dff; --soft: #241a2e; } }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: Inter, system-ui, -apple-system, "Segoe UI", sans-serif; color: var(--ink); background: var(--bg); line-height: 1.55; }
+    .hero { position: relative; min-height: 46vh; max-height: 520px; display: flex; flex-direction: column; justify-content: flex-end; color: #fff;
+      padding: 1.25rem max(1rem, env(safe-area-inset-right)) 1.5rem max(1rem, env(safe-area-inset-left));
+      background: linear-gradient(135deg, #7a14b8, #3f0263) center / cover no-repeat; }
+    .hero::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0,0,0,0) 35%, rgba(0,0,0,.6)); }
+    .hero > * { position: relative; z-index: 1; max-width: 42rem; margin-left: auto; margin-right: auto; width: 100%; }
+    .eyebrow { font-size: .75rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; opacity: .9; }
+    h1 { margin: .2rem 0 .3rem; font-size: clamp(1.8rem, 6vw, 2.6rem); line-height: 1.1; font-weight: 900; }
+    .sub { opacity: .92; }
+    main { max-width: 42rem; margin: 0 auto; padding: 1.5rem max(1rem, env(safe-area-inset-right)) 3rem max(1rem, env(safe-area-inset-left)); }
+    .day { display: grid; gap: .7rem; padding-left: 1rem; border-left: 2px solid var(--line); margin-bottom: 1.6rem; }
+    .day h2 { margin: 0; font-size: .8rem; letter-spacing: .1em; color: var(--accent); font-weight: 900; text-transform: uppercase; }
+    .moment { display: grid; gap: .4rem; }
+    .moment time { font-size: .8rem; color: var(--muted); }
+    .moment p { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+    .place { font-size: .85rem; color: var(--muted); }
+    .photos { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: .4rem; }
+    .photos img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 12px; background: var(--soft); }
+    .photos img.wide { grid-column: 1 / -1; aspect-ratio: 16 / 10; }
+    .note { background: var(--soft); border-radius: 16px; padding: 1rem; color: var(--muted); }
+    .cta { margin-top: 2rem; text-align: center; display: grid; gap: .6rem; justify-items: center; }
+    .cta a { display: inline-block; background: var(--accent); color: #fff; text-decoration: none; font-weight: 800; padding: .7rem 1.4rem; border-radius: 999px; }
+    .cta small { color: var(--muted); }
+  </style>
+</head>
+<body>
+  <header class="hero" id="hero">
+    <span class="eyebrow" id="eyebrow">A Wayfare journey</span>
+    <h1 id="title">Opening the journey…</h1>
+    <div class="sub" id="sub"></div>
+  </header>
+  <main>
+    <div id="story" aria-live="polite"></div>
+    <div class="cta">
+      <!-- No store listing yet (testing): a plain line instead of a link. Swap in the store link at launch. -->
+      <strong>Journaled on Wayfare</strong>
+      <small>A travel journal for moments, photos and voice notes, even offline. Now in early testing.</small>
+    </div>
+  </main>
+  <script src="../wayfare-config.js"></script>
+  <script>
+    (async function () {
+      const el = window.wayfareEl;
+      const $ = id => document.getElementById(id);
+      const params = new URLSearchParams(location.search);
+      const share = params.get('s') || params.get('id') || '';
+      const story = $('story');
+
+      const fail = msg => {
+        $('title').textContent = 'This journey isn’t available';
+        story.replaceChildren(el('p', { class: 'note', text: msg }));
+      };
+      if (share.length < 8) return fail('The link looks incomplete. Ask for it again.');
+
+      let data;
+      try {
+        data = await window.wayfareRpc('get_trip_story', { p_share_id: share });
+      } catch (e) {
+        return fail('Could not load the journey. Check your connection and try again.');
+      }
+      if (!data) return fail('The traveller may have stopped sharing it.');
+
+      const t = data.trip;
+      document.title = t.title + ' · Wayfare';
+      $('title').textContent = t.title;
+      $('eyebrow').textContent = (data.author || 'A traveller') + '’s journey';
+      const day = d => new Date(d + 'T12:00:00');
+      const fmt = (d, o) => d.toLocaleDateString('en-IN', o);
+      const dates = t.starts_on
+        ? fmt(day(t.starts_on), { day: 'numeric', month: 'short' }) + (t.ends_on && t.ends_on !== t.starts_on ? ' – ' + fmt(day(t.ends_on), { day: 'numeric', month: 'short', year: 'numeric' }) : ', ' + day(t.starts_on).getFullYear())
+        : '';
+      const moments = data.moments || [];
+      const photoCount = moments.reduce((n, m) => n + (m.photos || []).length, 0);
+      $('sub').textContent = [t.destination, dates, moments.length + (moments.length === 1 ? ' moment' : ' moments'), photoCount ? photoCount + (photoCount === 1 ? ' photo' : ' photos') : '']
+        .filter(Boolean).join(' · ');
+
+      // Sign the photo links (only allowed while the journey's story link is on).
+      const paths = moments.flatMap(m => m.photos || []);
+      const urls = {};
+      if (paths.length) {
+        try {
+          const cfg = window.WAYFARE_CONFIG;
+          const res = await fetch(cfg.supabaseUrl + '/storage/v1/object/sign/entry-media', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', apikey: cfg.supabaseAnonKey, Authorization: 'Bearer ' + cfg.supabaseAnonKey },
+            body: JSON.stringify({ expiresIn: 3600, paths }),
+          });
+          if (res.ok) for (const r of await res.json()) if (r.signedURL) urls[r.path] = cfg.supabaseUrl + '/storage/v1' + r.signedURL;
+        } catch (e) { /* photos are optional */ }
+      }
+      const cover = paths.map(p => urls[p]).find(Boolean);
+      if (cover) $('hero').style.backgroundImage = 'url("' + cover.replace(/"/g, '%22') + '")';
+
+      if (!moments.length) return story.replaceChildren(el('p', { class: 'note', text: 'No moments yet. Check back soon.' }));
+
+      // Day 1, Day 2… from the start date (or the first moment); days outside the trip by date.
+      const localDay = iso => { const d = new Date(iso); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+      const start = t.starts_on || localDay(moments[0].recorded_at);
+      const label = d => {
+        const n = Math.round((day(d) - day(start)) / 86400000) + 1;
+        if (n >= 1 && (!t.ends_on || d <= t.ends_on)) return 'Day ' + n;
+        return fmt(day(d), { day: 'numeric', month: 'short' });
+      };
+      const byDay = new Map();
+      for (const m of moments) { const d = localDay(m.recorded_at); if (!byDay.has(d)) byDay.set(d, []); byDay.get(d).push(m); }
+      const out = [];
+      for (const [d, list] of byDay) {
+        const section = el('section', { class: 'day' }, el('h2', { text: label(d) + ' · ' + fmt(day(d), { weekday: 'short', day: 'numeric', month: 'short' }) }));
+        for (const m of list) {
+          const when = new Date(m.recorded_at).toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' });
+          const text = (m.body || '').replace(/^\u{1F4F7}$/u, '').trim();
+          const photos = (m.photos || []).map(p => urls[p]).filter(Boolean);
+          section.append(el('article', { class: 'moment' },
+            el('time', { text: when + (m.mood ? ' · ' + m.mood : '') }),
+            photos.length ? el('div', { class: 'photos' }, ...photos.map((u, i) => el('img', { src: u, alt: 'Photo from ' + label(d), loading: 'lazy', class: photos.length === 1 || (photos.length % 2 === 1 && i === 0) ? 'wide' : '' }))) : null,
+            text ? el('p', { text }) : null,
+            m.place_name ? el('span', { class: 'place', text: '\u{1F4CD} ' + m.place_name }) : null,
+          ));
+        }
+        out.push(section);
+      }
+      story.replaceChildren(...out);
+    })();
+  </script>
+</body>
+</html>

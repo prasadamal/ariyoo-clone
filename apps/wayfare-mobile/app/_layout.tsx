@@ -168,6 +168,7 @@ function RootStack() {
       <Stack.Screen name="tools/currency" options={{ title: 'Currency converter' }} />
       <Stack.Screen name="settings" options={{ title: 'Settings' }} />
       <Stack.Screen name="trips/[status]" options={{ title: 'Journeys' }} />
+      <Stack.Screen name="passport" options={{ title: 'Passport' }} />
       <Stack.Screen name="blocked" options={{ title: 'Blocked travellers' }} />
     </Stack>
     </View>

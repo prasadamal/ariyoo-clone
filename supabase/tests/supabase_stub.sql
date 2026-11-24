@@ -22,6 +22,9 @@ create table if not exists auth.users (
   raw_user_meta_data jsonb not null default '{}'::jsonb,
   created_at timestamptz not null default now()
 );
+-- Two more real Supabase columns (the admin console reads them).
+alter table auth.users add column if not exists last_sign_in_at timestamptz;
+alter table auth.users add column if not exists banned_until timestamptz;
 
 -- Same definitions as Supabase: identity comes from the request's JWT claims, either the
 -- legacy per-claim setting or the JSON form PostgREST 10+ sets.

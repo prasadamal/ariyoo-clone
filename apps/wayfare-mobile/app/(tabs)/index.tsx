@@ -3,6 +3,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { ActivityIndicator, FlatList, Pressable, RefreshControl, View } from 'react-native';
 import { IconButton, Text } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { AnnouncementBanner } from '../../src/components/AnnouncementBanner';
 import { TripCard } from '../../src/components/TripCard';
 import { useAuth } from '../../src/context/AuthContext';
 import { useSync } from '../../src/context/SyncContext';
@@ -10,6 +11,7 @@ import { timeAgoPhrase } from '../../src/lib/format';
 import { journeysOnly } from '../../src/lib/everydayMemories';
 import { listTrips, type LocalTrip } from '../../src/lib/localDb';
 import { prepareTripRows, type TripRow } from '../../src/lib/tripRows';
+import { refreshPackingNudges } from '../../src/lib/packingReminders';
 import { getActiveTrackingTripId } from '../../src/lib/locationTask';
 import { backupLabel, backupState } from '../../src/lib/backupStatus';
 import { featuredTrips, recentFirst, statusCounts, tripStatus, type TripStatus } from '../../src/lib/tripList';
@@ -48,6 +50,7 @@ export default function JourneysTab() {
   // Room on screen for the three tiles: the list's height and the greeting's.
   const [viewHeight, setViewHeight] = useState(0);
   const [greetHeight, setGreetHeight] = useState(72);
+  const [bannerHeight, setBannerHeight] = useState(0);
   const [recordingTripId, setRecordingTripId] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -56,6 +59,7 @@ export default function JourneysTab() {
   const [showStatus, setShowStatus] = useState(false);
   const statusTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const busy = useRef(false);
+  const nudgedAt = useRef(0);
   const shown = useRef(PAGE_SIZE);
   const listRef = useRef<FlatList<TripRow>>(null);
   const insets = useSafeAreaInsets();
@@ -71,6 +75,11 @@ export default function JourneysTab() {
     const [page, topRows] = await Promise.all([prepareTripRows(sorted.slice(0, count)), prepareTripRows(top)]);
     shown.current = count;
     setAll(list);
+    // Packing nudges follow packing and date changes; re-planned at most every 10 minutes.
+    if (Date.now() - nudgedAt.current > 10 * 60 * 1000) {
+      nudgedAt.current = Date.now();
+      void refreshPackingNudges(list);
+    }
     setRows(page);
     setFeatured(topRows);
     setCounts(statusCounts(list));
@@ -171,7 +180,7 @@ export default function JourneysTab() {
   // tab bar, less the gaps (a stacked group tile needs a little more room underneath).
   const gaps = featured.reduce((sum, t) => sum + (counts[tripStatus(t)] > 1 ? 30 : 14), 0) + 14;
   const tileHeight = viewHeight && featured.length
-    ? Math.max(118, Math.min(200, Math.floor((viewHeight - 16 - greetHeight - gaps - (fabBottom + 70)) / Math.max(featured.length, 3))))
+    ? Math.max(118, Math.min(200, Math.floor((viewHeight - 16 - greetHeight - bannerHeight - gaps - (fabBottom + 70)) / Math.max(featured.length, 3))))
     : undefined;
   /** A tile: the journey itself when it's the only one in its group, else that group's list. */
   const openTile = (t: TripRow) => {
@@ -213,6 +222,9 @@ export default function JourneysTab() {
           ) : null}
         </View>
       </View>
+
+      {/* A short message from the Wayfare team (admin console), if there is one. */}
+      <AnnouncementBanner onHeight={setBannerHeight} />
 
       {recordingTrip ? (
         <Pressable onPress={() => router.push(`/trip/${recordingTrip.id}`)} accessibilityRole="button">

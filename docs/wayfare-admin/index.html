@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Wayfare Admin</title>
+  <meta name="robots" content="noindex, nofollow" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" />
+  <style>
+    /* Admin console: a left rail of sections on wide screens (a top strip on phones), tiles and tables in the main column. */
+    :root {
+      --bg: #f7f5fb; --surface: #ffffff; --ink: #1c1724; --muted: #6b6478; --line: #e7e2ef;
+      --accent: #6a01a3; --accent-ink: #ffffff; --soft: #f1e4f9;
+      --good: #15803d; --good-soft: #e3f5e9; --warn: #b45309; --warn-soft: #fdf0dc; --crit: #b91c1c; --crit-soft: #fde4e4;
+      --display: "Space Grotesk", Inter, system-ui, sans-serif; --text: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root { --bg: #0f0b14; --surface: #1a1521; --ink: #f3eef8; --muted: #a89fb5; --line: #2e2638; --accent: #c77dff; --accent-ink: #1a0029; --soft: #33124a;
+        --good: #4ade80; --good-soft: #12301d; --warn: #fbbf24; --warn-soft: #3a2a0c; --crit: #f87171; --crit-soft: #3d1414; color-scheme: dark; }
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--text); font-size: 14px; line-height: 1.5; }
+    h1, h2, h3 { font-family: var(--display); margin: 0; }
+    button, input, select, textarea { font: inherit; color: inherit; }
+    button { cursor: pointer; border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 6px 14px; font-weight: 600; }
+    button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+    button.danger { color: var(--crit); border-color: var(--crit); }
+    button:disabled { opacity: .5; cursor: default; }
+    button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+    input, select, textarea { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; }
+    .muted { color: var(--muted); }
+    .shell { display: grid; grid-template-columns: 220px minmax(0, 1fr); min-height: 100vh; }
+    nav { border-right: 1px solid var(--line); background: var(--surface); padding: 20px 12px; display: grid; align-content: start; gap: 4px; position: sticky; top: 0; height: 100vh; }
+    nav .brand { font-family: var(--display); font-weight: 700; font-size: 18px; padding: 0 10px 14px; color: var(--accent); }
+    nav button { border: 0; border-radius: 10px; text-align: left; padding: 9px 12px; background: transparent; display: flex; justify-content: space-between; align-items: center; }
+    nav button[aria-current="page"] { background: var(--soft); color: var(--accent); }
+    nav .count { font-size: 11px; background: var(--crit-soft); color: var(--crit); border-radius: 999px; padding: 1px 7px; }
+    nav .who { margin-top: 18px; padding: 10px; font-size: 12px; border-top: 1px solid var(--line); display: grid; gap: 6px; }
+    main { padding: 24px max(16px, 3vw) 60px; display: grid; gap: 18px; align-content: start; min-width: 0; }
+    .head { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; }
+    .tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+    .tile { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; display: grid; gap: 2px; }
+    .tile b { font-family: var(--display); font-size: 26px; font-variant-numeric: tabular-nums; }
+    .tile span { font-size: 12px; color: var(--muted); }
+    .tile.alert { border-color: var(--crit); }
+    .grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+    .card { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 16px; display: grid; gap: 10px; min-width: 0; }
+    .card h3 { font-size: 15px; }
+    .chart svg { width: 100%; height: 140px; display: block; }
+    .chart .bar { fill: var(--accent); }
+    .chart .axis { fill: var(--muted); font-size: 10px; }
+    .tablewrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th { text-align: left; color: var(--muted); font-weight: 600; font-size: 12px; padding: 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+    td { padding: 9px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+    td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+    .chip { display: inline-block; font-size: 11px; font-weight: 700; border-radius: 999px; padding: 2px 8px; background: var(--soft); color: var(--accent); }
+    .chip.bad { background: var(--crit-soft); color: var(--crit); }
+    .chip.ok { background: var(--good-soft); color: var(--good); }
+    .chip.warn { background: var(--warn-soft); color: var(--warn); }
+    .list { display: grid; gap: 10px; }
+    .item { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px; display: grid; gap: 6px; }
+    .item p { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+    .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    .sample { font-family: ui-monospace, Menlo, monospace; font-size: 12px; color: var(--muted); overflow-wrap: anywhere; }
+    .banner-preview { border-radius: 12px; padding: 10px 12px; font-weight: 600; }
+    .banner-preview.info { background: #f1e4f9; color: #4a0a6b; }
+    .banner-preview.warning { background: #fdf0dc; color: #7c3d06; }
+    .center { min-height: 100vh; display: grid; place-items: center; padding: 16px; }
+    .login { width: min(380px, 100%); display: grid; gap: 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 20px; padding: 24px; }
+    .login h1 { color: var(--accent); }
+    .err { color: var(--crit); min-height: 1.2em; }
+    code.block { display: block; background: var(--soft); border-radius: 10px; padding: 10px; font-size: 12px; overflow-wrap: anywhere; }
+    @media (max-width: 820px) {
+      .shell { grid-template-columns: 1fr; }
+      nav { position: static; height: auto; border-right: 0; border-bottom: 1px solid var(--line); display: flex; overflow-x: auto; padding: 10px; }
+      nav .brand { padding: 8px 10px; }
+      nav button { white-space: nowrap; }
+      nav .who { display: none; }
+      .grid2 { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div id="app"></div>
+  <script src="../wayfare-config.js"></script>
+  <script>
+  (function () {
+    'use strict';
+    const cfg = window.WAYFARE_CONFIG;
+    const el = window.wayfareEl;
+    const app = document.getElementById('app');
+    const KEY = 'wayfare_admin_session_v1';
+    let session = null;
+    try { session = JSON.parse(sessionStorage.getItem(KEY) || 'null'); } catch (e) { session = null; }
+    const save = s => { session = s; try { s ? sessionStorage.setItem(KEY, JSON.stringify(s)) : sessionStorage.removeItem(KEY); } catch (e) {} };
+
+    // ---- Supabase over plain fetch (the anon key is public; the admin's own sign-in carries the rights) ----
+    async function auth(path, body) {
+      const res = await fetch(cfg.supabaseUrl + '/auth/v1/' + path, { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: cfg.supabaseAnonKey }, body: JSON.stringify(body) });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json.error_description || json.msg || 'Sign-in failed');
+      return json;
+    }
+    async function refresh() {
+      if (!session) throw new Error('Signed out');
+      save(await auth('token?grant_type=refresh_token', { refresh_token: session.refresh_token }));
+    }
+    async function rpc(fn, args, retried) {
+      const res = await fetch(cfg.supabaseUrl + '/rest/v1/rpc/' + fn, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', apikey: cfg.supabaseAnonKey, Authorization: 'Bearer ' + session.access_token },
+        body: JSON.stringify(args || {}),
+      });
+      if (res.status === 401 && !retried) { await refresh(); return rpc(fn, args, true); }
+      const text = await res.text();
+      const json = text ? JSON.parse(text) : null;
+      if (!res.ok) throw new Error((json && json.message) || 'Request failed (' + res.status + ')');
+      return json;
+    }
+
+    // ---- Small view helpers (text only; nothing user-written goes through innerHTML) ----
+    const fmtDate = iso => iso ? new Date(iso).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—';
+    const fmtDay = iso => iso ? new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
+    const num = n => Number(n || 0).toLocaleString('en-IN');
+    const btn = (label, onClick, cls) => { const b = el('button', { class: cls || '', type: 'button' }, label); b.addEventListener('click', onClick); return b; };
+    const table = (cols, rows) => el('div', { class: 'tablewrap' }, el('table', {},
+      el('thead', {}, el('tr', {}, ...cols.map(c => el('th', { class: c.num ? 'num' : '', text: c.label })))),
+      el('tbody', {}, ...(rows.length ? rows.map(r => el('tr', {}, ...cols.map(c => { const v = c.value(r); return el('td', { class: c.num ? 'num' : '' }, v instanceof Node ? v : String(v ?? '—')); })))
+        : [el('tr', {}, el('td', { colspan: String(cols.length), class: 'muted', text: 'Nothing here yet.' }))]))));
+    function barChart(series, label) {
+      const W = 600, H = 140, pad = 18, max = Math.max(1, ...series.map(s => s.count));
+      const bw = (W - pad) / series.length;
+      const NS = 'http://www.w3.org/2000/svg';
+      const svg = document.createElementNS(NS, 'svg');
+      svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H); svg.setAttribute('role', 'img'); svg.setAttribute('aria-label', label);
+      series.forEach((s, i) => {
+        const h = Math.round((H - pad - 10) * s.count / max);
+        const r = document.createElementNS(NS, 'rect');
+        r.setAttribute('class', 'bar'); r.setAttribute('x', String(i * bw + 2)); r.setAttribute('width', String(Math.max(2, bw - 4)));
+        r.setAttribute('y', String(H - pad - h)); r.setAttribute('height', String(Math.max(h, s.count ? 2 : 0))); r.setAttribute('rx', '2');
+        const t = document.createElementNS(NS, 'title'); t.textContent = s.day + ': ' + s.count; r.append(t); svg.append(r);
+      });
+      [[0, series[0]], [series.length - 1, series[series.length - 1]]].forEach(([i, s]) => {
+        const tx = document.createElementNS(NS, 'text');
+        tx.setAttribute('class', 'axis'); tx.setAttribute('x', String(i === 0 ? 2 : W - 2)); tx.setAttribute('y', String(H - 4));
+        tx.setAttribute('text-anchor', i === 0 ? 'start' : 'end'); tx.textContent = new Date(s.day).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+        svg.append(tx);
+      });
+      const top = document.createElementNS(NS, 'text');
+      top.setAttribute('class', 'axis'); top.setAttribute('x', String(W - 2)); top.setAttribute('y', '10'); top.setAttribute('text-anchor', 'end'); top.textContent = 'max ' + max;
+      svg.append(top);
+      return el('div', { class: 'chart' }, svg);
+    }
+
+    // ---- Sign-in ----
+    function showLogin(message) {
+      const email = el('input', { type: 'email', id: 'email', autocomplete: 'username', placeholder: 'Email' });
+      const pass = el('input', { type: 'password', id: 'password', autocomplete: 'current-password', placeholder: 'Password' });
+      const err = el('div', { class: 'err', role: 'alert', text: message || '' });
+      const go = el('button', { class: 'primary', type: 'submit' }, 'Sign in');
+      const form = el('form', { class: 'login' }, el('h1', { text: 'Wayfare Admin' }), el('p', { class: 'muted', text: 'Sign in with your Wayfare account. Only accounts on the admin list can open the console.' }), email, pass, go, err);
+      form.addEventListener('submit', async e => {
+        e.preventDefault(); go.disabled = true; err.textContent = '';
+        try { save(await auth('token?grant_type=password', { email: email.value.trim(), password: pass.value })); await start(); }
+        catch (x) { err.textContent = x.message; } finally { go.disabled = false; }
+      });
+      app.replaceChildren(el('div', { class: 'center' }, form));
+    }
+
+    function showNotAdmin() {
+      const id = session && session.user ? session.user.id : '';
+      const sql = "insert into public.admin_users (user_id) values ('" + id + "');";
+      const code = el('code', { class: 'block', text: sql });
+      app.replaceChildren(el('div', { class: 'center' }, el('div', { class: 'login' },
+        el('h1', { text: 'Not an admin yet' }),
+        el('p', { class: 'muted', text: 'You are signed in, but this account is not on the admin list. To add it, run this in the Supabase SQL editor:' }),
+        code,
+        btn('Copy SQL', async () => { try { await navigator.clipboard.writeText(sql); } catch (e) { const r = document.createRange(); r.selectNodeContents(code); getSelection().removeAllRanges(); getSelection().addRange(r); } }),
+        btn('Sign out', () => { save(null); showLogin(); }))));
+    }
+
+    // ---- Console ----
+    const SECTIONS = [['overview', 'Overview'], ['users', 'Users'], ['crashes', 'Crash reports'], ['feedback', 'Feedback'], ['reports', 'Reports'], ['announce', 'Announcement']];
+    let current = (location.hash || '#overview').slice(1);
+    let counts = {};
+    let main, nav;
+
+    function shell() {
+      nav = el('nav', { 'aria-label': 'Sections' }, el('div', { class: 'brand', text: 'Wayfare Admin' }));
+      main = el('main', { id: 'main' });
+      app.replaceChildren(el('div', { class: 'shell' }, nav, main));
+      drawNav();
+    }
+    function drawNav() {
+      const items = SECTIONS.map(([key, label]) => {
+        const badge = key === 'feedback' ? counts.feedback_open : key === 'reports' ? counts.reports_open : key === 'crashes' ? counts.errors_7d : 0;
+        const b = btn(label, () => go(key));
+        b.replaceChildren(el('span', { text: label }), badge ? el('span', { class: 'count', text: String(badge) }) : '');
+        if (key === current) b.setAttribute('aria-current', 'page');
+        return b;
+      });
+      const who = el('div', { class: 'who' }, el('span', { class: 'muted', text: session.user ? session.user.email : '' }), btn('Sign out', () => { save(null); showLogin(); }));
+      nav.replaceChildren(el('div', { class: 'brand', text: 'Wayfare Admin' }), ...items, who);
+    }
+    function go(key) { current = key; location.hash = key; drawNav(); render(); }
+    window.addEventListener('hashchange', () => { const k = location.hash.slice(1); if (k && k !== current && SECTIONS.some(s => s[0] === k)) go(k); });
+
+    async function render() {
+      main.replaceChildren(el('p', { class: 'muted', text: 'Loading…' }));
+      try { await VIEWS[current](); }
+      catch (x) { main.replaceChildren(el('p', { class: 'err', role: 'alert', text: x.message })); }
+    }
+
+    const VIEWS = {
+      async overview() {
+        const o = await rpc('admin_overview');
+        counts = o; drawNav();
+        const t = (v, label, alert) => el('div', { class: 'tile' + (alert ? ' alert' : '') }, el('b', { text: num(v) }), el('span', { text: label }));
+        const retention = (o.retention || []).map(r => ({ ...r, pct: r.new ? Math.round(100 * r.back / r.new) : 0 }));
+        main.replaceChildren(
+          el('div', { class: 'head' }, el('h1', { text: 'Overview' }), btn('Refresh', render)),
+          el('div', { class: 'tiles' },
+            t(o.users_total, 'travellers'), t(o.users_new_7d, 'joined this week'), t(o.active_devices_1d, 'active today'),
+            t(o.active_devices_7d, 'active this week'), t(o.active_devices_30d, 'active this month'),
+            t(o.journeys_total, 'journeys'), t(o.moments_total, 'moments'), t(o.moments_new_7d, 'moments this week'),
+            t(o.photos_total, 'photos'), t(o.voice_total, 'voice notes'), t(o.shared_journeys, 'shared journeys'), t(o.story_links, 'story links on'),
+            t(o.errors_7d, 'crash reports (7 days)', o.errors_7d > 0), t(o.feedback_open, 'feedback to read', o.feedback_open > 0), t(o.reports_open, 'open reports', o.reports_open > 0)),
+          el('div', { class: 'grid2' },
+            el('div', { class: 'card' }, el('h3', { text: 'New travellers per day (30 days)' }), barChart(o.signups_by_day || [], 'New travellers per day')),
+            el('div', { class: 'card' }, el('h3', { text: 'Active phones per day (30 days)' }), barChart(o.active_by_day || [], 'Active phones per day'))),
+          el('div', { class: 'grid2' },
+            el('div', { class: 'card' }, el('h3', { text: 'Still here a week later' }),
+              el('p', { class: 'muted', text: 'Launch rule: at least 1 in 4 new phones come back in their second week.' }),
+              table([{ label: 'Week started', value: r => fmtDay(r.week) }, { label: 'New phones', num: true, value: r => num(r.new) }, { label: 'Back in week 2', num: true, value: r => num(r.back) },
+                { label: '', value: r => el('span', { class: 'chip ' + (r.pct >= 25 ? 'ok' : 'warn'), text: r.pct + '%' }) }], retention)),
+            el('div', { class: 'card' }, el('h3', { text: 'What people did this week' }),
+              table([{ label: 'Action', value: r => r.name.replace(/_/g, ' ') }, { label: 'Times', num: true, value: r => num(r.count) }], o.events_7d || []))),
+          el('div', { class: 'card' }, el('h3', { text: 'App versions in use (7 days)' }),
+            table([{ label: 'Version', value: r => r.version }, { label: 'Platform', value: r => r.platform }, { label: 'Phones', num: true, value: r => num(r.devices) }], o.versions_7d || [])),
+        );
+      },
+
+      async users() {
+        const search = el('input', { type: 'search', id: 'user-search', placeholder: 'Search name, @username or email', style: 'min-width:min(320px,100%)' });
+        const box = el('div', {});
+        let offset = 0;
+        const load = async () => {
+          const rows = await rpc('admin_users_list', { p_search: search.value.trim() || null, p_limit: 50, p_offset: offset });
+          box.replaceChildren(table([
+            { label: 'Traveller', value: r => el('div', {}, el('b', { text: r.display_name || '—' }), el('div', { class: 'muted', text: (r.username ? '@' + r.username : 'no username') + ' · ' + (r.email || '') })) },
+            { label: 'Joined', value: r => fmtDay(r.joined_at) },
+            { label: 'Last active', value: r => fmtDate(r.last_active_at || r.last_sign_in_at) },
+            { label: 'Journeys', num: true, value: r => num(r.journeys) },
+            { label: 'Moments', num: true, value: r => num(r.moments) },
+            { label: 'Status', value: r => el('span', { class: 'chip ' + (r.suspended ? 'bad' : r.is_admin ? '' : 'ok'), text: r.suspended ? 'Suspended' : r.is_admin ? 'Admin' : 'Active' }) },
+            { label: '', value: r => r.is_admin ? '' : btn(r.suspended ? 'Restore' : 'Suspend', async e => {
+                const name = r.display_name || r.username || 'this traveller';
+                if (!r.suspended && !confirm('Suspend ' + name + '? They are signed out and cannot sign in until restored. Their journal is kept.')) return;
+                e.target.disabled = true;
+                try { await rpc('admin_set_suspended', { p_user: r.id, p_suspended: !r.suspended }); await load(); } catch (x) { alert(x.message); e.target.disabled = false; }
+              }, r.suspended ? '' : 'danger') },
+          ], rows || []), el('div', { class: 'row', style: 'margin-top:10px' },
+            offset ? btn('Previous', () => { offset = Math.max(0, offset - 50); load(); }) : '',
+            (rows || []).length === 50 ? btn('Next', () => { offset += 50; load(); }) : ''));
+        };
+        let timer; search.addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(() => { offset = 0; load(); }, 300); });
+        main.replaceChildren(el('div', { class: 'head' }, el('h1', { text: 'Users' }), search),
+          el('p', { class: 'muted', text: 'Suspending signs the person out and blocks sign-in; nothing they wrote is deleted. Restore lifts it.' }), box);
+        await load();
+      },
+
+      async crashes() {
+        const days = el('select', { id: 'crash-days', 'aria-label': 'Period' }, ...[7, 30, 90].map(d => el('option', { value: String(d), text: 'Last ' + d + ' days' })));
+        const box = el('div', {});
+        const load = async () => {
+          const rows = await rpc('admin_errors', { p_days: Number(days.value) });
+          box.replaceChildren(el('div', { class: 'list' }, ...(rows.length ? rows.map(r => el('div', { class: 'item' },
+            el('div', { class: 'row' }, el('b', { text: r.name }), el('span', { class: 'chip bad', text: num(r.occurrences) + '×' }), el('span', { class: 'muted', text: num(r.devices) + (r.devices === 1 ? ' phone' : ' phones') + ' · last ' + fmtDate(r.last_seen) })),
+            el('div', { class: 'sample', text: r.sample || '(no detail)' }),
+            el('div', { class: 'muted', text: 'Versions: ' + (r.versions || '—') })))
+            : [el('p', { class: 'muted', text: 'No crash reports in this period.' })])));
+        };
+        days.addEventListener('change', load);
+        main.replaceChildren(el('div', { class: 'head' }, el('h1', { text: 'Crash reports' }), days),
+          el('p', { class: 'muted', text: 'Grouped by error. Reports are scrubbed on the phone (no emails, numbers, links or file paths) and only come from people who leave "Share usage & crash reports" on.' }), box);
+        await load();
+      },
+
+      async feedback() {
+        const all = el('select', { id: 'feedback-filter', 'aria-label': 'Show' }, el('option', { value: 'open', text: 'To read' }), el('option', { value: 'all', text: 'All' }));
+        const box = el('div', {});
+        const load = async () => {
+          const rows = await rpc('admin_feedback', { p_open_only: all.value === 'open' });
+          box.replaceChildren(el('div', { class: 'list' }, ...(rows.length ? rows.map(r => el('div', { class: 'item' },
+            el('div', { class: 'row' }, el('b', { text: r.username ? '@' + r.username : 'Guest' }), el('span', { class: 'muted', text: fmtDate(r.created_at) + ' · ' + [r.platform, r.app_version].filter(Boolean).join(' ') }),
+              r.handled_at ? el('span', { class: 'chip ok', text: 'Handled' }) : ''),
+            el('p', { text: r.message }),
+            r.contact ? el('div', { class: 'muted', text: 'Reply to: ' + r.contact }) : '',
+            el('div', { class: 'row' }, btn(r.handled_at ? 'Mark as to read' : 'Mark as handled', async e => { e.target.disabled = true; await rpc('admin_feedback_mark', { p_id: r.id, p_handled: !r.handled_at }); load(); }))))
+            : [el('p', { class: 'muted', text: all.value === 'open' ? 'Inbox zero. Nothing to read.' : 'No feedback yet.' })])));
+        };
+        all.addEventListener('change', load);
+        main.replaceChildren(el('div', { class: 'head' }, el('h1', { text: 'Feedback' }), all), box);
+        await load();
+      },
+
+      async reports() {
+        const status = el('select', { id: 'report-status', 'aria-label': 'Status' }, ...['open', 'reviewed', 'actioned', 'dismissed'].map(s => el('option', { value: s, text: s[0].toUpperCase() + s.slice(1) })));
+        const box = el('div', {});
+        const load = async () => {
+          const rows = await rpc('admin_reports', { p_status: status.value });
+          box.replaceChildren(el('div', { class: 'list' }, ...(rows.length ? rows.map(r => el('div', { class: 'item' },
+            el('div', { class: 'row' }, el('span', { class: 'chip bad', text: r.reason }), el('b', { text: r.target_type.replace('_', ' ') }), el('span', { class: 'muted', text: 'by ' + (r.reporter ? '@' + r.reporter : 'someone') + ' · ' + fmtDate(r.created_at) })),
+            r.details ? el('p', { text: r.details }) : '',
+            el('div', { class: 'sample', text: 'Item id: ' + r.target_id }),
+            el('div', { class: 'row' }, ...['reviewed', 'actioned', 'dismissed'].filter(s => s !== r.status).map(s => btn(s[0].toUpperCase() + s.slice(1), async e => { e.target.disabled = true; await rpc('admin_report_set', { p_id: r.id, p_status: s }); load(); })))))
+            : [el('p', { class: 'muted', text: 'No ' + status.value + ' reports.' })])));
+        };
+        status.addEventListener('change', load);
+        main.replaceChildren(el('div', { class: 'head' }, el('h1', { text: 'Reports' }), status),
+          el('p', { class: 'muted', text: 'Reports people send about posts, messages or profiles. Community features are switched off in the app for now, so this stays quiet until they return.' }), box);
+        await load();
+      },
+
+      async announce() {
+        const cur = (await rpc('current_announcement')) || [];
+        const now = cur[0];
+        const msg = el('textarea', { id: 'announce-text', rows: '3', maxlength: '280', placeholder: 'e.g. Backups are slow today. Nothing is lost; it catches up on its own.', style: 'width:100%' });
+        const tone = el('select', { id: 'announce-tone', 'aria-label': 'Tone' }, el('option', { value: 'info', text: 'News (purple)' }), el('option', { value: 'warning', text: 'Heads-up (amber)' }));
+        const days = el('select', { id: 'announce-days', 'aria-label': 'Show for' }, el('option', { value: '', text: 'Until I clear it' }), ...[1, 3, 7, 14].map(d => el('option', { value: String(d), text: 'For ' + d + (d === 1 ? ' day' : ' days') })));
+        const preview = el('div', { class: 'banner-preview info', text: 'Your message shows here.' });
+        const left = el('span', { class: 'muted', text: '280 characters left' });
+        const update = () => { preview.className = 'banner-preview ' + tone.value; preview.textContent = msg.value.trim() || 'Your message shows here.'; left.textContent = (280 - msg.value.length) + ' characters left'; };
+        msg.addEventListener('input', update); tone.addEventListener('change', update);
+        const err = el('div', { class: 'err', role: 'alert' });
+        main.replaceChildren(
+          el('div', { class: 'head' }, el('h1', { text: 'Announcement' })),
+          el('p', { class: 'muted', text: 'One short banner at the top of Journeys for everyone, guests included. People can close it on their phone. Publishing a new one replaces the current one.' }),
+          el('div', { class: 'card' }, el('h3', { text: 'Showing now' }),
+            now ? el('div', { class: 'banner-preview ' + now.tone, text: now.message }) : el('p', { class: 'muted', text: 'Nothing. The banner is hidden.' }),
+            now ? el('div', { class: 'row' }, btn('Clear it', async () => { await rpc('admin_announce_clear'); render(); }, 'danger')) : ''),
+          el('div', { class: 'card' }, el('h3', { text: 'New announcement' }), msg, el('div', { class: 'row' }, tone, days, left),
+            el('div', { class: 'muted', text: 'Preview' }), preview,
+            el('div', { class: 'row' }, btn('Publish', async e => {
+              if (!msg.value.trim()) { err.textContent = 'Write a message first.'; return; }
+              e.target.disabled = true; err.textContent = '';
+              try { await rpc('admin_announce', { p_message: msg.value.trim(), p_tone: tone.value, p_days: days.value ? Number(days.value) : null }); render(); }
+              catch (x) { err.textContent = x.message; e.target.disabled = false; }
+            }, 'primary')), err),
+        );
+      },
+    };
+
+    async function start() {
+      if (!session) return showLogin();
+      let ok;
+      try { ok = await rpc('is_admin'); }
+      catch (x) { save(null); return showLogin('Please sign in again.'); }
+      if (!ok) return showNotAdmin();
+      if (!VIEWS[current]) current = 'overview';
+      shell();
+      // Badge counts for the side menu, then the chosen section.
+      try { counts = await rpc('admin_overview'); drawNav(); } catch (e) {}
+      render();
+    }
+    start();
+  })();
+  </script>
+</body>
+</html>

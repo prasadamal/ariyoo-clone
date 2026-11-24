@@ -1,3 +1,4 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, Pressable, View } from 'react-native';
 import { Button, Checkbox, Dialog, IconButton, Menu, Portal, Text, TextInput } from 'react-native-paper';
@@ -20,8 +21,14 @@ import { loadPackingLists, loadTripList, savePackingLists, saveTripList } from '
 import { useAppTheme } from '../../theme';
 import { FloatingTabs } from '../../ui/FloatingTabs';
 import { Meter } from '../../ui/Meter';
+import { Icon } from '../../ui/Icon';
+import { getDestination } from '../../content/destinations';
+import { tripForecast, weatherTip, type WeatherTip } from '../../lib/packingNudges';
+import { fetchForecast } from '../../lib/weather';
 
 type Props = { trip: LocalTrip; onChanged: () => void };
+
+const TIP_ICONS: Record<string, string> = { 'Rain jacket': 'weather-pouring', 'Warm gloves': 'snowflake', 'Warm layer': 'thermometer-low', Sunscreen: 'white-balance-sunny' };
 
 /**
  * Pack for this journey from one of your checklists (Short trip, Long trip, or your own). Ticks are
@@ -37,6 +44,27 @@ export function PackingTab({ trip, onChanged }: Props) {
   const [menu, setMenu] = useState(false);
   const [naming, setNaming] = useState(false);
   const [newName, setNewName] = useState('');
+  // One thing to pack from the trip's forecast (rain jacket, warm layer…), unless skipped.
+  const [tip, setTip] = useState<WeatherTip | null>(null);
+  const tipKey = `wayfare_pack_tip_skip_${trip.id}`;
+  useEffect(() => {
+    const lat = trip.dest_lat ?? getDestination(trip.place_key)?.lat;
+    const lng = trip.dest_lng ?? getDestination(trip.place_key)?.lng;
+    if (lat == null || lng == null || !trip.starts_on) return;
+    const days = (new Date(`${trip.starts_on}T00:00:00`).getTime() - Date.now()) / 86400000;
+    if (days > 15 || days < -1) return; // the forecast reaches ~16 days ahead; past trips don't need it
+    let alive = true;
+    Promise.all([fetchForecast(lat, lng, 16), AsyncStorage.getItem(tipKey).catch(() => null)])
+      .then(([forecast, skipped]) => {
+        const t = weatherTip(tripForecast(forecast, trip.starts_on!, trip.ends_on));
+        if (alive) setTip(t && t.item !== skipped ? t : null);
+      })
+      .catch(() => undefined);
+    return () => {
+      alive = false;
+    };
+  }, [trip.dest_lat, trip.dest_lng, trip.place_key, trip.starts_on, trip.ends_on, tipKey]);
+
   // Labels being saved right now: a second tap can't create the same item twice.
   const busy = useRef(new Set<string>());
 
@@ -137,8 +165,32 @@ export function PackingTab({ trip, onChanged }: Props) {
     </Pressable>
   );
 
+  const tipNeeded = tip && !rows.some(r => labelKey(r.label) === labelKey(tip.item)) && !extras.some(e => labelKey(e.label) === labelKey(tip.item));
+
   return (
     <View>
+      {tipNeeded ? (
+        // From the forecast: one suggestion, added to this checklist with a tap.
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, borderRadius: 16, backgroundColor: colors.primaryContainer, marginBottom: 12 }}>
+          <Icon name={TIP_ICONS[tip.item] ?? 'weather-partly-cloudy'} size={22} color={colors.onPrimaryContainer} />
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontWeight: '700', color: colors.onPrimaryContainer }}>Add a {tip.item.toLowerCase()}?</Text>
+            <Text style={{ fontSize: 12, color: colors.onPrimaryContainer }}>{tip.why}</Text>
+          </View>
+          <Button compact mode="contained" onPress={() => void saveLists(updateItems(lists, current.id, addToList(current.items, tip.item)))}>
+            Add
+          </Button>
+          <IconButton
+            icon="close"
+            size={16}
+            accessibilityLabel="Skip this suggestion"
+            onPress={() => {
+              AsyncStorage.setItem(tipKey, tip.item).catch(() => undefined);
+              setTip(null);
+            }}
+          />
+        </View>
+      ) : null}
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 12 }}>
         <View style={{ flex: 1 }}>
           <FloatingTabs

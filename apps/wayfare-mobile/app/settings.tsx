@@ -24,6 +24,12 @@ import { Notice } from '../src/ui/Notice';
 import { Screen } from '../src/ui/Screen';
 import { SectionHeader } from '../src/ui/SectionHeader';
 import { SOCIAL_ENABLED } from '../src/lib/features';
+import { cleanUpiId, isValidUpiId } from '../src/lib/upi';
+import { getUpiIds, MY_UPI, setUpiId } from '../src/lib/upiIds';
+import { packingNudgesEnabled, setPackingNudgesEnabled } from '../src/lib/packingReminders';
+import { setWriteOutEnabled, writeOutEnabled, writeOutSupported } from '../src/lib/voiceTranscribe';
+import { journeysOnly } from '../src/lib/everydayMemories';
+import { listTrips } from '../src/lib/localDb';
 
 function ToggleRow({ icon, title, body, value, onChange, disabled }: { icon: string; title: string; body: string; value: boolean; onChange: (v: boolean) => void; disabled?: boolean }) {
   const { colors } = useAppTheme();
@@ -43,6 +49,21 @@ export default function SettingsScreen() {
   const { colors } = useAppTheme();
   const toast = useToast();
   const [reminder, setReminder] = useState<DiaryReminder>({ on: false, hour: 21 });
+  const [myUpi, setMyUpi] = useState('');
+  const [packNudges, setPackNudges] = useState(true);
+  const voiceSupported = writeOutSupported();
+  const [writeOut, setWriteOut] = useState(false);
+  useEffect(() => {
+    writeOutEnabled().then(setWriteOut).catch(() => undefined);
+  }, []);
+  useEffect(() => {
+    packingNudgesEnabled().then(setPackNudges).catch(() => undefined);
+  }, []);
+  const [upiOpen, setUpiOpen] = useState(false);
+  const [upiDraft, setUpiDraft] = useState('');
+  useEffect(() => {
+    getUpiIds().then(ids => setMyUpi(ids[MY_UPI] ?? '')).catch(() => undefined);
+  }, []);
   const [telemetryOn, setTelemetryOn] = useState(true);
   useEffect(() => {
     getDiaryReminder().then(setReminder).catch(() => undefined);
@@ -253,7 +274,7 @@ export default function SettingsScreen() {
         Remove journals from this phone
       </Button>
 
-      <SectionHeader title="Diary" />
+      <SectionHeader title="Reminders" />
       <ToggleRow
         icon="notebook-edit-outline"
         title="Daily reminder"
@@ -268,6 +289,64 @@ export default function SettingsScreen() {
           onChange={h => changeReminder({ ...reminder, hour: Number(h) })}
         />
       ) : null}
+      <ToggleRow
+        icon="bag-checked"
+        title="Packing reminders"
+        body="3 days before a journey and the evening before: what's left to pack, with a tip from the forecast."
+        value={packNudges}
+        onChange={async on => {
+          try {
+            await setPackingNudgesEnabled(on, journeysOnly(await listTrips()));
+            setPackNudges(on);
+          } catch (e) {
+            toast(e instanceof Error ? e.message : 'Could not change packing reminders');
+          }
+        }}
+      />
+
+      {voiceSupported ? (
+        <>
+          <SectionHeader title="Voice notes" />
+          <ToggleRow
+            icon="text-to-speech"
+            title="Write out voice notes (beta)"
+            body="Your words appear as you speak and are saved with the moment, so you can read and search them. Uses your phone's speech recognition; voice notes are saved as larger .wav files."
+            value={writeOut}
+            onChange={async on => {
+              try {
+                await setWriteOutEnabled(on);
+                setWriteOut(on);
+              } catch (e) {
+                toast(e instanceof Error ? e.message : 'Could not change this setting');
+              }
+            }}
+          />
+        </>
+      ) : null}
+
+      <SectionHeader title="Payments" />
+      {/* Your UPI ID: used by "Request" in a journey's Settle up. Saved on this phone only. */}
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+        <Icon name="cellphone-arrow-down" size={22} color={colors.onSurfaceVariant} />
+        <View style={{ flex: 1 }}>
+          <Text style={{ fontWeight: '600' }}>Your UPI ID</Text>
+          <Text style={{ color: colors.muted, fontSize: 12 }}>{myUpi || 'Add it so friends can pay you back from a link.'}</Text>
+        </View>
+        <Button compact onPress={() => { setUpiDraft(myUpi); setUpiOpen(true); }}>{myUpi ? 'Change' : 'Add'}</Button>
+      </View>
+      <Portal>
+        <Dialog visible={upiOpen} onDismiss={() => setUpiOpen(false)}>
+          <Dialog.Title>Your UPI ID</Dialog.Title>
+          <Dialog.Content>
+            <TextInput mode="outlined" label="UPI ID" placeholder="name@okaxis" value={upiDraft} onChangeText={setUpiDraft} autoCapitalize="none" autoCorrect={false} keyboardType="email-address" error={!!upiDraft.trim() && !isValidUpiId(upiDraft)} />
+          </Dialog.Content>
+          <Dialog.Actions>
+            {myUpi ? <Button textColor={colors.danger} onPress={async () => { await setUpiId(MY_UPI, null); setMyUpi(''); setUpiOpen(false); }}>Remove</Button> : null}
+            <Button onPress={() => setUpiOpen(false)}>Cancel</Button>
+            <Button mode="contained" disabled={!isValidUpiId(upiDraft)} onPress={async () => { const id = cleanUpiId(upiDraft); await setUpiId(MY_UPI, id); setMyUpi(id); setUpiOpen(false); }}>Save</Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
 
       <SectionHeader title="Help us improve" />
       <ToggleRow

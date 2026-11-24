@@ -8,6 +8,7 @@ import { tripTypeIcon } from '../../src/components/TripCard';
 import { getDestination } from '../../src/content/destinations';
 import { useAuth, useCanConnect, useSocial } from '../../src/context/AuthContext';
 import { useSync } from '../../src/context/SyncContext';
+import { shareTripStory, stopTripStory } from '../../src/lib/shareTrip';
 import { useToast } from '../../src/context/ToastContext';
 import { BudgetTab } from '../../src/features/trip/BudgetTab';
 import { CrewTab } from '../../src/features/trip/CrewTab';
@@ -263,6 +264,33 @@ export default function TripDetailScreen() {
                 onPress={() => {
                   setMenu(false);
                   router.push({ pathname: '/post/new', params: { tripId: trip.id, kind: 'trip' } });
+                }}
+              />
+            ) : null}
+            {/* Story link for family: owner only, signed in (the page reads the cloud copy). */}
+            {role === 'owner' && user && !everyday ? (
+              <Menu.Item
+                leadingIcon="link-variant"
+                title={trip.visibility === 'link' ? 'Share story link again' : 'Share story link'}
+                onPress={() => {
+                  setMenu(false);
+                  const go = () => shareTripStory(trip, user.id).then(load).catch(e => toast(e instanceof Error ? e.message : 'Could not share the story'));
+                  if (trip.visibility === 'link') return void go();
+                  Alert.alert(
+                    'Share a story link?',
+                    'Anyone with the link can see this journey\u2019s moments, photos, moods and place names, day by day, without the app. Money, routes and voice notes stay private. You can stop sharing any time.',
+                    [{ text: 'Cancel', style: 'cancel' }, { text: 'Share link', onPress: () => void go() }]
+                  );
+                }}
+              />
+            ) : null}
+            {role === 'owner' && user && trip.visibility === 'link' ? (
+              <Menu.Item
+                leadingIcon="link-variant-off"
+                title="Stop sharing story"
+                onPress={() => {
+                  setMenu(false);
+                  stopTripStory(trip, user.id).then(() => { toast('The story link no longer opens'); load(); }).catch(() => toast('Could not stop sharing. Try again.'));
                 }}
               />
             ) : null}
