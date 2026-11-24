@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { datePills, dayStripCells } from '../../features/trip/dayStripCells';
+import { datePills, dayStripCells, tripDayLabel } from '../../features/trip/dayStripCells';
 
 test('one cell per trip day, with the days that have moments marked', () => {
   const cells = dayStripCells('2026-11-28', '2026-11-30', ['2026-11-29']);
@@ -33,8 +33,21 @@ test('no dates: the trip runs from the first to the last moment; month ends roll
 test('date pills: trip days plus other days with moments, in order', () => {
   const pills = datePills('2026-11-30', '2026-12-01', ['2026-11-20', '2026-11-30']);
   assert.deepEqual(pills.map(p => p.day), ['2026-11-20', '2026-11-30', '2026-12-01']);
-  assert.match(pills[1].label, /^Day 1 · 30 Nov$/);
-  assert.match(pills[0].label, /^20 Nov$/);
+  assert.equal(pills[1].label, 'Day 1', 'just the day, no date');
+  assert.equal(pills[2].label, 'Day 2');
+  assert.equal(pills[0].label, 'Pre-trip');
   assert.deepEqual(datePills('2026-11-30', '2026-11-30', ['2026-11-30']), [], 'one day: nothing to switch');
   assert.equal(datePills('2026-11-30', null, ['2026-11-20', '2026-11-22', '2026-11-23']).length, 4, 'one-day trip with earlier moments');
+});
+
+test('day names: Day n during the trip, Pre-trip / After trip outside it', () => {
+  const all = ['2026-11-27', '2026-11-28', '2026-11-30', '2026-12-01', '2026-12-03'];
+  assert.equal(tripDayLabel('2026-11-30', '2026-11-30', '2026-12-01', all), 'Day 1');
+  assert.equal(tripDayLabel('2026-12-01', '2026-11-30', '2026-12-01', all), 'Day 2');
+  assert.equal(tripDayLabel('2026-11-27', '2026-11-30', '2026-12-01', all), 'Pre-trip 1', 'several days before: numbered');
+  assert.equal(tripDayLabel('2026-11-28', '2026-11-30', '2026-12-01', all), 'Pre-trip 2');
+  assert.equal(tripDayLabel('2026-12-03', '2026-11-30', '2026-12-01', all), 'After trip');
+  assert.equal(tripDayLabel('2026-12-09', '2026-11-30', null, all), 'Day 10', 'no end date: every day from the start counts');
+  const undated = datePills(null, null, ['2026-11-21', '2026-11-20']);
+  assert.deepEqual(undated.map(p => p.label), ['Day 1', 'Day 2'], 'no dates: the first moment is Day 1');
 });

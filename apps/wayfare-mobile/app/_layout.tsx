@@ -29,6 +29,26 @@ function SocialRouteGuard() {
   return null;
 }
 
+/**
+ * Moves between sign-in and Journeys when the account changes, only after the screens for the
+ * new account are mounted. (Navigating from inside signIn/signOut raced the stack being rebuilt
+ * for the new account, which closed the app on Android.)
+ */
+function AuthRouteGuard() {
+  const { user, loading, journalReady, guest, offlineMode } = useAuth();
+  const segments = useSegments();
+  const first = (segments[0] as string | undefined) ?? '';
+  useEffect(() => {
+    if (loading || !journalReady) return;
+    const t = setTimeout(() => {
+      if (user && (first === 'login' || first === 'register')) router.replace('/(tabs)');
+      else if (!user && !guest && !offlineMode && (first === '(tabs)' || first === 'settings')) router.replace('/login');
+    }, 0); // after this render's screen changes have committed
+    return () => clearTimeout(t);
+  }, [user?.id, loading, journalReady, guest, offlineMode, first]);
+  return null;
+}
+
 function OwnerConflictDialog() {
   const { ownerConflict, resolveOwnerConflict } = useAuth();
   const lock = useRef(false);
@@ -99,7 +119,11 @@ function RootStack() {
     <View style={{ flex: 1 }}>
     <View style={{ flex: 1 }} pointerEvents={blocked ? 'none' : 'auto'} accessibilityElementsHidden={blocked} importantForAccessibility={blocked ? 'no-hide-descendants' : 'auto'}>
     <SocialRouteGuard />
-    <Stack key={`${user?.id ?? 'guest'}:${journalReady}`}
+    <AuthRouteGuard />
+    {/* Rebuilt once per account (not again when the journal check finishes): two rebuilds in a row
+        during sign-in crashed the native screens on Android. The cover below hides the screens
+        until this phone's journal is confirmed for the account. */}
+    <Stack key={user?.id ?? 'guest'}
       screenOptions={{
         headerStyle: { backgroundColor: c.background },
         headerTintColor: c.onSurface,
@@ -143,6 +167,7 @@ function RootStack() {
       <Stack.Screen name="badges" options={{ title: 'Badges & tiers' }} />
       <Stack.Screen name="tools/currency" options={{ title: 'Currency converter' }} />
       <Stack.Screen name="settings" options={{ title: 'Settings' }} />
+      <Stack.Screen name="trips/[status]" options={{ title: 'Journeys' }} />
       <Stack.Screen name="blocked" options={{ title: 'Blocked travellers' }} />
     </Stack>
     </View>

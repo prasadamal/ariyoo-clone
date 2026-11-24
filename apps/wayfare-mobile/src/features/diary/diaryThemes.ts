@@ -19,10 +19,11 @@ export type DiaryTheme = {
 
 const serif = Platform.select({ ios: 'Georgia', android: 'serif', default: 'Georgia, "Times New Roman", serif' });
 
+// Lavender first: it's the default page and matches the app's colours.
 export const DIARY_THEMES: DiaryTheme[] = [
+  { id: 'lavender', name: 'Lavender', paper: '#f6effb', ink: '#3f0263', faint: '#a688bd', rule: '#eadcf4', margin: null, font: serif, dark: false },
   { id: 'diary', name: 'Personal diary', paper: '#fbf6ea', ink: '#3b2f2a', faint: '#a1907f', rule: '#e8dcc6', margin: '#f2b8b0', font: serif, dark: false },
   { id: 'note', name: 'Simple note', paper: '#ffffff', ink: '#18181b', faint: '#a1a1aa', rule: null, margin: null, font: undefined, dark: false },
-  { id: 'lavender', name: 'Lavender', paper: '#f6effb', ink: '#3f0263', faint: '#a688bd', rule: '#eadcf4', margin: null, font: serif, dark: false },
   { id: 'night', name: 'Night', paper: '#16121d', ink: '#ece6f5', faint: '#8a7f9c', rule: '#262033', margin: null, font: serif, dark: true },
 ];
 

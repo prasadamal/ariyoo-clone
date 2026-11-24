@@ -1,7 +1,7 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Easing, Pressable, Share, StyleSheet, View } from 'react-native';
+import { Animated, Easing, Pressable, ScrollView, Share, StyleSheet, View } from 'react-native';
 import { Button, IconButton, Text } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth, useCanConnect } from '../../src/context/AuthContext';
@@ -212,8 +212,9 @@ export default function ProfileTab() {
 
         <Tile title="Places visited">
           {countries.length ? (
-            // One card per country (flag, name, how many places); tap to see its states.
-            <View style={{ gap: 8 }}>
+            // One card per country (flag, name, how many places); tap to see its states. A fixed box
+            // that scrolls inside, so a hundred countries don't stretch the page.
+            <ScrollView style={{ maxHeight: 316 }} contentContainerStyle={{ gap: 8 }} nestedScrollEnabled showsVerticalScrollIndicator={countries.length > 4}>
               {countries.map(c => {
                 const { states, placeCount } = placesOf(c);
                 const open = expanded === c;
@@ -254,7 +255,7 @@ export default function ProfileTab() {
                   </View>
                 );
               })}
-            </View>
+            </ScrollView>
           ) : (
             <Text style={{ color: colors.muted, lineHeight: 20 }}>Pick a destination when you start a journey, and the places you travel to collect here.</Text>
           )}
@@ -265,6 +266,8 @@ export default function ProfileTab() {
           action={<Pill icon="medal-outline" label={`See all ${allBadges}`} onPress={() => router.push('/badges')} />}
         >
           {earned.length || memberNo ? (
+            // Two rows at a glance; more badges scroll inside the box.
+            <ScrollView style={{ maxHeight: 232 }} nestedScrollEnabled showsVerticalScrollIndicator={earned.length + (memberNo ? 1 : 0) > 8}>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', rowGap: 14 }}>
               {memberNo ? (
                 <View style={{ width: '25%', alignItems: 'center' }} accessible accessibilityLabel={`Member number ${memberNo}`}>
@@ -289,6 +292,7 @@ export default function ProfileTab() {
                 </View>
               ))}
             </View>
+            </ScrollView>
           ) : (
             <Text style={{ color: colors.muted }}>Your first badge is one journey away.</Text>
           )}
