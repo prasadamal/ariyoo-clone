@@ -12,6 +12,7 @@ import { useAppTheme } from '../../theme';
 import { ChipSelect } from '../../ui/ChipSelect';
 import { Icon } from '../../ui/Icon';
 import { Notice } from '../../ui/Notice';
+import { Sheet, SheetTextInput } from '../../ui/Sheet';
 import { Meter } from '../../ui/Meter';
 import { capitalizeName, firstName } from '../../lib/names';
 import { cleanUpiId, isValidUpiId, upiKey, upiPayLink, upiRequestMessage } from '../../lib/upi';
@@ -59,35 +60,41 @@ export function BudgetTab({ trip, onChanged, readOnly = false }: Props) {
   const [budgetText, setBudgetText] = useState('');
   const [formOpen, setFormOpen] = useState(false);
   const [showSettle, setShowSettle] = useState(false);
-  // UPI: IDs remembered on this phone, and the "what's their UPI ID?" box when one is missing.
+  // UPI: IDs remembered on this phone, and the pay / request sheet for one Settle up payment.
   const [upiIds, setUpiIds] = useState<Record<string, string>>({});
-  const [upiAsk, setUpiAsk] = useState<{ who: string; then: (id: string) => void } | null>(null);
+  const [upiSheet, setUpiSheet] = useState<{ kind: 'pay' | 'request'; who: string; t: { from: string; to: string; amount: number } } | null>(null);
   const [upiText, setUpiText] = useState('');
+  const [upiOpened, setUpiOpened] = useState(false);
   const upiToast = useToast();
   useEffect(() => {
     getUpiIds().then(setUpiIds).catch(() => undefined);
   }, []);
-  /** A UPI ID for someone (MY_UPI for yourself): remembered, or asked for once. */
-  const withUpiId = (who: string, then: (id: string) => void) => {
-    const known = upiIds[upiKey(who)];
-    if (known) return then(known);
-    setUpiText('');
-    setUpiAsk({ who, then });
+  /** Opens the sheet for paying (you owe) or requesting (you're owed) one payment, with the ID filled in if known. */
+  const openUpi = (kind: 'pay' | 'request', t: { from: string; to: string; amount: number }) => {
+    const who = kind === 'pay' ? t.to : t.from;
+    setUpiText(upiIds[upiKey(kind === 'pay' ? who : MY_UPI)] ?? '');
+    setUpiOpened(false);
+    setUpiSheet({ kind, who, t });
   };
-  const payByUpi = (to: string, amount: number) =>
-    withUpiId(to, async id => {
-      const link = upiPayLink({ upiId: id, name: firstName(to), amount, note: trip.title });
+  const sendUpi = async () => {
+    const sheet = upiSheet;
+    if (!sheet || !isValidUpiId(upiText)) return;
+    const id = cleanUpiId(upiText);
+    setUpiIds(await setUpiId(sheet.kind === 'pay' ? sheet.who : MY_UPI, id));
+    if (sheet.kind === 'pay') {
+      const link = upiPayLink({ upiId: id, name: firstName(sheet.who), amount: sheet.t.amount, note: trip.title });
       try {
         await Linking.openURL(link);
+        setUpiOpened(true); // back from the UPI app: "Mark as paid" is the next step
       } catch {
         upiToast('No UPI app found on this phone');
       }
-    });
-  const requestByUpi = (from: string, amount: number) =>
-    withUpiId(MY_UPI, id => {
-      const link = upiPayLink({ upiId: id, name: 'Wayfare', amount, note: trip.title });
-      void Share.share({ message: upiRequestMessage({ to: firstName(from), amount: formatMoney(amount, 'INR'), trip: trip.title, myUpiId: id, link }) });
-    });
+    } else {
+      const link = upiPayLink({ upiId: id, name: 'Wayfare', amount: sheet.t.amount, note: trip.title });
+      setUpiSheet(null);
+      void Share.share({ message: upiRequestMessage({ to: firstName(sheet.who), amount: formatMoney(sheet.t.amount, 'INR'), trip: trip.title, myUpiId: id, link }) });
+    }
+  };
   const [showExpenses, setShowExpenses] = useState(false);
   const [note, setNote] = useState('');
   const [paidBy, setPaidBy] = useState(ME);
@@ -345,12 +352,12 @@ export function BudgetTab({ trip, onChanged, readOnly = false }: Props) {
                   // UPI for rupees: "Pay" when you owe, "Request" when you're owed. "Paid" records it.
                   <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 8 }}>
                     {s.currency === 'INR' && t.from === ME ? (
-                      <Button compact mode="contained" icon="cellphone-arrow-down" onPress={() => payByUpi(t.to, t.amount)} accessibilityLabel={`Pay ${personLabel(t.to)} with UPI`}>
+                      <Button compact mode="contained" icon="cellphone-arrow-down" onPress={() => openUpi('pay', t)} accessibilityLabel={`Pay ${personLabel(t.to)} with UPI`}>
                         Pay with UPI
                       </Button>
                     ) : null}
                     {s.currency === 'INR' && t.to === ME ? (
-                      <Button compact mode="contained-tonal" icon="send-outline" onPress={() => requestByUpi(t.from, t.amount)} accessibilityLabel={`Ask ${personLabel(t.from)} to pay with UPI`}>
+                      <Button compact mode="contained-tonal" icon="send-outline" onPress={() => openUpi('request', t)} accessibilityLabel={`Ask ${personLabel(t.from)} to pay with UPI`}>
                         Request
                       </Button>
                     ) : null}
@@ -412,13 +419,21 @@ export function BudgetTab({ trip, onChanged, readOnly = false }: Props) {
           ) : null}
         </View>
       ) : null}
-      <Portal>
-        <Dialog visible={!!upiAsk} onDismiss={() => setUpiAsk(null)}>
-          <Dialog.Title>{upiAsk?.who === MY_UPI ? 'Your UPI ID' : `${upiAsk ? firstName(upiAsk.who) : ''}\u2019s UPI ID`}</Dialog.Title>
-          <Dialog.Content>
-            <TextInput
+      {/* Pay or request one Settle up payment over UPI: the amount, the UPI ID, then the UPI app. */}
+      <Sheet
+        visible={!!upiSheet}
+        onDismiss={() => setUpiSheet(null)}
+        title={upiSheet?.kind === 'pay' ? `Pay ${firstName(personLabel(upiSheet.who))}` : `Ask ${upiSheet ? firstName(personLabel(upiSheet.who)) : ''} to pay`}
+      >
+        {upiSheet ? (
+          <View>
+            <Text style={{ fontSize: 36, fontWeight: '900', color: colors.secondary }} accessibilityLabel={`Amount ${formatMoney(upiSheet.t.amount, 'INR')}`}>
+              {formatMoney(upiSheet.t.amount, 'INR')}
+            </Text>
+            <Text style={{ color: colors.muted, marginBottom: 14 }}>{trip.title}</Text>
+            <SheetTextInput
               mode="outlined"
-              label="UPI ID"
+              label={upiSheet.kind === 'pay' ? `${firstName(personLabel(upiSheet.who))}\u2019s UPI ID` : 'Your UPI ID'}
               placeholder="name@okaxis"
               value={upiText}
               onChangeText={setUpiText}
@@ -427,29 +442,38 @@ export function BudgetTab({ trip, onChanged, readOnly = false }: Props) {
               keyboardType="email-address"
               error={!!upiText.trim() && !isValidUpiId(upiText)}
             />
-            <Text style={{ color: colors.muted, fontSize: 12, marginTop: 8 }}>
-              {upiAsk?.who === MY_UPI ? 'Friends pay this ID from the link you send.' : 'Saved on this phone for next time.'} It\u2019s shown in GPay, PhonePe or Paytm under your profile.
+            <Text style={{ color: colors.muted, fontSize: 12, marginTop: 6 }}>
+              {`${upiSheet.kind === 'pay' ? 'Saved on this phone for next time.' : 'Your friend pays this ID from the link you send.'} It\u2019s shown in GPay, PhonePe or Paytm under your profile.`}
             </Text>
-          </Dialog.Content>
-          <Dialog.Actions>
-            <Button onPress={() => setUpiAsk(null)}>Cancel</Button>
             <Button
-              mode="contained"
+              mode={upiOpened ? 'outlined' : 'contained'}
+              icon={upiSheet.kind === 'pay' ? 'cellphone-arrow-down' : 'send-outline'}
               disabled={!isValidUpiId(upiText)}
-              onPress={async () => {
-                const ask = upiAsk;
-                if (!ask) return;
-                const id = cleanUpiId(upiText);
-                setUpiIds(await setUpiId(ask.who, id));
-                setUpiAsk(null);
-                ask.then(id);
-              }}
+              onPress={sendUpi}
+              style={{ marginTop: 16 }}
+              contentStyle={{ height: 48 }}
             >
-              Continue
+              {upiSheet.kind === 'pay' ? (upiOpened ? 'Open UPI app again' : 'Open UPI app') : 'Send request'}
             </Button>
-          </Dialog.Actions>
-        </Dialog>
-      </Portal>
+            <Button
+              mode={upiOpened ? 'contained' : 'text'}
+              icon="check"
+              onPress={() => {
+                const t = upiSheet.t;
+                setUpiSheet(null);
+                markPaid(t, 'INR');
+              }}
+              style={{ marginTop: 8 }}
+              contentStyle={{ height: 44 }}
+            >
+              {upiSheet.kind === 'pay' ? 'I\u2019ve paid, mark as paid' : 'They\u2019ve paid, mark as paid'}
+            </Button>
+            {upiSheet.kind === 'pay' ? (
+              <Text style={{ color: colors.muted, fontSize: 12, textAlign: 'center', marginTop: 8 }}>Your UPI app asks for your PIN. Wayfare never sees or handles the payment.</Text>
+            ) : null}
+          </View>
+        ) : null}
+      </Sheet>
       <Portal>
         <Dialog visible={formOpen} onDismiss={() => setFormOpen(false)} style={{ maxHeight: '88%' }}>
           <Dialog.Title>Add expense</Dialog.Title>

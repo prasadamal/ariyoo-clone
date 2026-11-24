@@ -9,6 +9,9 @@ import { StatusBar } from 'expo-status-bar';
 import { AppState, View } from 'react-native';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Button, Dialog, Provider as PaperProvider, Portal, Text } from 'react-native-paper';
+import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { AppLockProvider } from '../src/context/AppLockContext';
 import { AuthProvider, useAuth } from '../src/context/AuthContext';
 import { InboxProvider } from '../src/context/InboxContext';
@@ -210,11 +213,14 @@ function ThemedRoot() {
             <SyncProvider>
               <InboxProvider>
                 <AppLockProvider>
-                  <StatusBar style={isDark ? 'light' : 'dark'} />
-                  <PushRegistrar />
-                  <UsageTracker />
-                  <RootStack />
-                  <OwnerConflictDialog />
+                  {/* Swipe-up sheets render here, inside the theme and toast providers they use. */}
+                  <BottomSheetModalProvider>
+                    <StatusBar style={isDark ? 'light' : 'dark'} />
+                    <PushRegistrar />
+                    <UsageTracker />
+                    <RootStack />
+                    <OwnerConflictDialog />
+                  </BottomSheetModalProvider>
                 </AppLockProvider>
               </InboxProvider>
             </SyncProvider>
@@ -251,8 +257,13 @@ export function ErrorBoundary({ error, retry }: { error: Error; retry: () => Pro
 
 export default function RootLayout() {
   return (
-    <ThemeProvider>
-      <ThemedRoot />
-    </ThemeProvider>
+    // Gestures (swipe-up sheets) and the keyboard tracker wrap the whole app.
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <KeyboardProvider>
+        <ThemeProvider>
+          <ThemedRoot />
+        </ThemeProvider>
+      </KeyboardProvider>
+    </GestureHandlerRootView>
   );
 }

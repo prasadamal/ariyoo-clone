@@ -5,7 +5,6 @@ import { ConfigPlugin, withInfoPlist } from 'expo/config-plugins';
 
 const BUNDLE_ID = 'com.wayfare.app';
 const BG = '#ffffff';
-const googleMapsApiKey = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY ?? '';
 // Android push (FCM): google-services.json from the Firebase console, saved next to this file or
 // uploaded as the EAS file variable GOOGLE_SERVICES_JSON.
 const googleServicesFile =
@@ -44,20 +43,21 @@ export default ({ config }: ConfigContext): ExpoConfig =>
       supportsTablet: true,
       config: {
         usesNonExemptEncryption: false,
-        ...(googleMapsApiKey ? { googleMapsApiKey } : {}),
       },
       infoPlist: {
         NSLocationWhenInUseUsageDescription:
-          'Wayfare uses your location to geotag journal moments, record your route, show nearby travellers you choose to meet and share live location with people you trust.',
+          'Wayfare uses your location to tag journal moments with where you were, record the route of a journey you start, and share your live location with people you choose.',
         // Never requested ("While using" is enough), but iOS requires the strings because the binary links the API.
         NSLocationAlwaysAndWhenInUseUsageDescription:
-          'Wayfare records your trip route and live-location link only while you have started them.',
+          'Wayfare records a journey route or a live-location link only after you start it, and stops when you stop it.',
         NSLocationAlwaysUsageDescription:
-          'Wayfare records your trip route and live-location link only while you have started them.',
-        NSPhotoLibraryUsageDescription: 'Add photos to your travel journal, posts and chats.',
-        NSCameraUsageDescription: 'Capture photos for your journal, posts and chats.',
-        NSMicrophoneUsageDescription: 'Record short voice notes in your travel journal.',
-        NSFaceIDUsageDescription: 'Lock your private travel journal with Face ID.',
+          'Wayfare records a journey route or a live-location link only after you start it, and stops when you stop it.',
+        // The plugins below set these too; every copy says the same, so the order never matters.
+        NSPhotoLibraryUsageDescription: 'Wayfare uses your photos so you can add them to journal moments and trip covers, and to find photos you took during a journey. Photos stay on your phone unless you add them.',
+        NSCameraUsageDescription: 'Wayfare uses the camera to take photos for your journal moments and trip covers.',
+        NSMicrophoneUsageDescription: 'Wayfare records voice notes for your journal when you tap the microphone.',
+        NSFaceIDUsageDescription: 'Wayfare uses Face ID to lock your private travel journal, if you switch the lock on.',
+        NSSpeechRecognitionUsageDescription: 'Wayfare writes out your voice notes so you can read and search them, if you switch this on in Settings.',
         ITSAppUsesNonExemptEncryption: false,
       },
       // "Required reason" API declarations, merged from the PrivacyInfo.xcprivacy files of React Native
@@ -101,9 +101,6 @@ export default ({ config }: ConfigContext): ExpoConfig =>
         'android.permission.READ_MEDIA_AUDIO',
         'android.permission.SYSTEM_ALERT_WINDOW',
       ],
-      config: {
-        ...(googleMapsApiKey ? { googleMaps: { apiKey: googleMapsApiKey } } : {}),
-      },
       adaptiveIcon: {
         foregroundImage: './assets/adaptive-icon.png',
         backgroundColor: BG,
@@ -123,11 +120,13 @@ export default ({ config }: ConfigContext): ExpoConfig =>
       ],
       'expo-secure-store',
       'expo-sqlite',
+      // Maps: MapLibre with free OpenStreetMap tiles (OpenFreeMap). No Google Maps key needed.
+      '@maplibre/maplibre-react-native',
       [
         // "Add photos from these dates": reads photos only (no saving, no videos, no locations).
         'expo-media-library',
         {
-          photosPermission: 'Wayfare looks for photos you took during a journey so you can add them to its days. Photos stay on your phone unless you add them.',
+          photosPermission: 'Wayfare uses your photos so you can add them to journal moments and trip covers, and to find photos you took during a journey. Photos stay on your phone unless you add them.',
           savePhotosPermission: false,
           isAccessMediaLocationEnabled: false,
           granularPermissions: ['photo'],
@@ -138,7 +137,7 @@ export default ({ config }: ConfigContext): ExpoConfig =>
         'expo-speech-recognition',
         {
           microphonePermission: 'Wayfare records voice notes for your journal when you tap the microphone.',
-          speechRecognitionPermission: 'Wayfare writes out your voice notes so you can read and search them, if you switch this on.',
+          speechRecognitionPermission: 'Wayfare writes out your voice notes so you can read and search them, if you switch this on in Settings.',
           androidSpeechServicePackages: ['com.google.android.googlequicksearchbox', 'com.google.android.as'],
         },
       ],
@@ -147,9 +146,9 @@ export default ({ config }: ConfigContext): ExpoConfig =>
         'expo-location',
         {
           locationWhenInUsePermission:
-            'Wayfare uses your location to geotag journal moments, record your route, show nearby travellers you choose to meet and share live location with people you trust.',
+            'Wayfare uses your location to tag journal moments with where you were, record the route of a journey you start, and share your live location with people you choose.',
           locationAlwaysAndWhenInUsePermission:
-            'Wayfare records your trip route and live-location link only while you have started them.',
+            'Wayfare records a journey route or a live-location link only after you start it, and stops when you stop it.',
           isIosBackgroundLocationEnabled: true,
           isAndroidBackgroundLocationEnabled: false,
           isAndroidForegroundServiceEnabled: true,
@@ -168,26 +167,25 @@ export default ({ config }: ConfigContext): ExpoConfig =>
       [
         'expo-image-picker',
         {
-          photosPermission: 'Add photos to your travel journal, posts and chats.',
-          cameraPermission: 'Capture photos for your journal, posts and chats.',
+          photosPermission: 'Wayfare uses your photos so you can add them to journal moments and trip covers, and to find photos you took during a journey. Photos stay on your phone unless you add them.',
+          cameraPermission: 'Wayfare uses the camera to take photos for your journal moments and trip covers.',
           // Must not be `false`: that would also strip RECORD_AUDIO, which voice notes need.
-          microphonePermission: 'Record short voice notes in your travel journal.',
+          microphonePermission: 'Wayfare records voice notes for your journal when you tap the microphone.',
         },
       ],
       [
         'expo-audio',
         {
-          microphonePermission: 'Record short voice notes in your travel journal.',
+          microphonePermission: 'Wayfare records voice notes for your journal when you tap the microphone.',
           recordAudioAndroid: true,
           enableBackgroundRecording: false,
           enableBackgroundPlayback: false,
         },
       ],
-      ['expo-local-authentication', { faceIDPermission: 'Lock your private travel journal with Face ID.' }],
+      ['expo-local-authentication', { faceIDPermission: 'Wayfare uses Face ID to lock your private travel journal, if you switch the lock on.' }],
     ],
     experiments: { typedRoutes: true },
     extra: {
       ...(easProjectId ? { eas: { projectId: easProjectId } } : {}),
-      googleMapsApiKey,
     },
   });

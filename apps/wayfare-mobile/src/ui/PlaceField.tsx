@@ -5,15 +5,18 @@ import { Chip, Text, TextInput } from 'react-native-paper';
 import type { Destination } from '../content/destinations';
 import { matchDestination, searchDestinations } from '../lib/places';
 import { useAppTheme } from '../theme';
+import { SheetTextInput } from './Sheet';
 
 type Props = {
   label?: string;
   value: string;
   onChange: (text: string, destination: Destination | undefined) => void;
+  /** Inside a swipe-up sheet: the box tells the sheet when it's typed in, so it rises above the keyboard. */
+  inSheet?: boolean;
 };
 
 /** Destination input with catalog suggestions — picking one links trips, rooms and matches. */
-export function PlaceField({ label = 'Destination', value, onChange }: Props) {
+export function PlaceField({ label = 'Destination', value, onChange, inSheet }: Props) {
   const { colors } = useAppTheme();
   const [focused, setFocused] = useState(false);
   const matched = matchDestination(value);
@@ -22,9 +25,10 @@ export function PlaceField({ label = 'Destination', value, onChange }: Props) {
     [value]
   );
   const showSuggestions = focused && suggestions.length > 0 && !(matched && matched.name === value);
+  const Input = inSheet ? SheetTextInput : TextInput;
   return (
     <View>
-      <TextInput
+      <Input
         mode="outlined"
         label={label}
         value={value}

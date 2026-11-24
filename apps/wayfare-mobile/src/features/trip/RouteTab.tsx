@@ -9,17 +9,20 @@ import { useToast } from '../../context/ToastContext';
 import { formatAltitude, formatKm } from '../../lib/format';
 import { cleanTrack, elevationProfile, elevationStats, trackDistanceKm } from '../../lib/geo';
 import { buildTripGpx } from '../../lib/geoExport';
-import { listTrackPoints, type LocalTrackPoint, type LocalTrip } from '../../lib/localDb';
+import { listEntries, listTrackPoints, type LocalTrackPoint, type LocalTrip } from '../../lib/localDb';
 import { getActiveTrackingTripId, getTrackingMode, setTrackingMode, startTripTracking, stopTripTracking, type TrackingMode } from '../../lib/locationTask';
+import { routeEnds, type MapPin } from '../../lib/mapView';
 import { sketchPath } from '../../lib/routeSketch';
 import { useAppTheme } from '../../theme';
 import { ElevationChart } from '../../ui/ElevationChart';
 import { FloatingTabs } from '../../ui/FloatingTabs';
 import { Icon } from '../../ui/Icon';
+import { mapAvailable, TripMap } from '../../ui/TripMap';
 
 type Props = { trip: LocalTrip; onChanged: () => void };
 
 const SKETCH_H = 200;
+const MAP_H = 260;
 
 /** One number in the stats row, in the same light tiles as the rest of the app. */
 function Stat({ icon, value, label }: { icon: string; value: string; label: string }) {
@@ -47,12 +50,20 @@ export function RouteTab({ trip, onChanged }: Props) {
   const [mode, setMode] = useState<TrackingMode>('battery');
   const [busy, setBusy] = useState(false);
   const [width, setWidth] = useState(0);
+  // Moments saved with a location, shown as small dots on the map.
+  const [momentPins, setMomentPins] = useState<MapPin[]>([]);
+  const [mapFailed, setMapFailed] = useState(false);
 
   const load = useCallback(async () => {
-    const [pts, active, m] = await Promise.all([listTrackPoints(trip.id), getActiveTrackingTripId(), getTrackingMode()]);
+    const [pts, active, m, entries] = await Promise.all([listTrackPoints(trip.id), getActiveTrackingTripId(), getTrackingMode(), listEntries(trip.id).catch(() => [])]);
     setPoints(pts);
     setTracking(active === trip.id);
     setMode(m);
+    setMomentPins(
+      entries
+        .filter(e => e.latitude != null && e.longitude != null)
+        .map(e => ({ id: e.id, latitude: e.latitude as number, longitude: e.longitude as number, kind: 'moment' as const }))
+    );
   }, [trip.id]);
 
   useEffect(() => {
@@ -66,6 +77,10 @@ export function RouteTab({ trip, onChanged }: Props) {
   const elev = useMemo(() => elevationStats(points), [points]);
   const profile = useMemo(() => elevationProfile(points), [points]);
   const sketch = useMemo(() => (width ? sketchPath(clean, width, SKETCH_H, 22) : null), [clean, width]);
+  // A real map on phones (MapLibre, free OpenStreetMap tiles); the drawn shape in the browser
+  // preview, or if the map can't load (offline before it was ever opened).
+  const pins = useMemo(() => [...momentPins, ...routeEnds(clean)], [momentPins, clean]);
+  const showMap = mapAvailable && !mapFailed && pins.length > 0;
 
   const toggle = async () => {
     setBusy(true);
@@ -108,7 +123,11 @@ export function RouteTab({ trip, onChanged }: Props) {
   return (
     <View>
       {/* The route's shape on a soft brand background, start in green and the latest point in orange. */}
-      <View onLayout={e => setWidth(e.nativeEvent.layout.width)} style={{ height: SKETCH_H, borderRadius: 22, overflow: 'hidden', backgroundColor: colors.surfaceVariant }}>
+      <View onLayout={e => setWidth(e.nativeEvent.layout.width)} style={{ height: showMap ? MAP_H : SKETCH_H, borderRadius: 22, overflow: 'hidden', backgroundColor: colors.surfaceVariant }}>
+        {showMap ? (
+          <TripMap route={clean} pins={pins} style={StyleSheet.absoluteFill} onFail={() => setMapFailed(true)} />
+        ) : (
+        <>
         <LinearGradient colors={[colors.primaryContainer, colors.surfaceVariant]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
         {sketch ? (
           // Its own layer, so the background gradient never paints over the line.
@@ -127,6 +146,13 @@ export function RouteTab({ trip, onChanged }: Props) {
             <Text style={{ color: colors.muted, textAlign: 'center', marginTop: 2 }}>Start recording when you set off. Your path is drawn here.</Text>
           </View>
         )}
+        </>
+        )}
+        {showMap && clean.length < 2 ? (
+          <View pointerEvents="none" style={{ position: 'absolute', left: 10, bottom: 10, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999, backgroundColor: colors.surface }}>
+            <Text style={{ fontSize: 12, fontWeight: '600' }}>No route yet · dots are your moments</Text>
+          </View>
+        ) : null}
         {clean.length >= 2 ? (
           <IconButton icon="export-variant" mode="contained-tonal" size={18} onPress={exportGpx} accessibilityLabel="Export route (GPX)" style={{ position: 'absolute', top: 6, right: 6 }} />
         ) : null}

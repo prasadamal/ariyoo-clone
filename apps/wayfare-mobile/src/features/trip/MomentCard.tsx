@@ -3,7 +3,7 @@ import { Image as ExpoImage } from 'expo-image';
 import { stripRich } from '../../lib/richText';
 import { useState } from 'react';
 import { Pressable, View } from 'react-native';
-import { IconButton, Menu, Text } from 'react-native-paper';
+import { IconButton, Text } from 'react-native-paper';
 import { EntryVoiceNotes } from '../../components/EntryVoiceNotes';
 import { MomentPhotos } from '../../components/MomentPhotos';
 import { formatDay, toDayString } from '../../lib/format';
@@ -11,6 +11,7 @@ import type { LocalEntry } from '../../lib/localDb';
 import { formatMoney } from '../../lib/momentMoney';
 import { useAppTheme } from '../../theme';
 import { Icon } from '../../ui/Icon';
+import { Sheet, SheetActions } from '../../ui/Sheet';
 import { splitMentions } from '../../lib/mentions';
 
 type Props = {
@@ -93,25 +94,7 @@ export function MomentCard({ entry: e, money, currencySymbol, mediaKey, canShare
           </Text>
         </View>
         {canEdit ? (
-        <Menu
-          visible={menu}
-          onDismiss={() => setMenu(false)}
-          anchor={<IconButton icon="dots-horizontal" size={20} onPress={() => setMenu(true)} accessibilityLabel="Moment options" />}
-        >
-          <Menu.Item leadingIcon="pencil-outline" title="Edit" onPress={() => { setMenu(false); router.push(`/entry/${e.id}`); }} />
-          <Menu.Item leadingIcon="image-plus" title="Add photos" onPress={() => { setMenu(false); onAddPhotos(); }} />
-          {canShare ? (
-            <Menu.Item
-              leadingIcon="share-variant-outline"
-              title="Share to feed"
-              onPress={() => {
-                setMenu(false);
-                router.push({ pathname: '/post/new', params: { entryId: e.id, tripId } });
-              }}
-            />
-          ) : null}
-          <Menu.Item leadingIcon="delete-outline" title="Delete" onPress={() => { setMenu(false); onDelete(); }} />
-        </Menu>
+          <IconButton icon="dots-horizontal" size={20} onPress={() => setMenu(true)} accessibilityLabel="Moment options" />
         ) : (
           <View style={{ width: 12, height: 40 }} />
         )}
@@ -149,6 +132,21 @@ export function MomentCard({ entry: e, money, currencySymbol, mediaKey, canShare
       ) : (
         <View style={{ height: 12 }} />
       )}
+      {canEdit ? (
+        // The moment's options slide up from the bottom: big rows, easy to hit with a thumb.
+        <Sheet visible={menu} onDismiss={() => setMenu(false)} title="Moment" subtitle={body ? `${when} · ${body.split('\n')[0].slice(0, 60)}` : when}>
+          <SheetActions
+            actions={[
+              { icon: 'pencil-outline', label: 'Edit', onPress: () => { setMenu(false); router.push(`/entry/${e.id}`); } },
+              { icon: 'image-plus', label: 'Add photos', onPress: () => { setMenu(false); onAddPhotos(); } },
+              ...(canShare
+                ? [{ icon: 'share-variant-outline', label: 'Share to feed', onPress: () => { setMenu(false); router.push({ pathname: '/post/new', params: { entryId: e.id, tripId } }); } }]
+                : []),
+              { icon: 'delete-outline', label: 'Delete', danger: true, onPress: () => { setMenu(false); onDelete(); } },
+            ]}
+          />
+        </Sheet>
+      ) : null}
     </View>
   );
 }
