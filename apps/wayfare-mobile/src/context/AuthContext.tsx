@@ -132,7 +132,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!supabase) throw new Error('Cloud sign-in is not configured in this build');
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) throw error;
-    router.replace('/(tabs)');
+    // No navigation here: the new account rebuilds the screen stack once, and AuthRouteGuard
+    // (app/_layout.tsx) moves on to Journeys after that settles. Navigating while the stack is
+    // being rebuilt crashed the app on Android.
   }, []);
 
   const signUp = useCallback(async (email: string, password: string, displayName: string, username?: string) => {
@@ -158,8 +160,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (created) {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
-      router.replace('/(tabs)');
-      return { needsConfirmation: false };
+      return { needsConfirmation: false }; // AuthRouteGuard opens Journeys
     }
     const { data, error } = await supabase.auth.signUp({
       email,
@@ -172,7 +173,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (error) throw error;
     // With email confirmation on, Supabase returns a user but no session yet.
     if (!data.session) return { needsConfirmation: true };
-    router.replace('/(tabs)');
+    // AuthRouteGuard opens Journeys once the new account's screens are ready.
     return { needsConfirmation: false };
   }, []);
 
@@ -189,7 +190,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setOwnership({ userId: null, phase: 'ready' });
     setProfile(null);
     retryJournal();
-    router.replace('/login');
+    // AuthRouteGuard returns to sign-in after the screens are rebuilt for "no account".
   }, []);
 
   const sendPasswordReset = useCallback(async (email: string) => {
@@ -221,7 +222,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
       setOwnership({ userId: null, phase: 'ready' });
       setProfile(null);
-      router.replace('/login');
+      // AuthRouteGuard returns to sign-in.
     },
     [userId, retryJournal]
   );

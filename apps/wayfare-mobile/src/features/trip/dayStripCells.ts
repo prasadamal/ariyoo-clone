@@ -49,26 +49,37 @@ export function dayStripCells(startsOn: string | null, endsOn: string | null, mo
   return cells;
 }
 
+/**
+ * A day's name inside a journey: "Day 3" during it, "Pre-trip" before it and "After trip" after it
+ * (numbered when there are several). Without an end date every day from the start is "Day n".
+ */
+export function tripDayLabel(day: string, startsOn: string | null, endsOn: string | null, allDays: readonly string[] = [day]): string {
+  if (!startsOn) return new Date(`${day}T12:00:00`).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+  const end = endsOn && endsOn >= startsOn ? endsOn : null;
+  if (day >= startsOn && (!end || day <= end)) return `Day ${between(startsOn, day) + 1}`;
+  const before = day < startsOn;
+  const same = [...new Set(allDays)].filter(d => (before ? d < startsOn : !!end && d > end)).sort();
+  const name = before ? 'Pre-trip' : 'After trip';
+  return same.length > 1 ? `${name} ${same.indexOf(day) + 1}` : name;
+}
+
 export type DatePill = { day: string; label: string };
 
 /**
  * The date pills above a journey's moments: every day of the trip plus any other day that has
- * moments, in date order, labelled "Day 2 · 23 Nov" inside the trip and "20 Nov" outside it.
+ * moments, in date order, labelled just "Day 2" (or "Pre-trip" / "After trip" outside it).
+ * startsOn falls back to the first moment's day for a journey without dates.
  * Empty when there's only one day (no need to switch).
  */
 export function datePills(startsOn: string | null, endsOn: string | null, momentDays: readonly string[]): DatePill[] {
   const days = new Set(momentDays);
-  const start = startsOn;
-  const end = startsOn && endsOn && endsOn >= startsOn ? endsOn : startsOn;
+  const start = startsOn ?? ([...momentDays].sort()[0] ?? null);
+  const end = startsOn && endsOn && endsOn >= startsOn ? endsOn : null;
   if (start && end) {
     const span = Math.min(between(start, end) + 1, MAX_STRIP_DAYS);
     for (let i = 0; i < span; i++) days.add(addDays(start, i));
-  }
+  } else if (startsOn) days.add(startsOn); // a journey with only a start date still has its Day 1
   const sorted = [...days].sort();
   if (sorted.length <= 1) return [];
-  const short = (d: string) => new Date(`${d}T12:00:00`).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
-  return sorted.map(day => {
-    const n = start && end && day >= start && day <= end ? between(start, day) + 1 : null;
-    return { day, label: n ? `Day ${n} · ${short(day)}` : short(day) };
-  });
+  return sorted.map(day => ({ day, label: tripDayLabel(day, start, end, sorted) }));
 }

@@ -78,7 +78,10 @@ export function MomentComposer(p: Props) {
   const [category, setCategory] = useState('food');
   const amount = parseAmount(amountText);
   const voiceCount = p.voiceCount ?? 0;
-  const hasTray = p.photos.length > 0 || Boolean(p.money) || Boolean(p.place) || p.recording || voiceCount > 0;
+  // The place isn't a chip: the pin below turns purple once one is added (tap it to change or clear).
+  const hasTray = p.photos.length > 0 || Boolean(p.money) || p.recording || voiceCount > 0;
+  // A fixed height keeps the sideways tray from stretching on Android (chips grew and touched the border).
+  const trayHeight = (p.photos.length ? 60 : 34) + 14;
   // The chosen mood's emoji replaces the smiley button itself (no extra chip).
   const moodEmoji = p.mood ? p.mood.split(' ')[0] : '';
 
@@ -104,7 +107,8 @@ export function MomentComposer(p: Props) {
   return (
     <View style={[styles.box, { backgroundColor: colors.surface, borderColor: colors.border }]}>
       {hasTray ? (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tray} keyboardShouldPersistTaps="handled">
+        <View style={{ height: trayHeight }}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0 }} contentContainerStyle={styles.tray} keyboardShouldPersistTaps="handled">
           {p.photos.map((photo, i) => (
             <View key={photo.uri + i}>
               <Image source={{ uri: photo.uri }} style={styles.thumb} contentFit="cover" accessibilityLabel={`Photo ${i + 1}`} />
@@ -118,9 +122,6 @@ export function MomentComposer(p: Props) {
               </Pressable>
             </View>
           ))}
-          {p.place ? (
-            <TrayPill icon="map-marker" label={p.place.name ?? 'Place'} onPress={() => { setPlaceText(p.place?.name ?? ''); setPlaceOpen(true); }} onRemove={() => p.onPlace?.(null)} removeLabel="Remove place" />
-          ) : null}
           {p.money ? (
             <TrayPill
               icon="currency-inr"
@@ -135,6 +136,7 @@ export function MomentComposer(p: Props) {
           ))}
           {p.recording ? <TrayPill icon="record-circle" label="Recording… tap ■ to stop" danger /> : null}
         </ScrollView>
+        </View>
       ) : null}
 
       <TextInput
@@ -197,7 +199,9 @@ export function MomentComposer(p: Props) {
         </Menu>
         {tool('camera-outline', 'Add photos', p.onAddPhotos, p.photos.length > 0, p.recording)}
         {tool(p.recording ? 'stop-circle' : 'microphone-outline', p.recording ? 'Stop recording' : 'Record a voice note', p.onToggleVoice, p.recording, p.voiceBusy)}
-        {p.onPlace ? tool(p.place ? 'map-marker' : 'map-marker-plus-outline', 'Add a place', () => { setPlaceText(p.place?.name ?? ''); setPlaceOpen(true); }, Boolean(p.place), p.recording) : null}
+        {p.onPlace
+          ? tool(p.place ? 'map-marker' : 'map-marker-outline', p.place ? `Place: ${p.place.name ?? 'added'}. Tap to change` : 'Add a place', () => { setPlaceText(p.place?.name ?? ''); setPlaceOpen(true); }, Boolean(p.place), p.recording)
+          : null}
         {tool('currency-inr', 'Add money spent', openMoney, Boolean(p.money), p.recording)}
         <View style={{ flex: 1 }} />
         <IconButton
@@ -229,6 +233,17 @@ export function MomentComposer(p: Props) {
             <Text style={{ color: colors.muted, marginTop: 8, fontSize: 12 }}>Pick from the list to add it to Places visited. No GPS is used.</Text>
           </Dialog.Content>
           <Dialog.Actions>
+            {p.place ? (
+              <Button
+                textColor={colors.danger}
+                onPress={() => {
+                  p.onPlace?.(null);
+                  setPlaceOpen(false);
+                }}
+              >
+                Remove place
+              </Button>
+            ) : null}
             <Button onPress={() => setPlaceOpen(false)}>Cancel</Button>
             <Button
               mode="contained"
@@ -280,7 +295,7 @@ export function MomentComposer(p: Props) {
 
 const styles = StyleSheet.create({
   box: { borderRadius: 20, borderWidth: 1, padding: 8, marginBottom: 16 },
-  tray: { gap: 8, alignItems: 'center', paddingHorizontal: 6, paddingTop: 6, paddingBottom: 8 },
+  tray: { gap: 8, alignItems: 'center', paddingHorizontal: 6, paddingTop: 6, paddingBottom: 8, flexGrow: 0 },
   thumb: { width: 60, height: 60, borderRadius: 12 },
   remove: { position: 'absolute', top: 4, right: 4, width: 20, height: 20, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   input: { backgroundColor: 'transparent', minHeight: 64, maxHeight: 180 },

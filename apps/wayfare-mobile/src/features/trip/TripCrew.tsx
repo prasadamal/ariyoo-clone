@@ -2,7 +2,7 @@ import { router } from 'expo-router';
 import { track } from '../../lib/telemetry';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, Pressable, Share, View } from 'react-native';
-import { ActivityIndicator, Button, Menu, SegmentedButtons, Text, TextInput } from 'react-native-paper';
+import { ActivityIndicator, Button, Menu, Text, TextInput } from 'react-native-paper';
 import { useAuth, useCanConnect } from '../../context/AuthContext';
 import { useSync } from '../../context/SyncContext';
 import { useToast } from '../../context/ToastContext';
@@ -29,7 +29,6 @@ import { useAppTheme } from '../../theme';
 import { Avatar } from '../../ui/Avatar';
 import { Icon } from '../../ui/Icon';
 import { Notice } from '../../ui/Notice';
-import { SectionHeader } from '../../ui/SectionHeader';
 
 type Props = { trip: LocalTrip; onChanged: () => void; onCrew?: (people: CrewPerson[]) => void };
 
@@ -48,7 +47,6 @@ export function TripCrew({ trip, onChanged, onCrew }: Props) {
   const [people, setPeople] = useState<CrewPerson[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [handle, setHandle] = useState('');
-  const [newRole, setNewRole] = useState<'member' | 'admin'>('member');
   const [found, setFound] = useState<Traveller | null | undefined>(undefined);
   const [busy, setBusy] = useState(false);
   const [menuFor, setMenuFor] = useState<string | null>(null);
@@ -115,8 +113,9 @@ export function TripCrew({ trip, onChanged, onCrew }: Props) {
     try {
       // The journey must be in the cloud before anyone can join it.
       if (role === 'owner') await pushTripNow(user.id, trip.id);
-      await addCrew(trip.id, clean, newRole);
-      toast(`${found ? personName(found) : '@' + clean} added as ${newRole === 'admin' ? 'an admin' : 'a member'}`);
+      // New people join as members; an admin can make them admins from their row's menu.
+      await addCrew(trip.id, clean, 'member');
+      toast(`${found ? personName(found) : '@' + clean} added to the journey`);
       setHandle('');
       setFound(undefined);
       await changed();
@@ -193,70 +192,14 @@ export function TripCrew({ trip, onChanged, onCrew }: Props) {
 
   return (
     <View>
-      <Text style={{ color: colors.muted, lineHeight: 20, marginBottom: 12 }}>
-        Everyone here sees the whole journey. Admins can also add, edit and delete moments, plans and expenses, and add people, like a group admin.
-      </Text>
-
-      {manage ? (
-        <View style={{ padding: 12, borderRadius: 16, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, marginBottom: 6 }}>
-          <TextInput
-            mode="outlined"
-            dense
-            label="Add by username"
-            placeholder="@username"
-            value={handle}
-            onChangeText={setHandle}
-            autoCapitalize="none"
-            autoCorrect={false}
-            left={<TextInput.Icon icon="at" />}
-            onSubmitEditing={add}
-            returnKeyType="done"
-          />
-          {validHandle(clean) ? (
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 10 }}>
-              {found ? (
-                <>
-                  <Avatar id={found.id} name={personName(found)} path={found.avatar_path} size={36} />
-                  <View style={{ flex: 1 }}>
-                    <Text style={{ fontWeight: '700' }} numberOfLines={1}>{personName(found)}</Text>
-                    <Text style={{ color: colors.muted, fontSize: 13 }}>@{found.username}</Text>
-                  </View>
-                </>
-              ) : found === null ? (
-                <Text style={{ color: colors.muted, flex: 1 }}>No traveller with that username</Text>
-              ) : (
-                <ActivityIndicator size="small" />
-              )}
-            </View>
-          ) : null}
-          <SegmentedButtons
-            value={newRole}
-            onValueChange={v => setNewRole(v as 'member' | 'admin')}
-            style={{ marginTop: 10 }}
-            buttons={[
-              { value: 'member', label: 'Member', icon: 'eye-outline' },
-              { value: 'admin', label: 'Admin', icon: 'shield-account-outline' },
-            ]}
-          />
-          <Button mode="contained" icon="account-plus" onPress={add} loading={busy} disabled={busy || !found} style={{ marginTop: 10 }}>
-            Add to journey
-          </Button>
-          {/* Friends without Wayfare (or whose username you don't know): send them a link instead. */}
-          <Button mode="outlined" icon="link-variant" onPress={shareInvite} loading={inviting} disabled={inviting} style={{ marginTop: 8 }}>
-            Invite with a link
-          </Button>
-          <Text style={{ color: colors.muted, fontSize: 12, marginTop: 6 }}>The link works for 7 days and up to 10 people, who join as members.</Text>
-        </View>
-      ) : (
-        <Notice text="You're a member: you can see everything. An admin can make you an admin so you can add moments too." />
-      )}
-
-      <SectionHeader title="Crew" subtitle={people && people.length > 1 ? `${people.length} people` : undefined} />
+      {/* The people first; adding someone is the small box underneath. */}
+      <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 8, marginBottom: 2 }}>
+        <Text variant="titleMedium" style={{ fontWeight: '800' }}>Crew</Text>
+        {people && people.length > 1 ? <Text style={{ color: colors.muted }}>{people.length}</Text> : null}
+      </View>
+      <Text style={{ color: colors.muted, fontSize: 13, marginBottom: 8 }}>Everyone here sees the whole journey. Admins can also add and edit.</Text>
       {error ? <Notice tone="warning" text={error} /> : null}
       {people === null ? <ActivityIndicator style={{ marginVertical: 16 }} /> : null}
-      {people && people.length <= 1 && !error ? (
-        <Text style={{ color: colors.muted, marginBottom: 8 }}>Just you so far.</Text>
-      ) : null}
       {people?.map(p => {
         const me = p.user_id === user.id;
         const canManage = manage && !me && p.role !== 'owner';
@@ -297,6 +240,54 @@ export function TripCrew({ trip, onChanged, onCrew }: Props) {
           </Menu>
         );
       })}
+
+
+      {manage ? (
+        <View style={{ marginTop: 18, padding: 12, borderRadius: 16, backgroundColor: colors.surfaceVariant }}>
+          <Text style={{ fontWeight: '700', marginBottom: 8 }}>Add people</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <TextInput
+              mode="outlined"
+              dense
+              placeholder="@username"
+              value={handle}
+              onChangeText={setHandle}
+              autoCapitalize="none"
+              autoCorrect={false}
+              onSubmitEditing={add}
+              returnKeyType="done"
+              style={{ flex: 1, backgroundColor: colors.surface }}
+              accessibilityLabel="Add by username"
+            />
+            <Button mode="contained" onPress={add} loading={busy} disabled={busy || !found} compact>
+              Add
+            </Button>
+          </View>
+          {validHandle(clean) ? (
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 10 }}>
+              {found ? (
+                <>
+                  <Avatar id={found.id} name={personName(found)} path={found.avatar_path} size={32} />
+                  <Text style={{ fontWeight: '600', flex: 1 }} numberOfLines={1}>
+                    {personName(found)} <Text style={{ color: colors.muted, fontWeight: '400' }}>@{found.username}</Text>
+                  </Text>
+                </>
+              ) : found === null ? (
+                <Text style={{ color: colors.muted, flex: 1 }}>No traveller with that username</Text>
+              ) : (
+                <ActivityIndicator size="small" />
+              )}
+            </View>
+          ) : null}
+          {/* Friends without Wayfare (or whose username you don't know): send them a link instead. */}
+          <Button icon="link-variant" onPress={shareInvite} loading={inviting} disabled={inviting} style={{ alignSelf: 'flex-start', marginTop: 6 }} compact>
+            Invite with a link
+          </Button>
+          <Text style={{ color: colors.muted, fontSize: 12, marginLeft: 4 }}>Works for 7 days, up to 10 people. They join as members.</Text>
+        </View>
+      ) : (
+        <Notice text="You're a member: you see the whole journey. An admin can make you an admin to add moments too." />
+      )}
 
       {role !== 'owner' ? (
         <Button mode="outlined" icon="exit-run" textColor={colors.error} style={{ marginTop: 18, borderColor: colors.error }} onPress={leave}>

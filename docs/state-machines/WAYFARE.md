@@ -70,7 +70,7 @@ Replication, immediate trip pushes and local wipes now share a serial journal ga
 
 ## Ownership and live-link follow-up (November 2026)
 
-Account restoration no longer overwrites a newer auth event or stalls permanently on a failed lookup. Guest restoration finishes before routing. Account epochs and effect cancellation reject stale profile/ownership reads, including a switch away and back to the same account. Ownership resolution runs under the journal queue; it never treats a failed read/count as an empty journal. While unresolved, failed, or conflicting, the navigation display is shielded and noninteractive, and automatic sync/community access is paused. The navigator stays mounted for auth routing and its account/readiness key resets old screen state. Errors offer retry/sign-out; conflict actions have a synchronous duplicate-operation guard and visible failure.
+Account restoration no longer overwrites a newer auth event or stalls permanently on a failed lookup. Guest restoration finishes before routing. Account epochs and effect cancellation reject stale profile/ownership reads, including a switch away and back to the same account. Ownership resolution runs under the journal queue; it never treats a failed read/count as an empty journal. While unresolved, failed, or conflicting, the navigation display is shielded and noninteractive, and automatic sync/community access is paused. The navigator stays mounted for auth routing and its account key resets old screen state (see the sign-in crash note below: readiness is no longer part of the key). Errors offer retry/sign-out; conflict actions have a synchronous duplicate-operation guard and visible failure.
 
 Live-link create/push/end operations have their own serial queue, separate from the journal queue. End waits for an owner-authorized database row acknowledgement before removing local state. Failure preserves retry state. Push acknowledgement checks the current link ID so ended/replaced links are not restored by stale completion. Unit checks cover stale account adoption, storage failure, explicit ownership conflict, failed revocation, replacement races, and push-after-stop. The HTTP suite verifies exact owner revocation acknowledgement, outsider denial, and hidden coordinates on a revoked public viewer.
 
@@ -93,3 +93,12 @@ Owner-conflict sign-out has a distinct recovery path: cancel the microphone and 
 ## Test-runner verification
 
 A direct check found file-only success reports with the isolated Node/tsx entrypoint in this environment. `scripts/unit.test.cjs` now explicitly registers every TypeScript unit module through the CJS loader and is executed directly so node:test runs its actual cases. The suite reports 51 individual passing cases, rather than 12 passing files. A negative control confirmed that a failed assertion exits nonzero. Ariyoo mobile likewise executes its CJS test module directly and reports five cases. CI runs these commands unchanged.
+
+## Sign-in crash on Android (November 2026)
+
+Signing in closed the app on Android; reopening showed the account signed in. The root stack was keyed by `account:journalReady`, so one sign-in rebuilt the whole native stack twice in quick succession (session arrives → ownership "checking" → "ready") while `signIn` also called `router.replace('/(tabs)')`. Tearing down react-native-screens' native stack during a navigation is a known Android crash path. Now:
+
+- The stack is keyed by account only. While ownership is unresolved the existing opaque shield covers it; screens that depend on the journal reload when `journalReady` flips.
+- `signIn`, `signUp`, `signOut`, owner-conflict sign-out and account deletion no longer navigate. `AuthRouteGuard` (app/_layout.tsx) navigates after the rebuilt stack has committed: signed in on login/register → Journeys; signed out (not guest/offline) on tabs/settings → sign-in. A rebuilt stack also starts at `index`, which redirects by auth state.
+
+Verified in the web preview (sign-in lands on Journeys, no page errors, all regression suites). It still needs a device check on Android, since the crash was native.

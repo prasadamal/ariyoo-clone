@@ -3,8 +3,9 @@ import { track } from '../../src/lib/telemetry';
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  FlatList,
+  Animated,
   KeyboardAvoidingView,
+  PanResponder,
   Modal,
   Platform,
   Pressable,
@@ -12,8 +13,6 @@ import {
   TextInput as NativeInput,
   useWindowDimensions,
   View,
-  type NativeScrollEvent,
-  type NativeSyntheticEvent,
 } from 'react-native';
 import { ActivityIndicator, Button, Dialog, IconButton, Portal, Text, TextInput } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -21,7 +20,7 @@ import { MomentPhotos } from '../../src/components/MomentPhotos';
 import { useSync } from '../../src/context/SyncContext';
 import { useToast } from '../../src/context/ToastContext';
 import { DIARY_LINE_HEIGHT, DIARY_THEMES, diaryTheme, type DiaryTheme, type DiaryThemeId } from '../../src/features/diary/diaryThemes';
-import { dayOf, diarySheets, pageIndexFor, todayPageKeys, type DiarySheet } from '../../src/features/diary/diaryPages';
+import { dayOf, diarySheets, linesToTap, pageIndexFor, swipeOutcome, todayPageKey, type DiarySheet } from '../../src/features/diary/diaryPages';
 import { pickPhotos } from '../../src/features/trip/photoPicker';
 import { MoodCalendar } from '../../src/features/diary/MoodCalendar';
 import { writingStreak } from '../../src/features/diary/moodCalendarRules';
@@ -110,9 +109,9 @@ const wordCount = (t: string) => (t.trim() ? t.trim().split(/\s+/).length : 0);
 const isBlankBody = (b: string | null | undefined) => !b || b === '📷';
 
 /**
- * The diary. Today can have several pages (+ adds one); each saves as you type. Swipe right for
- * earlier days (read only: the past stays as you wrote it) and left to come back to today; there
- * are no future pages. The calendar jumps to any date; the palette switches to the next paper.
+ * The diary: one page per day. Today's page saves as you type; swipe right for earlier days (read
+ * only: the past stays as you wrote it) and left to come back to today; there are no future pages.
+ * The calendar jumps to any date; the palette switches to the next paper (lavender by default).
  */
 export default function DiaryScreen() {
   const { colors } = useAppTheme();
@@ -124,19 +123,22 @@ export default function DiaryScreen() {
   const [failed, setFailed] = useState(false);
   const [entries, setEntries] = useState<LocalEntry[]>([]);
   const [today, setToday] = useState(dayOf(new Date()));
-  const [themeId, setThemeId] = useState<DiaryThemeId>('diary');
+  const [themeId, setThemeId] = useState<DiaryThemeId>('lavender');
   const [formatOpen, setFormatOpen] = useState(false);
+  // Which day is open: 0 is today, then earlier written days.
   const [page, setPage] = useState(0);
+  const pageRef = useRef(0);
+  pageRef.current = page;
+  const slide = useRef(new Animated.Value(0)).current;
+  // Height of the writing so far, so a tap on an empty line below it can move the pen there.
+  const contentHeight = useRef(0);
   const [editingName, setEditingName] = useState(false);
   const [name, setName] = useState('');
   const [pickerOpen, setPickerOpen] = useState(false);
   const [mediaKey, setMediaKey] = useState(0);
-  // Height of the swipe area: each page fills it down to the tab bar.
-  const [pageHeight, setPageHeight] = useState(0);
-  const list = useRef<FlatList<DiarySheet<LocalEntry>>>(null);
   const theme = diaryTheme(themeId);
 
-  // Today's pages (oldest → newest), what's typed on each, and the entry each one writes to.
+  // Today's page (one per day), what's typed on it, and the entry it writes to.
   const [todayKeys, setTodayKeys] = useState<string[]>(['new-0']);
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const entryByKey = useRef<Record<string, LocalEntry | null>>({});
@@ -161,7 +163,7 @@ export default function DiaryScreen() {
       setEntries(all);
       if (!dirty.current.size) {
         const mine = all.filter(e => !e.author_id);
-        const keys = todayPageKeys(mine, now);
+        const keys = [todayPageKey(mine, now)];
         const byId = new Map(mine.map(e => [e.id, e]));
         entryByKey.current = Object.fromEntries(keys.map(k => [k, byId.get(k) ?? null]));
         setTodayKeys(keys);
@@ -251,22 +253,11 @@ export default function DiaryScreen() {
   const active = sheets[page] ?? sheets[0];
   const activeKey = active?.editable ? active.key : null;
 
-  /** A fresh page for today (unless the newest one is still blank). */
-  const newPage = () => {
-    const newest = todayKeys[todayKeys.length - 1];
-    if (!entryByKey.current[newest] && !(drafts[newest] ?? '').trim()) {
-      list.current?.scrollToIndex({ index: 0, animated: true });
-      setPage(0);
-      toast('This page is still blank');
-      return;
-    }
-    const key = `new-${uuid().slice(0, 8)}`;
-    entryByKey.current[key] = null;
-    setTodayKeys(k => [...k, key]);
-    setDrafts(d => ({ ...d, [key]: '' }));
-    setPage(0);
-    setTimeout(() => list.current?.scrollToIndex({ index: 0, animated: true }), 50);
-  };
+  // Anything else written today before days had one page (older app versions): shown under today's page.
+  const todayExtras = useMemo(
+    () => entries.filter(e => !e.author_id && dayOf(e.recorded_at) === today && !todayKeys.includes(e.id)),
+    [entries, today, todayKeys]
+  );
 
   const addPhoto = async () => {
     if (!trip || !activeKey) return;
@@ -298,8 +289,9 @@ export default function DiaryScreen() {
   const goTo = (day: string) => {
     const { index, exact } = pageIndexFor(days, day);
     const sheetIndex = Math.max(0, sheets.findIndex(s => s.day === days[index].day));
-    list.current?.scrollToIndex({ index: sheetIndex, animated: true });
+    slide.setValue(0);
     setPage(sheetIndex);
+    setFormatOpen(false);
     if (!exact) toast(`Nothing written on ${formatDay(day)} — showing ${index === 0 ? 'today' : formatDay(days[index].day)}`);
   };
 
@@ -313,13 +305,6 @@ export default function DiaryScreen() {
     toast(next.name);
     AsyncStorage.setItem(THEME_KEY, next.id).catch(() => undefined);
   };
-
-  // A new paper re-renders every page; snap back to the page you were on so none is left half-way.
-  useEffect(() => {
-    const t = setTimeout(() => list.current?.scrollToOffset({ offset: page * width, animated: false }), 0);
-    return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [themeId, width]);
 
   const applyEdit = (key: string, nextText: string, sel: Selection) => {
     onText(key, nextText);
@@ -358,6 +343,50 @@ export default function DiaryScreen() {
   // Room for the floating tab bar (its height plus the phone's own bottom inset).
   const tabBarRoom = 80 + Math.max(insets.bottom, 10);
 
+  /** Slide to the next day in a direction, then bring the new page in from the other side. */
+  const turn = (dir: 'older' | 'newer') => {
+    const out = dir === 'older' ? width : -width;
+    Animated.timing(slide, { toValue: out, duration: 160, useNativeDriver: Platform.OS !== 'web' }).start(() => {
+      setPage(p => (dir === 'older' ? p + 1 : p - 1));
+      setFormatOpen(false);
+      slide.setValue(-out);
+      Animated.timing(slide, { toValue: 0, duration: 180, useNativeDriver: Platform.OS !== 'web' }).start();
+    });
+  };
+  const sheetCount = useRef(1);
+  sheetCount.current = sheets.length;
+  // Sideways drags turn the day; anything else (scrolling, selecting words) is left to the page.
+  const pan = useMemo(
+    () =>
+      PanResponder.create({
+        onMoveShouldSetPanResponderCapture: (_, g) => Math.abs(g.dx) > 16 && Math.abs(g.dx) > Math.abs(g.dy) * 2,
+        onPanResponderMove: (_, g) => {
+          const atEnd = (g.dx > 0 && pageRef.current >= sheetCount.current - 1) || (g.dx < 0 && pageRef.current === 0);
+          slide.setValue(atEnd ? g.dx * 0.25 : g.dx);
+        },
+        onPanResponderRelease: (_, g) => {
+          const outcome = swipeOutcome(g.dx, g.dy, pageRef.current, sheetCount.current);
+          if (outcome === 'stay') Animated.spring(slide, { toValue: 0, useNativeDriver: Platform.OS !== 'web', bounciness: 4 }).start();
+          else turn(outcome);
+        },
+        // Once a drag is clearly sideways it stays a swipe: the page's own scroll view must not take
+        // it over half-way (that cancelled the swipe and snapped the page back).
+        onPanResponderTerminationRequest: () => false,
+        onPanResponderTerminate: () => Animated.spring(slide, { toValue: 0, useNativeDriver: Platform.OS !== 'web' }).start(),
+      }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [width]
+  );
+
+  /** "Write anywhere": a tap on an empty line below the writing adds lines so the pen lands there. */
+  const tapToLine = (key: string, y: number) => {
+    const add = linesToTap(y, contentHeight.current, DIARY_LINE_HEIGHT);
+    if (!add) return;
+    const next = (drafts[key] ?? '') + '\n'.repeat(add);
+    onText(key, next);
+    setForcedSelection({ start: next.length, end: next.length });
+  };
+
   if (failed) {
     return (
       <View style={{ flex: 1, padding: 24, paddingTop: insets.top + 40, backgroundColor: colors.background }}>
@@ -371,14 +400,6 @@ export default function DiaryScreen() {
   }
   if (!trip) return <ActivityIndicator style={{ marginTop: insets.top + 60 }} accessibilityLabel="Opening your diary" />;
 
-  const onSwipe = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const index = Math.round(e.nativeEvent.contentOffset.x / width);
-    if (index !== page) {
-      setPage(index);
-      setFormatOpen(false);
-    }
-  };
-
   const padLeft = theme.margin ? 46 : 20;
 
   /** The top of a sheet: the day's number large, the weekday and month, and the page. */
@@ -391,22 +412,17 @@ export default function DiaryScreen() {
           <Text style={{ color: theme.ink, fontFamily: theme.font, fontSize: 15, fontWeight: '700' }}>{d.toLocaleDateString('en-IN', { weekday: 'long' })}</Text>
           <Text style={{ color: theme.faint, fontFamily: theme.font, fontSize: 13 }}>{d.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })}</Text>
         </View>
-        {item.pages > 1 ? (
-          <Text style={{ color: theme.faint, fontFamily: theme.font, fontSize: 13, fontStyle: 'italic' }}>
-            page {item.page} of {item.pages}
-          </Text>
-        ) : null}
         {item.editable ? null : <Icon name="lock-outline" size={16} color={theme.faint} />}
       </View>
     );
   };
 
-  const renderPage = ({ item }: { item: DiarySheet<LocalEntry> }) => {
+  const renderPage = (item: DiarySheet<LocalEntry>) => {
     const text = drafts[item.key] ?? '';
     const isActive = item.key === activeKey;
     const entryId = item.editable ? entryByKey.current[item.key]?.id ?? null : null;
     return (
-      <View style={{ width, height: pageHeight || undefined, paddingHorizontal: 16, paddingBottom: tabBarRoom }}>
+      <View style={{ flex: 1, paddingHorizontal: 16, paddingBottom: tabBarRoom }}>
         <View style={{ flex: 1, borderRadius: 22, backgroundColor: theme.paper, overflow: 'hidden', borderWidth: theme.dark ? 0 : 1, borderColor: '#00000010' }}>
           {sheetHeader(item)}
           <View style={{ height: 1, backgroundColor: theme.rule ?? '#00000012', marginTop: 10, marginLeft: padLeft, marginRight: 16 }} />
@@ -423,13 +439,17 @@ export default function DiaryScreen() {
                     selection.current = e.nativeEvent.selection;
                     if (forcedSelection) setForcedSelection(undefined);
                   }}
+                  onContentSizeChange={e => {
+                    contentHeight.current = e.nativeEvent.contentSize.height;
+                  }}
+                  onPressIn={e => tapToLine(item.key, e.nativeEvent.locationY)}
                   selection={isActive ? forcedSelection : undefined}
                   autoFocus={isActive && editorKey > 0}
                   multiline
-                  placeholder={promptFor(item.day, item.page)}
+                  placeholder={promptFor(item.day, 1)}
                   placeholderTextColor={theme.faint}
                   textAlignVertical="top"
-                  accessibilityLabel={item.pages > 1 ? `Today's diary, page ${item.page}` : "Today's diary page"}
+                  accessibilityLabel="Today's diary page"
                   style={{
                     flex: 1,
                     minHeight: 400,
@@ -452,6 +472,20 @@ export default function DiaryScreen() {
                   <MomentPhotos entryId={entryId} refreshKey={mediaKey} onChanged={() => setMediaKey(k => k + 1)} />
                 </View>
               ) : null}
+              {/* Older app versions could add more pages today: they stay readable below. */}
+              {todayExtras.map(e => (
+                <View key={e.id} style={{ paddingBottom: 12 }}>
+                  <Text style={{ color: theme.faint, fontFamily: theme.font, fontSize: 13, paddingLeft: padLeft }}>
+                    {new Date(e.recorded_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+                  </Text>
+                  {e.body && e.body !== '📷' ? (
+                    <Text style={{ color: theme.ink, fontFamily: theme.font, fontSize: 18, lineHeight: DIARY_LINE_HEIGHT, paddingLeft: padLeft, paddingRight: 20 }}>
+                      <RichText lines={parseRich(e.body)} theme={theme} editing={false} />
+                    </Text>
+                  ) : null}
+                  <MomentPhotos entryId={e.id} canEdit={false} />
+                </View>
+              ))}
             </ScrollView>
           ) : (
             <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 24 }}>
@@ -476,7 +510,7 @@ export default function DiaryScreen() {
             </ScrollView>
           )}
           {item.editable ? (
-            // Writing tools along the bottom of today's pages: a photo, text styles behind "A", a new page.
+            // Writing tools along the bottom of today's page: a photo and text styles behind "A".
             <View style={{ borderTopWidth: 1, borderTopColor: '#00000012' }}>
               {formatOpen && isActive ? (
                 <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', paddingHorizontal: 8, paddingTop: 4, gap: 2 }}>
@@ -500,7 +534,6 @@ export default function DiaryScreen() {
                   onPress={() => setFormatOpen(v => !v)}
                   accessibilityLabel={formatOpen ? 'Hide text styles' : 'Text styles: bold, underline, colour, headings'}
                 />
-                <IconButton icon="file-document-plus-outline" size={22} iconColor={theme.faint} onPress={newPage} accessibilityLabel="Add another page for today" />
                 <View style={{ flex: 1 }} />
                 <Text style={{ color: theme.faint, fontFamily: theme.font, fontSize: 12, marginRight: 10 }}>
                   {wordCount(text)} {wordCount(text) === 1 ? 'word' : 'words'}
@@ -539,7 +572,7 @@ export default function DiaryScreen() {
             </Pressable>
           )}
           <Text style={{ color: colors.muted, fontSize: 13, marginTop: 2 }}>
-            {active?.editable ? `Today${streak >= 2 ? ` · 🔥 ${streak}-day streak` : ''}${page < sheets.length - 1 ? ' · swipe right for earlier pages' : ''}` : `${formatDay(active?.day ?? today)} · read only`}
+            {active?.editable ? `Today${streak >= 2 ? ` · 🔥 ${streak}-day streak` : ''}${sheets.length > 1 ? ' · swipe for other days' : ''}` : `${formatDay(active?.day ?? today)} · read only`}
           </Text>
         </View>
         {page !== 0 ? <IconButton icon="calendar-today" onPress={() => goTo(today)} accessibilityLabel="Back to today" /> : null}
@@ -547,26 +580,10 @@ export default function DiaryScreen() {
         <IconButton icon="palette-outline" onPress={nextTheme} accessibilityLabel={`Diary style: ${theme.name}. Tap for the next one`} />
       </View>
 
-      <View style={{ flex: 1 }} onLayout={e => setPageHeight(e.nativeEvent.layout.height)}>
-        <FlatList
-          ref={list}
-          data={sheets}
-          keyExtractor={p => p.key}
-          renderItem={renderPage}
-          extraData={[drafts, themeId, formatOpen, editorKey, forcedSelection, mediaKey, page]}
-          horizontal
-          // Today sits at the right: swipe right for the past, left to come back toward today.
-          inverted
-          pagingEnabled
-          showsHorizontalScrollIndicator={false}
-          onMomentumScrollEnd={onSwipe}
-          onScroll={Platform.OS === 'web' ? onSwipe : undefined}
-          scrollEventThrottle={64}
-          getItemLayout={(_, index) => ({ length: width, offset: width * index, index })}
-          keyboardShouldPersistTaps="handled"
-          style={{ flex: 1 }}
-        />
-      </View>
+      {/* One day at a time: drag sideways to turn to the day before or after. */}
+      <Animated.View style={{ flex: 1, transform: [{ translateX: slide }] }} {...pan.panHandlers}>
+        {active ? renderPage(active) : null}
+      </Animated.View>
 
       {/* The month at a glance: moods and written days; tap one to open it. */}
       <MoodCalendar visible={pickerOpen} onClose={() => setPickerOpen(false)} entries={moodEntries} today={today} onPick={goTo} />

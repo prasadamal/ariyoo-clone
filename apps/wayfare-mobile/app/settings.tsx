@@ -148,7 +148,7 @@ export default function SettingsScreen() {
       await setLocalOwner(null);
       setDeleteOpen(false);
       Alert.alert('Account deleted', 'Your Wayfare account, journals, posts and messages have been permanently deleted.');
-      router.replace('/login');
+      // Signing out rebuilds the screens; AuthRouteGuard then shows sign-in.
     } catch (e) {
       toast(e instanceof Error ? e.message : 'Could not delete account — check your connection and try again.');
     } finally {

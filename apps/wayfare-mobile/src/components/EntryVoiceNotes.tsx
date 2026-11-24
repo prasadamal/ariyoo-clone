@@ -1,11 +1,14 @@
 import { createAudioPlayer, setAudioModeAsync, type AudioPlayer } from 'expo-audio';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Alert, View } from 'react-native';
-import { Button } from 'react-native-paper';
+import { Alert, Pressable, View } from 'react-native';
+import { Text } from 'react-native-paper';
+import { useAppTheme } from '../theme';
+import { Icon } from '../ui/Icon';
 import { deleteEntryMedia, listEntryMedia, type LocalEntryMedia } from '../lib/localDb';
 import { isAudio, resolveMediaUri } from '../lib/media';
 
 export function EntryVoiceNotes({ entryId, refreshKey = 0 }: { entryId: string; refreshKey?: number }) {
+  const { colors } = useAppTheme();
   const [clips, setClips] = useState<LocalEntryMedia[]>([]);
   const [playing, setPlaying] = useState<string | null>(null);
   const player = useRef<AudioPlayer | null>(null);
@@ -74,21 +77,37 @@ export function EntryVoiceNotes({ entryId, refreshKey = 0 }: { entryId: string; 
 
   if (!clips.length) return null;
 
+  // Small pills inside the card's padding (the old outlined buttons were tall and sat on its edge).
   return (
-    <View style={{ marginTop: 8, gap: 6, flexDirection: 'row', flexWrap: 'wrap' }}>
-      {clips.map((c, i) => (
-        <Button
-          key={c.id}
-          mode={playing === c.id ? 'contained-tonal' : 'outlined'}
-          icon={playing === c.id ? 'stop' : 'play'}
-          onPress={() => play(c)}
-          onLongPress={() => remove(c)}
-          compact
-          accessibilityLabel={`${playing === c.id ? 'Stop' : 'Play'} voice note ${i + 1}`}
-        >
-          Voice note{clips.length > 1 ? ` ${i + 1}` : ''}
-        </Button>
-      ))}
+    <View style={{ marginTop: 10, paddingHorizontal: 14, gap: 8, flexDirection: 'row', flexWrap: 'wrap' }}>
+      {clips.map((c, i) => {
+        const on = playing === c.id;
+        return (
+          <Pressable
+            key={c.id}
+            onPress={() => play(c)}
+            onLongPress={() => remove(c)}
+            accessibilityRole="button"
+            accessibilityLabel={`${on ? 'Stop' : 'Play'} voice note ${i + 1}`}
+            style={({ pressed }) => ({
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 6,
+              height: 32,
+              paddingLeft: 10,
+              paddingRight: 14,
+              borderRadius: 16,
+              backgroundColor: on ? colors.primary : colors.primaryContainer,
+              opacity: pressed ? 0.85 : 1,
+            })}
+          >
+            <Icon name={on ? 'stop' : 'play'} size={16} color={on ? colors.onPrimary : colors.primary} />
+            <Text style={{ fontSize: 13, fontWeight: '700', color: on ? colors.onPrimary : colors.onPrimaryContainer }}>
+              Voice note{clips.length > 1 ? ` ${i + 1}` : ''}
+            </Text>
+          </Pressable>
+        );
+      })}
     </View>
   );
 }
