@@ -1,55 +1,69 @@
-# Google Play Data safety & Apple App Privacy — Wayfare 2.0
+# Google Play Data safety — Wayfare first release (Android)
 
-Answers mirror the privacy policy (`docs/privacy/wayfare.html`). Re-check them if features change.
+Answers mirror the privacy policy (`docs/privacy/wayfare.html`, effective 24 November 2026).
+Re-check them whenever a feature changes. Community features (feed, chat, nearby, trip
+matching) are switched off in this release, so they are not declared.
 
-## Google Play — Data safety form
+## Data safety form
 
-**Does your app collect or share any of the required user data types?** Yes.
-**Is all user data encrypted in transit?** Yes (HTTPS only).
-**Do you provide a way for users to request deletion?** Yes — in-app (You → Settings & privacy → Delete account) and on the web.
-**Delete account URL (required by Play):** `https://ariyoo-docs.onrender.com/privacy/wayfare-delete-account.html` (`docs/privacy/wayfare-delete-account.html`; use your own legal-site address if you host the pages elsewhere).
-**Data shared with third parties?** No (service providers processing on our behalf are not "sharing" under Play's definition).
+- **Does your app collect or share any of the required user data types?** Yes.
+- **Is all user data encrypted in transit?** Yes (HTTPS only).
+- **Do you provide a way for users to request that their data be deleted?** Yes: in the app
+  (You → Settings → Delete account) and on the web.
+- **Delete account URL:** `https://ariyoo-docs.onrender.com/privacy/wayfare-delete-account.html`
+- **Is data shared with third parties?** No. Supabase, Expo, Open-Meteo and OpenFreeMap process
+  data on our behalf (service providers), which Play does not count as sharing.
 
-| Data type | Collected | Optional? | Purpose | Notes |
+| Data type | Collected | Required or optional | Purposes | What it is |
 | --- | --- | --- | --- | --- |
-| Location → Approximate | Yes | Optional | App functionality | "Nearby" (≈1 km grid, user-enabled, expires ≤24 h) |
-| Location → Precise | Yes | Optional | App functionality | Route recording, entry geotags, live-location links, chat location messages |
-| Personal info → Name | Yes | Required for account | App functionality, account management | Display name |
-| Personal info → Email | Yes | Required for account | Account management | Not shown to other users |
-| Personal info → User IDs | Yes | Required for account | App functionality | Username |
-| Personal info → Other info | Yes | Optional | App functionality | Bio, home region, travel styles, languages |
-| Photos and videos → Photos | Yes | Optional | App functionality | Journal, posts, avatar, chat photos |
-| Audio → Voice or sound recordings | Yes | Optional | App functionality | Journal voice notes |
-| Messages → Other in-app messages | Yes | Optional | App functionality | Direct, crew and destination chats |
-| App activity → Other user-generated content | Yes | Optional | App functionality | Journal text, posts, comments, tips, board posts |
-| App activity → Other actions | Yes | Optional | App functionality | Follows, likes, reports, blocks |
-| Device or other IDs | Yes | Optional | App functionality | Expo push token (only if notifications enabled) |
-| Financial info | No | — | — | Trip expenses are user-entered notes, not payment data |
-| Contacts | No | — | — | Emergency contacts stay on the device |
+| Location → Precise location | Yes | Optional | App functionality | Location added to a moment, recorded routes, live-location links |
+| Personal info → Name | Yes | Required for an account | App functionality, Account management | Display name |
+| Personal info → Email address | Yes | Required for an account | Account management | Sign-in; never shown to others |
+| Personal info → User IDs | Yes | Required for an account | App functionality | Username (used to add people to a journey) |
+| Personal info → Other info | Yes | Optional | App functionality | Bio, home region |
+| Photos and videos → Photos | Yes | Optional | App functionality | Photos added to moments, trip covers, profile photo |
+| Audio → Voice or sound recordings | Yes | Optional | App functionality | Voice notes |
+| App activity → Other user-generated content | Yes | Optional | App functionality | Journal text, plans, packing lists, expenses |
+| App activity → App interactions | Yes | Optional (can be switched off) | Analytics | Anonymous usage counts ("app opened", "moment added") |
+| App info and performance → Crash logs, Diagnostics | Yes | Optional (can be switched off) | Analytics | Crash reports with personal details removed |
+| Device or other IDs | Yes | Optional | App functionality, Analytics | Push token (if notifications are on); random install ID for usage counts |
+| Financial info | No | | | Expenses are notes the user types, not payment data; UPI payments happen in the user's own UPI app |
+| Contacts, Messages, Calendar, Web history, Health | No | | | |
 
-**Permissions declarations (Play Console → App content):**
-- *Location permissions:* none needed — Wayfare does not request `ACCESS_BACKGROUND_LOCATION` (it is blocked in the manifest).
-- *Photo and video permissions:* none needed — photos come from the system photo picker; `READ_MEDIA_*` are blocked.
-- *Foreground service permissions:* declare **Location** (`FOREGROUND_SERVICE_LOCATION`). Explanation: "Route recording and live-location links the user starts keep updating with the screen off; a persistent notification shows while they run and the user can stop them at any time." Video: trip → Route → *Start recording route* → notification visible → *Stop recording*.
+For every row: **collected, not shared; processed ephemerally: No; data is encrypted in transit: Yes.**
 
-## Apple — App Privacy (nutrition label)
+## Permissions declarations (Play Console → App content)
 
-Tracking: **No** (no data used to track across apps/websites; no ATT prompt needed).
+- **Photo and video permissions:** not needed. Photos come from the system photo picker, and
+  every `READ_MEDIA_*` and storage permission is removed from the build.
+- **Location permissions (background):** not needed. `ACCESS_BACKGROUND_LOCATION` is removed.
+- **Precise location:** if Play asks why coarse location isn't enough: "Wayfare records the
+  route of a journey the user starts and tags a moment with where it happened; both need
+  precise location to be useful."
+- **Foreground service — Location (`FOREGROUND_SERVICE_LOCATION`):** declare it.
+  Use case: user-initiated route recording and live-location sharing.
+  Description: "When the user taps Start recording on a journey's Route tab, or starts a
+  live-location link, Wayfare keeps recording location with the screen off. A notification is
+  shown the whole time and the user can stop it from the app at any time."
+  Video (30–60 s, unlisted YouTube link): open a journey → Route → Start recording → lock the
+  phone and show the notification → unlock → Stop recording.
 
-| Category | Data | Linked to user | Purposes |
-| --- | --- | --- | --- |
-| Contact Info | Email Address, Name | Yes | App Functionality |
-| User Content | Photos, Audio Data, Other User Content (journal, posts, comments, tips) | Yes | App Functionality |
-| User Content | Emails or Text Messages → *in-app messages* | Yes | App Functionality |
-| Location | Precise Location, Coarse Location | Yes | App Functionality |
-| Identifiers | User ID | Yes | App Functionality |
-| Identifiers | Device ID (push token) | Yes | App Functionality |
+## Content rating (IARC questionnaire)
 
-## Age rating guidance
+- Category: Reference, News or Educational? No → choose **Utility, Productivity, Communication
+  or Other**.
+- Violence, sexuality, language, controlled substances, gambling: **No** to all.
+- Users can interact or exchange content: **Yes** (journeys shared with chosen people, public
+  story links). Shares location: **Yes** (live-location links the user starts).
+- Expected result: rated for everyone or teens; the app itself is 18+ by its Terms.
 
-- **Apple:** answer *Unrestricted web access: No*, *User-generated content: Yes* — the questionnaire typically lands on **17+** for apps that let strangers chat and meet. Terms require 18+ for accounts.
-- **Google Play (IARC):** declare user interaction / users can communicate and share location → expect **Teen–Mature 17+**.
+## Target audience and content (Play Console)
+
+- Target age groups: **18 and over** only. Not designed for children.
+- Ads: **No ads.**
+- News app: No. Government app: No. Financial features: No. Health: No.
+- App access: give reviewers a demo account (see `APP_REVIEW_NOTES.md`).
 
 ## Export compliance
 
-HTTPS only; `usesNonExemptEncryption: false` / `ITSAppUsesNonExemptEncryption: false` in `app.config.ts`.
+HTTPS only; `usesNonExemptEncryption: false` in `app.config.ts`.

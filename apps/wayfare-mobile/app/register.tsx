@@ -1,8 +1,8 @@
 import { capitalizeWords } from '../src/lib/names';
 import { Link } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Linking, View } from 'react-native';
-import { Button, HelperText, Text, TextInput } from 'react-native-paper';
+import { Linking, Pressable, View } from 'react-native';
+import { Button, Checkbox, HelperText, Text, TextInput } from 'react-native-paper';
 import { PRIVACY_URL, TERMS_URL } from '../src/config';
 import { useAuth } from '../src/context/AuthContext';
 import { normalizeUsername, usernameAvailable } from '../src/social/profiles';
@@ -22,6 +22,8 @@ export default function RegisterScreen() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [confirmEmail, setConfirmEmail] = useState<string | null>(null);
+  // Accounts are for adults: under-18s would need a parent's verifiable consent (DPDP Act, s. 9).
+  const [adult, setAdult] = useState(false);
 
   useEffect(() => {
     if (!username) {
@@ -70,7 +72,7 @@ export default function RegisterScreen() {
   }
 
   // A username is required: it is how people find and add you to a shared trip.
-  const valid = displayName.trim().length >= 2 && /.+@.+\..+/.test(email) && password.length >= 8 && usernameState === 'ok';
+  const valid = displayName.trim().length >= 2 && /.+@.+\..+/.test(email) && password.length >= 8 && usernameState === 'ok' && adult;
 
   return (
     <Screen>
@@ -125,6 +127,15 @@ export default function RegisterScreen() {
         />
         {password.length > 0 && password.length < 8 ? <HelperText type="error">{8 - password.length} more character{8 - password.length === 1 ? '' : 's'} needed</HelperText> : null}
       </View>
+      <Pressable
+        onPress={() => setAdult(v => !v)}
+        accessibilityRole="checkbox"
+        accessibilityState={{ checked: adult }}
+        style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 10, marginLeft: -8 }}
+      >
+        <Checkbox.Android status={adult ? 'checked' : 'unchecked'} onPress={() => setAdult(v => !v)} />
+        <Text style={{ flex: 1 }}>I am 18 or older</Text>
+      </Pressable>
       {error ? <Notice tone="error" text={error} /> : null}
       <Button mode="contained" onPress={submit} loading={loading} disabled={!valid || loading} style={{ marginTop: 16 }}>
         Create account

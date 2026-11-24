@@ -5,95 +5,104 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Wayfare Privacy Policy</title>
   <style>
-    :root { --ink: #1c1917; --muted: #57534e; --bg: #fff; --line: #e7e5e4; --link: #c2410c; }
-    @media (prefers-color-scheme: dark) { :root { --ink: #fafaf9; --muted: #a8a29e; --bg: #0c0a09; --line: #292524; --link: #fb923c; } }
+    :root { --ink: #1c1917; --muted: #57534e; --bg: #fff; --line: #e7e5e4; --link: #6a01a3; --soft: #f6effb; }
+    @media (prefers-color-scheme: dark) { :root { --ink: #fafaf9; --muted: #a8a29e; --bg: #0c0a09; --line: #292524; --link: #c77dff; --soft: #1b1622; } }
     body { font-family: system-ui, sans-serif; max-width: 44rem; margin: 2rem auto; padding: 0 1rem; line-height: 1.65; color: var(--ink); background: var(--bg); }
     h1 { font-size: 1.6rem; } h2 { font-size: 1.15rem; margin-top: 1.8rem; border-top: 1px solid var(--line); padding-top: 1rem; }
     a { color: var(--link); } small, .muted { color: var(--muted); }
+    .box { background: var(--soft); border-radius: 12px; padding: .8rem 1rem; }
+    .table { overflow-x: auto; }
     table { border-collapse: collapse; width: 100%; font-size: .92rem; } td, th { border: 1px solid var(--line); padding: .4rem .5rem; text-align: left; vertical-align: top; }
   </style>
 </head>
 <body>
   <h1>Wayfare Privacy Policy</h1>
-  <p><strong>Effective date:</strong> October 6, 2026<br />
-  <strong>Contact:</strong> <a href="mailto:amalprasadappu@gmail.com">amalprasadappu@gmail.com</a></p>
-  <p>Wayfare (&quot;we&quot;, &quot;the app&quot;, bundle ID <code>com.wayfare.app</code>) is a travel journal and traveller community in the Ariyoo family of apps. Your journal is <strong>private by default</strong>: nothing you write is shown to anyone unless you post it, share a link, or switch on a community feature.</p>
+  <p><strong>Effective date:</strong> 24 November 2026<br />
+  <strong>Who we are:</strong> Wayfare (app ID <code>com.wayfare.app</code>) is a travel journal made by Amal Prasad, India (&quot;we&quot;, &quot;us&quot;). For your data we are the <em>Data Fiduciary</em> under India's Digital Personal Data Protection Act, 2023.<br />
+  <strong>Contact and Grievance Officer:</strong> Amal Prasad, <a href="mailto:amalprasadappu@gmail.com">amalprasadappu@gmail.com</a> (section 11).</p>
+
+  <div class="box">
+    <strong>In short.</strong> Your journal is private. Without an account it never leaves your phone. With an account it is backed up to our database in Mumbai, India, so you can restore it and share journeys with people you choose. We don't show ads, sell data, or use third-party analytics or tracking. You can delete your account and its data in the app at any time.
+  </div>
 
   <h2>1. Using Wayfare without an account</h2>
-  <p>You can journal without signing up. Trips, entries, photos, voice notes, plans, packing lists, expenses and GPS routes then stay only in your phone’s storage and we receive none of it. Weather and currency lookups (section 6) still reach their providers without identifying you.</p>
+  <p>You can journal without signing up. Journeys, moments, photos, voice notes, plans, packing lists, expenses and routes then stay only on your phone, and we receive none of them. The few online lookups the app makes (weather, currency rates and map tiles, section 6) reach those providers without your name or account.</p>
 
   <h2>2. What we collect when you have an account</h2>
-  <table>
+  <div class="table"><table>
     <tr><th>Data</th><th>Details</th><th>Who can see it</th></tr>
-    <tr><td>Account</td><td>Email address, password (stored hashed by our authentication provider), display name, username.</td><td>Email: only you. Name and username: signed-in Wayfare users.</td></tr>
-    <tr><td>Profile</td><td>Photo, bio, home region/country, travel styles, languages, traveller tier, GPS-verified distance and highest altitude, number of trips, followers and posts, last active time.</td><td>Signed-in Wayfare users (not people you block or who block you).</td></tr>
-    <tr><td>Journal (cloud backup)</td><td>Trips, entries, moods, places, weather, entry geotags (latitude, longitude, altitude), photos, voice notes, day plans, packing lists, expenses (including companion names you type), GPS route points.</td><td>Only you — unless you turn on a read-only link for a trip (section 4).</td></tr>
-    <tr><td>Community content</td><td>Posts (text, photos, place, and an optional route shape), comments, likes, follows, travel-board posts and join requests, destination tips and votes, chat messages (text, photos, shared locations).</td><td>As chosen: everyone signed in, your followers, the organiser of a board post, or the members of a chat.</td></tr>
-    <tr><td>Trip matching</td><td>Destination and dates of trips you mark “open to meet”.</td><td>Travellers with an open trip to the same place around the same dates, and visitors of that destination page. Never your journal or location.</td></tr>
-    <tr><td>Nearby</td><td>An approximate position rounded to about 1 km, an optional status line, while you switch it on (at most 24 hours).</td><td>Other travellers who are also sharing nearby. Distances are rounded to whole kilometres.</td></tr>
-    <tr><td>Live location link</td><td>Your precise position, updated about once a minute, while a link you created is active (at most 72 hours).</td><td>Anyone you send the link to.</td></tr>
-    <tr><td>Notifications</td><td>A push token for your device if you enable notifications.</td><td>Used only to deliver notifications.</td></tr>
-    <tr><td>Safety reports</td><td>Reports you file and accounts you block.</td><td>Only you and the Wayfare moderation team.</td></tr>
-    <tr><td>Usage counts and crash reports</td><td>Anonymous event names (for example “app opened”, “moment added”), the app version, phone type (Android/iOS), a random device ID, and error messages with personal details removed. Never your words, photos, places or contacts. Sent with or without an account; switch off in Settings → “Share usage &amp; crash reports”.</td><td>Only the Wayfare team, to fix problems and see whether people keep using the app.</td></tr>
-    <tr><td>Feedback</td><td>The message you write in Settings → Send feedback, and an email to reply to if you add one.</td><td>Only the Wayfare team.</td></tr>
-    <tr><td>Crew invite links</td><td>A random code linked to a journey, who made it, when it expires (7 days) and how many uses are left.</td><td>Anyone with the link can see the journey’s title and who invited them, and join as a member.</td></tr>
-  </table>
-  <p><strong>Not collected:</strong> emergency contacts and SOS messages stay on your phone — SOS opens your own SMS app. We do not use advertising identifiers, show ads, or include third-party analytics or tracking SDKs; the usage counts above go only to Wayfare’s own database.</p>
+    <tr><td>Account</td><td>Email address, password (stored only as a secure hash by our authentication provider), your name and username, and your confirmation that you are 18 or older.</td><td>Email: only you. Name and username: people you share a journey with, and people who look up your username to add you to one.</td></tr>
+    <tr><td>Profile</td><td>Optional photo, bio and home region; travel stats worked out from your journal (journeys, countries, distance); when you last used the app.</td><td>You, and people you share journeys with.</td></tr>
+    <tr><td>Journal backup</td><td>Journeys (title, destination, dates, budget, cover), moments (text, mood, time, place name, the location if you added one, weather), photos, voice notes and their written-out words, day plans, packing lists, expenses (including the companion names you type) and recorded routes.</td><td>Only you, unless you share a journey (below).</td></tr>
+    <tr><td>Shared journeys</td><td>When you add someone to a journey by username or invite link, they see that journey and can add to it if you allow. Invite links hold a random code, who made it, its expiry (7 days) and uses left.</td><td>The people on that journey.</td></tr>
+    <tr><td>Story link (optional)</td><td>If you turn on a journey's story link: its title, destination, dates, your first name, and its moments' text, moods, place names and photos. Never money, GPS points, routes, companions or voice notes, and never your everyday diary.</td><td>Anyone with the link, until you turn it off.</td></tr>
+    <tr><td>Live location link (optional)</td><td>Your precise position, updated about once a minute, while a link you created is on (at most 72 hours).</td><td>Anyone you send the link to.</td></tr>
+    <tr><td>Notifications</td><td>A push token for your phone, if you allow notifications.</td><td>Used only to deliver notifications.</td></tr>
+    <tr><td>Usage counts and crash reports</td><td>Event names (for example &quot;app opened&quot;, &quot;moment added&quot;), the app version, phone type, a random ID for this install, and error messages with personal details removed. Never your words, photos, places or contacts. Sent with or without an account; switch off in Settings → &quot;Share usage &amp; crash reports&quot;.</td><td>Only us, to fix problems and see whether people keep using the app.</td></tr>
+    <tr><td>Feedback</td><td>What you write in Settings → Send feedback, and an email to reply to if you add one.</td><td>Only us.</td></tr>
+  </table></div>
+  <p><strong>Not collected:</strong> your contacts, SMS, call logs, advertising ID or other apps' data. Emergency contacts and SOS messages stay on your phone (SOS opens your own SMS app). Fingerprint and Face ID for the app lock are checked by your phone; we never receive them.</p>
 
-  <h2>3. Location in detail</h2>
+  <h2>3. Permissions and what happens on your phone</h2>
   <ul>
-    <li><strong>Route recording</strong> uses precise location, including in the background, only between “Start recording” and “Stop recording”. Android shows a persistent notification while it runs.</li>
-    <li><strong>Entry geotags and weather</strong> read your location once when you save a moment with “Add location” switched on.</li>
-    <li><strong>Nearby</strong> and <strong>live location</strong> are off until you turn them on and switch off automatically.</li>
-    <li><strong>Verified tiers</strong> are computed on our server from your own uploaded route points (distance and altitude only).</li>
+    <li><strong>Location</strong> is used when you add a location to a moment, record a journey's route (only between &quot;Start recording&quot; and &quot;Stop recording&quot;, with a notification shown the whole time), or start a live-location link. Wayfare never tracks you otherwise and does not use background location.</li>
+    <li><strong>Camera and photos:</strong> you take a photo or pick photos with the phone's photo picker. Wayfare sees only the photos you choose.</li>
+    <li><strong>Microphone</strong> is used only while you record a voice note.</li>
+    <li><strong>Written-out voice notes</strong> (off by default, Settings): your phone's speech-recognition service turns your voice into words. On Android this is usually Google's service, which may process the audio under Google's own terms. The words are saved in your moment.</li>
+    <li><strong>Notifications</strong> are used for reminders you turn on (daily diary, packing) and journey updates.</li>
   </ul>
 
-  <h2>4. Links you share</h2>
-  <p>A read-only trip link shows that trip’s title, destination, dates, journal text, moods, places, weather, a simplified route shape and your display name to anyone with the link, until you turn it off. Photos and voice notes are not included. A live-location link shows your name, its label and your latest position until it expires or you stop it.</p>
+  <h2>4. Why we use your data</h2>
+  <p>We use it only to run Wayfare: to keep your journal, back it up and restore it, let you share journeys and links you choose, send notifications you turned on, keep accounts secure and stop misuse, fix problems, and improve the app. We rely on your consent, given when you create an account or turn a feature on; you can withdraw it at any time by turning the feature off or deleting your account. We may also process data where the law requires it. We do <strong>not</strong> sell or rent personal data, and we do not use it for advertising or profiling.</p>
 
-  <h2>5. How we use data</h2>
-  <ul>
-    <li>To provide journaling, backup and sync across your devices.</li>
-    <li>To run community features you choose to use: feeds, profiles, chats, the travel board, tips, trip matching and nearby.</li>
-    <li>To send notifications you enabled (messages, follows, join requests, trip matches).</li>
-    <li>To keep the community safe: on-device filtering of abusive words and scam phrasing, reports and blocks, automatic hiding of content reported by several people, and review by our team.</li>
-  </ul>
-  <p>We do <strong>not</strong> sell or rent personal information and do not use it for advertising.</p>
+  <h2>5. Where your data is stored</h2>
+  <p>Account and journal data is stored with Supabase in its Mumbai (India) region. Some service providers in section 6 handle small amounts of data (such as your IP address or the map area you view) on servers outside India. We only use providers that protect data to standards similar to ours, and we follow any restrictions the Government of India places on transfers.</p>
 
   <h2>6. Service providers</h2>
   <ul>
-    <li><strong>Supabase</strong> — authentication, database, file storage and realtime chat hosting.</li>
-    <li><strong>Expo</strong> — delivers push notifications to your device.</li>
-    <li><strong>Open-Meteo</strong> — weather and forecasts; receives coordinates only.</li>
-    <li><strong>ExchangeRate-API / Frankfurter (ECB)</strong> — currency rates; receive no personal data.</li>
-    <li><strong>Google Maps</strong> (in-app maps) and <strong>OpenStreetMap</strong> (web viewers) — map tiles for the area being displayed.</li>
+    <li><strong>Supabase</strong>: sign-in, database and file storage (Mumbai, India).</li>
+    <li><strong>Expo</strong>: delivers push notifications to your phone.</li>
+    <li><strong>Open-Meteo</strong>: weather and forecasts; receives coordinates only.</li>
+    <li><strong>Frankfurter / ExchangeRate-API</strong>: currency rates; receive no personal data.</li>
+    <li><strong>OpenFreeMap / OpenStreetMap</strong>: map tiles for the area shown on a map; receives that area and your IP address.</li>
+    <li><strong>Render</strong>: hosts the web pages for story links, live-location links and this policy.</li>
+    <li><strong>Google (Android)</strong>: your phone's speech recognition, if you turn on written-out voice notes; and Android's own backup of app data to your Google account, if you have device backup turned on.</li>
   </ul>
 
-  <h2>7. Retention and deletion</h2>
+  <h2>7. How long we keep it, and deletion</h2>
   <ul>
-    <li>Journal and community data are kept until you delete them or your account.</li>
-    <li>Nearby positions expire within 24 hours; live-location links within 72 hours.</li>
-    <li><strong>Delete your account in the app</strong> (You → Settings &amp; privacy → Delete account). This permanently deletes your profile, cloud journals, uploaded files, posts, comments, messages, board posts, tips and push tokens. Residual copies may remain in encrypted infrastructure backups for up to 30 days. Without the app, request deletion as described on <a href="wayfare-delete-account.html">Delete your Wayfare account</a>.</li>
-    <li>Reports about content are kept as long as needed to keep the community safe.</li>
+    <li>Journal and profile data: until you delete it or your account.</li>
+    <li>Live-location links end within 72 hours; invite links within 7 days.</li>
+    <li>Usage counts and crash reports: only as long as needed to fix problems and measure use.</li>
+    <li><strong>Delete your account in the app:</strong> You → Settings → Delete account. This deletes your profile, cloud journals, uploaded photos and voice notes, links and push tokens straight away. Copies in our providers' systems expire within 30 days. Feedback you sent is kept without your account attached. Without the app, see <a href="wayfare-delete-account.html">Delete your Wayfare account</a>.</li>
+    <li>Journals saved only on your phone stay there until you remove them (Settings → Remove journals from this phone) or uninstall the app.</li>
   </ul>
 
-  <h2>8. Your choices</h2>
+  <h2>8. Your rights</h2>
+  <p>Under Indian law you can ask us to:</p>
   <ul>
-    <li>Control who can find you (Discoverable) and who can message you (everyone, people you follow, nobody).</li>
-    <li>Post to everyone or followers only; delete posts, comments and messages you sent at any time.</li>
-    <li>Block or report any traveller or content.</li>
-    <li>Export a trip as PDF, GPX or GeoJSON.</li>
-    <li>Ask us for a copy or correction of your data: <a href="mailto:amalprasadappu@gmail.com">amalprasadappu@gmail.com</a>.</li>
+    <li>tell you what personal data we hold about you and how we use it;</li>
+    <li>correct, complete or update it (most of it you can change in the app);</li>
+    <li>erase it (you can delete your account in the app);</li>
+    <li>withdraw your consent (turn the feature off, or delete your account);</li>
+    <li>nominate someone to exercise these rights for you if you die or become unable to;</li>
+    <li>resolve a complaint (section 11).</li>
   </ul>
+  <p>Email us from the address on your account. We answer within 15 days. If you are not satisfied, you can complain to the Data Protection Board of India.</p>
 
   <h2>9. Security</h2>
-  <p>Data in transit is encrypted (HTTPS). Cloud data is protected with row-level security so each traveller can only access what they are allowed to see; journal media and chat photos are in private storage. Profile photos and post photos are stored as public files at unguessable addresses so feeds load quickly; anyone who obtains such an address can view that image. An optional biometric lock protects the app on your phone.</p>
+  <p>Data is encrypted in transit (HTTPS). Database access rules let each person reach only their own journals and those shared with them. Photos and voice notes are kept in private storage; a story link makes a journey's photos viewable only while that link is on. You can lock the app with your fingerprint or face. If a breach affects your personal data, we will tell you and the Data Protection Board of India as the law requires.</p>
 
   <h2>10. Age</h2>
-  <p>Wayfare accounts and community features are for people aged 18 and over. We do not knowingly collect data from children under 13.</p>
+  <p>Wayfare accounts are for people aged 18 and over; you confirm this when you sign up. We do not knowingly collect data from anyone under 18. If you believe a child has made an account, contact us and we will delete it.</p>
 
-  <h2>11. Changes</h2>
-  <p>We will update the effective date above and notify you in the app about material changes.</p>
-  <p class="muted"><small>See also the <a href="wayfare-terms.html">Terms of Use</a>.</small></p>
+  <h2>11. Contact and Grievance Officer</h2>
+  <p>Amal Prasad, Grievance Officer, Wayfare<br />
+  Email: <a href="mailto:amalprasadappu@gmail.com">amalprasadappu@gmail.com</a><br />
+  We acknowledge complaints within 24 hours and resolve them within 15 days.</p>
+
+  <h2>12. Changes</h2>
+  <p>We will update the effective date above and tell you in the app before material changes take effect.</p>
+  <p class="muted">See also the <a href="wayfare-terms.html">Terms of Use</a>.</p>
 </body>
 </html>
