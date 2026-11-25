@@ -18,9 +18,17 @@ dump = open(win, errors='ignore').read()
 # Screen size and the keyboard window's frame.
 size = re.search(r'(?:mDisplayFrame|DisplayFrames.*?w=|init=)(\d+)x(\d+)', dump)
 frames = []
-for m in re.finditer(r'Window\{[^}]*InputMethod[^}]*\}(.{0,4000})', dump, re.S):
-    frames += [tuple(map(int, f)) for f in re.findall(r'(?:mFrame|frame)=\[(\d+),(\d+)\]\[(\d+),(\d+)\]', m.group(1))]
-frames = [f for f in frames if f[3] > f[1] and f[1] > 300]
+R1 = r'\[(\d+),(\d+)\]\[(\d+),(\d+)\]'           # [l,t][r,b]
+R2 = r'Rect\((\d+), (\d+) - (\d+), (\d+)\)'      # Rect(l, t - r, b)
+# Android 11+ lists the keyboard as an "ime" insets source; older dumps as the InputMethod window.
+for m in re.finditer(r'(?:type=ime|ITYPE_IME|InputMethod)', dump):
+    seg = dump[m.start(): m.start() + 600]
+    for rx_ in (R1, R2):
+        f = re.search(rx_, seg)
+        if f:
+            frames.append(tuple(map(int, f.groups())))
+            break
+frames = [f for f in frames if f[3] > f[1] and f[1] > 300 and (f[3] - f[1]) < 2000]
 ime_top = min((f[1] for f in frames), default=None)
 shown = 'mInputShown=true' in dump or 'isInputMethodShown=true' in dump or bool(frames)
 if not nodes:

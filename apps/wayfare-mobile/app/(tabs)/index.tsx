@@ -368,11 +368,19 @@ export default function JourneysTab() {
           enablePanDownToClose
           bottomInset={fabBottom - 6}
           onChange={i => setListOpen(i >= 0)}
+          // Flip as the panel starts moving, so screen readers only find its contents while it is up.
+          onAnimate={(_from, to) => setListOpen(to >= 0)}
           backgroundStyle={{ backgroundColor: colors.background, borderRadius: 28 }}
           handleIndicatorStyle={{ backgroundColor: colors.outline, width: 40 }}
           style={{ shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 18, shadowOffset: { width: 0, height: -4 }, elevation: 12 }}
         >
-          <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6, paddingHorizontal: 16, paddingBottom: 10 }} accessibilityRole="header">
+          {/* Closed, the panel waits just below the screen: hidden from TalkBack/VoiceOver until it opens. */}
+          <View
+            style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6, paddingHorizontal: 16, paddingBottom: 10 }}
+            accessibilityRole="header"
+            importantForAccessibility={listOpen ? 'auto' : 'no-hide-descendants'}
+            accessibilityElementsHidden={!listOpen}
+          >
             <Text style={{ fontSize: 13, fontWeight: '800', color: colors.onSurfaceVariant, letterSpacing: 0.6 }}>ALL TRIPS</Text>
             <Text style={{ fontSize: 13, color: colors.muted }}>{all.length}</Text>
             <View style={{ flex: 1 }} />
@@ -381,6 +389,8 @@ export default function JourneysTab() {
             </Pressable>
           </View>
           <BottomSheetFlatList
+            importantForAccessibility={listOpen ? 'auto' : 'no-hide-descendants'}
+            accessibilityElementsHidden={!listOpen}
             data={rows}
             keyExtractor={(t: TripRow) => t.id}
             contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 24 }}

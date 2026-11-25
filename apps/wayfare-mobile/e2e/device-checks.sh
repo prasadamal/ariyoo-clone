@@ -10,6 +10,11 @@ say() { echo "$*" | tee -a "$SUM"; }
 export PATH="$PATH:$HOME/.maestro/bin"
 
 say "## Device checks ($(adb shell getprop ro.build.version.release | tr -d '\r') / API $(adb shell getprop ro.build.version.sdk | tr -d '\r'), $(adb shell wm size | tr -d '\r'))"
+# The emulator's own home app sometimes freezes on slow CI machines and its "isn't responding"
+# pop-up covers the screen. Hide those system pop-ups (app crashes are still caught in logcat) and
+# give the phone a moment to settle after boot.
+adb shell settings put global hide_error_dialogs 1
+sleep 20
 adb logcat -c
 if adb install -r "$APK" > "$OUT/install.txt" 2>&1; then say "- Install: PASS"; else say "- Install: FAIL ($(tail -1 "$OUT/install.txt"))"; exit 0; fi
 
@@ -27,7 +32,13 @@ texts() {  # what is on screen now, for the log when a step fails
   adb shell cat /sdcard/now.xml 2>/dev/null | grep -oE '(text|content-desc)="[^"]+"' | sed -E 's/^[a-z-]+="(.*)"$/\1/' | head -40 | paste -sd'|' -
 }
 alive() { adb shell pidof $PKG > /dev/null 2>&1 && echo yes || echo no; }
+unstick() {  # tap "Wait" on any system "isn't responding" pop-up
+  adb shell uiautomator dump /sdcard/now.xml > /dev/null 2>&1
+  b=$(adb shell cat /sdcard/now.xml 2>/dev/null | grep -oE 'text="Wait"[^>]*bounds="\[[0-9]+,[0-9]+\]\[[0-9]+,[0-9]+\]"' | grep -oE '[0-9]+' | tail -4 | paste -sd' ' -)
+  if [ -n "$b" ]; then set -- $b; adb shell input tap $(( ($1+$3)/2 )) $(( ($2+$4)/2 )); echo "    (dismissed a system 'isn't responding' pop-up)" >> "$SUM"; sleep 2; fi
+}
 flow() {  # name, file
+  unstick
   if maestro test --format junit --output "$OUT/$1.xml" --test-output-dir "$OUT/screens" "$E2E/maestro/$2" > "$OUT/$1.log" 2>&1; then
     say "- Flow $1: PASS"
   else
@@ -38,16 +49,21 @@ flow() {  # name, file
 keyboard() {  # label, button regex
   adb shell uiautomator dump /sdcard/ui.xml > /dev/null 2>&1; adb pull /sdcard/ui.xml "$OUT/$1-ui.xml" > /dev/null 2>&1
   adb shell dumpsys window windows > "$OUT/$1-window.txt" 2>&1
+  adb shell dumpsys window >> "$OUT/$1-window.txt" 2>&1
   adb shell dumpsys input_method >> "$OUT/$1-window.txt" 2>&1
   adb exec-out screencap -p > "$OUT/screens/$1-keyboard.png"
-  say "- $(python3 "$E2E/keyboard_check.py" "$OUT/$1-ui.xml" "$OUT/$1-window.txt" "$2" "$1")"
+  r=$(python3 "$E2E/keyboard_check.py" "$OUT/$1-ui.xml" "$OUT/$1-window.txt" "$2" "$1")
+  say "- $r"
+  case "$r" in *UNKNOWN*) grep -iE "type=ime|ITYPE_IME|InputMethod" "$OUT/$1-window.txt" | head -6 | cut -c1-220 | sed 's/^/    /' | tee -a "$SUM" > /dev/null;; esac
 }
 
 flow guest-plan 01-guest-plan.yaml
 keyboard plan-sheet '^Add plan$'
 flow expense 02-expense.yaml
 keyboard expense-sheet '^Add ₹'
-flow home-swipe 03-home-swipe.yaml
+flow second-journey 03-second-journey.yaml
+flow light-swipe-keeps-list-closed 04-light-swipe.yaml
+flow firm-swipe-opens-list 05-firm-swipe.yaml
 
 # Robustness checks the big app stores run: the app killed in the background (Android does this
 # to free memory), no network at launch, very large text, dark mode, and a low-memory signal.

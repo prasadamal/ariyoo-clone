@@ -1,0 +1,19 @@
+appId: com.wayfare.app
+name: A light, slow swipe on the tiles keeps All trips closed
+---
+- launchApp:
+    stopApp: true
+- extendedWaitUntil:
+    visible: "All trips"
+    timeout: 60000
+- waitForAnimationToEnd
+- takeScreenshot: 06-home-two-trips
+# The closed panel must not be findable (it isn't on screen), before any swipe.
+- assertNotVisible: "ALL TRIPS"
+- swipe:
+    start: "50%, 55%"
+    end: "50%, 50%"
+    duration: 600
+- waitForAnimationToEnd
+- takeScreenshot: 07-light-swipe
+- assertNotVisible: "ALL TRIPS"

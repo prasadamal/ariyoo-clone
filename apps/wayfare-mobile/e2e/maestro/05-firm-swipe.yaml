@@ -1,0 +1,22 @@
+appId: com.wayfare.app
+name: A firm swipe up opens All trips; back closes it
+---
+- launchApp:
+    stopApp: true
+- extendedWaitUntil:
+    visible: "All trips"
+    timeout: 60000
+- waitForAnimationToEnd
+- swipe:
+    start: "50%, 70%"
+    end: "50%, 20%"
+    duration: 300
+- extendedWaitUntil:
+    visible: "ALL TRIPS"
+    timeout: 5000
+- takeScreenshot: 08-firm-swipe-list
+- back
+- extendedWaitUntil:
+    notVisible: "ALL TRIPS"
+    timeout: 5000
+- takeScreenshot: 08b-list-closed
