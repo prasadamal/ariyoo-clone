@@ -21,7 +21,7 @@ import { persistFile } from '../../lib/upload';
 import { fetchWeatherSummary } from '../../lib/weather';
 import { useAppTheme } from '../../theme';
 import { EmptyState } from '../../ui/EmptyState';
-import { MomentStory } from './MomentStory';
+import { MomentTile } from './MomentTile';
 import { MomentComposer, type MomentMoney } from './MomentComposer';
 import { pickPhotos, type PickedPhoto } from './photoPicker';
 import { Pill } from '../../ui/Pill';
@@ -569,7 +569,7 @@ export function JournalTab({ trip, onChanged, everyday = false, crewNames = {}, 
                           {dateText(d)}
                         </Text>
                       ) : null}
-                      <MomentStory
+                      <MomentTile
                         entry={e}
                         money={moneyByMoment.get(e.id)}
                         currencySymbol={symbol}
