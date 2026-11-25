@@ -80,20 +80,21 @@ export function statusTrips<T extends DatedTrip>(trips: T[], status: TripStatus,
  * The big number on the right of every journey tile: days to go, the day you're on, or how long
  * the trip was. Always something, also for journeys without dates or marked complete early.
  */
-export function tileCount(t: TripLike, today = new Date()): { value: string; caption: string } {
+/** The big number on a tile; null when the journey has no dates (the corner stays empty, no divider). */
+export function tileCount(t: TripLike, today = new Date()): { value: string; caption: string } | null {
   const status = tripStatus(t, today);
   const until = daysUntil(t.starts_on, today);
   const length = t.starts_on ? (t.ends_on ? Math.max(1, (daysUntil(t.ends_on, today) ?? 0) - (until ?? 0) + 1) : 1) : null;
   if (status === 'upcoming') {
-    if (until == null) return { value: '–', caption: 'no dates yet' };
+    if (until == null) return null;
     if (until <= 0) return { value: 'Today', caption: 'starts' };
     return { value: String(until), caption: `day${until === 1 ? '' : 's'} to go` };
   }
   if (status === 'ongoing') {
-    if (until == null) return { value: 'Now', caption: 'on the road' };
+    if (until == null) return null;
     const day = -until + 1;
     return { value: `Day ${day}`, caption: t.ends_on && length ? `of ${length}` : 'on the road' };
   }
   if (length) return { value: String(length), caption: 'day trip' };
-  return { value: '✓', caption: 'completed' };
+  return null;
 }

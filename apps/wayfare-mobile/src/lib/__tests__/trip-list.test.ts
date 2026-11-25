@@ -70,16 +70,16 @@ test('a group list: upcoming soonest first (undated plans last), completed newes
   assert.deepEqual(statusTrips(trips, 'completed', today).map(t => t.id), ['recent', 'old']);
 });
 
-test('every journey tile has a count: to go, day of, length, or a plain word', () => {
+test('a journey tile has a count when it has dates (to go, day of, length); none without dates', () => {
   const today = new Date(2026, 10, 24);
   const t = (starts_on: string | null, ends_on: string | null, status = 'planned') => ({ id: 'x', status, starts_on, ends_on });
   assert.deepEqual(tileCount(t('2026-12-01', '2026-12-05'), today), { value: '7', caption: 'days to go' });
   assert.deepEqual(tileCount(t('2026-11-25', null), today), { value: '1', caption: 'day to go' });
-  assert.deepEqual(tileCount(t(null, null), today), { value: '–', caption: 'no dates yet' });
+  assert.equal(tileCount(t(null, null), today), null);
   assert.deepEqual(tileCount(t('2026-11-22', '2026-11-26'), today), { value: 'Day 3', caption: 'of 5' });
   assert.deepEqual(tileCount(t('2026-11-01', '2026-11-05'), today), { value: '5', caption: 'day trip' });
   assert.deepEqual(tileCount(t('2026-11-01', null, 'completed'), today), { value: '1', caption: 'day trip' });
   // Marked complete before its dates: still the planned length.
   assert.deepEqual(tileCount(t('2026-12-01', '2026-12-03', 'completed'), today), { value: '3', caption: 'day trip' });
-  assert.deepEqual(tileCount(t(null, null, 'completed'), today), { value: '✓', caption: 'completed' });
+  assert.equal(tileCount(t(null, null, 'completed'), today), null);
 });
