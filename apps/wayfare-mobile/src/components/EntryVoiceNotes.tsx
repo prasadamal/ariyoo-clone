@@ -7,8 +7,7 @@ import { Icon } from '../ui/Icon';
 import { deleteEntryMedia, listEntryMedia, type LocalEntryMedia } from '../lib/localDb';
 import { isAudio, resolveMediaUri } from '../lib/media';
 
-/** tone "onDark": white pills for a dark band (the Stories view, under a photo). */
-export function EntryVoiceNotes({ entryId, refreshKey = 0, inset = 14, tone = 'default', canEdit = true }: { entryId: string; refreshKey?: number; inset?: number; tone?: 'default' | 'onDark'; canEdit?: boolean }) {
+export function EntryVoiceNotes({ entryId, refreshKey = 0, inset = 14, canEdit = true }: { entryId: string; refreshKey?: number; inset?: number; canEdit?: boolean }) {
   const { colors } = useAppTheme();
   const [clips, setClips] = useState<LocalEntryMedia[]>([]);
   const [playing, setPlaying] = useState<string | null>(null);
@@ -77,7 +76,6 @@ export function EntryVoiceNotes({ entryId, refreshKey = 0, inset = 14, tone = 'd
     ]);
 
   if (!clips.length) return null;
-  const dark = tone === 'onDark';
 
   // Small pills inside the card's padding (the old outlined buttons were tall and sat on its edge).
   return (
@@ -99,15 +97,15 @@ export function EntryVoiceNotes({ entryId, refreshKey = 0, inset = 14, tone = 'd
               paddingLeft: 10,
               paddingRight: 14,
               borderRadius: 16,
-              backgroundColor: dark ? (on ? '#ffffff' : '#ffffff2e') : on ? colors.primary : colors.primaryContainer,
+              backgroundColor: on ? colors.primary : colors.primaryContainer,
               opacity: pressed ? 0.85 : 1,
             })}
           >
-            <Icon name={on ? 'stop' : 'play'} size={16} color={dark ? (on ? '#1c1917' : '#ffffff') : on ? colors.onPrimary : colors.primary} />
-            <Text style={{ fontSize: 13, fontWeight: '700', color: dark ? (on ? '#1c1917' : '#ffffff') : on ? colors.onPrimary : colors.onPrimaryContainer }}>
+            <Icon name={on ? 'stop' : 'play'} size={16} color={on ? colors.onPrimary : colors.primary} />
+            <Text style={{ fontSize: 13, fontWeight: '700', color: on ? colors.onPrimary : colors.onPrimaryContainer }}>
               Voice note{clips.length > 1 ? ` ${i + 1}` : ''}
             </Text>
-            <Icon name="waveform" size={16} color={dark ? (on ? '#1c1917' : '#ffffffb3') : on ? colors.onPrimary : colors.primary} />
+            <Icon name="waveform" size={16} color={on ? colors.onPrimary : colors.primary} />
           </Pressable>
         );
       })}
