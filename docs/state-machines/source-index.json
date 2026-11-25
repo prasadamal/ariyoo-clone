@@ -2644,107 +2644,107 @@
           "text": "import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';"
         },
         {
-          "line": 67,
+          "line": 68,
           "text": "const [entries, setEntries] = useState<LocalEntry[]>([]);"
         },
         {
-          "line": 68,
+          "line": 69,
           "text": "const [text, setText] = useState('');"
         },
         {
-          "line": 69,
+          "line": 70,
           "text": "const [mood, setMood] = useState('');"
         },
         {
-          "line": 73,
+          "line": 74,
           "text": "const [dayFilter, setDayFilter] = useState<string | null>(null);"
         },
         {
-          "line": 74,
+          "line": 75,
           "text": "const [newestFirst, setNewestFirst] = useState(false);"
         },
         {
-          "line": 75,
+          "line": 76,
           "text": "const [sortOpen, setSortOpen] = useState(false);"
         },
         {
-          "line": 77,
+          "line": 78,
           "text": "const [grid, setGrid] = useState(false);  const [money, setMoney] = useState<MomentMoney | null>(null);"
         },
         {
-          "line": 78,
+          "line": 79,
           "text": "const [typedPlace, setTypedPlace] = useState<FoundPlace | null>(null);"
         },
         {
-          "line": 79,
+          "line": 80,
           "text": "const [expenses, setExpenses] = useState<LocalExpense[]>([]);"
         },
         {
-          "line": 80,
+          "line": 81,
           "text": "const [photos, setPhotos] = useState<PickedPhoto[]>([]);"
         },
         {
-          "line": 81,
+          "line": 82,
           "text": "const [saving, setSaving] = useState(false);"
         },
         {
-          "line": 83,
+          "line": 84,
           "text": "const [voiceBusy, setVoiceBusy] = useState(false);"
         },
         {
-          "line": 84,
+          "line": 85,
           "text": "const [recording, setRecording] = useState(false);"
         },
         {
-          "line": 86,
+          "line": 87,
           "text": "const [voices, setVoices] = useState<VoiceDraft[]>([]);"
         },
         {
-          "line": 89,
+          "line": 90,
           "text": "const [liveWords, setLiveWords] = useState('');"
         },
         {
-          "line": 91,
+          "line": 92,
           "text": "const [mediaKey, setMediaKey] = useState(0);"
         },
         {
-          "line": 93,
+          "line": 94,
           "text": "const [shownDays, setShownDays] = useState(DAYS_PER_PAGE);"
         },
         {
-          "line": 96,
+          "line": 97,
           "text": "const [limit, setLimit] = useState(MOMENTS_PER_PAGE);"
         },
         {
-          "line": 97,
+          "line": 98,
           "text": "const [total, setTotal] = useState(0);"
         },
         {
-          "line": 98,
+          "line": 99,
           "text": "const [loadingMore, setLoadingMore] = useState(false);"
         },
         {
-          "line": 100,
+          "line": 101,
           "text": "const [times, setTimes] = useState<string[]>([]);"
         },
         {
-          "line": 102,
+          "line": 103,
           "text": "const [jumpTo, setJumpTo] = useState<string | null>(null);"
         },
         {
-          "line": 164,
+          "line": 165,
           "text": "sync_status: 'pending',"
         },
         {
-          "line": 185,
+          "line": 186,
           "text": "sync_status: 'pending',"
         },
         {
-          "line": 225,
+          "line": 226,
           "text": "sync_status: 'pending',"
         },
         {
-          "line": 247,
+          "line": 248,
           "text": "sync_status: 'pending',"
         }
       ]
