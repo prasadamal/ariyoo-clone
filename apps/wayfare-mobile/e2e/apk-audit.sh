@@ -21,8 +21,8 @@ blocks = re.split(r'\n\s*E: (?=activity|service|receiver|provider)', t)
 for b in blocks[1:]:
     kind = b.split()[0]
     name = re.search(r'android:name\(0x[0-9a-f]+\)="([^"]+)"', b)
-    exp = re.search(r'android:exported\(0x[0-9a-f]+\)=\(type 0x12\)0x(\w+)', b)
-    if exp and exp.group(1) != '0':
+    exp = re.search(r'android:exported\(0x[0-9a-f]+\)=(\S+)', b)
+    if exp and exp.group(1) in ('true', '(type 0x12)0xffffffff'):
         print(f'  exported {kind}: {name.group(1) if name else "?"}')
 PY
 echo "-- 16 KB page size (Play requires it for new apps from Nov 2025)"
@@ -35,6 +35,8 @@ for so in so/lib/arm64-v8a/*.so; do
 done
 echo "  arm64 libraries checked: $total, misaligned: $bad"
 echo "-- Signature"
-"$BT/apksigner" verify --print-certs "$APK" 2>&1 | grep -E "Signer #1 certificate DN|Verified using|DOES NOT VERIFY" | head -5
+"$BT/apksigner" verify -v --print-certs "$APK" > signer.txt 2>&1; echo "  exit code $?"
+grep -E "^Verifies|Verified using v[1-4]|Signer #1 certificate DN|DOES NOT VERIFY|ERROR" signer.txt | head -8 | sed 's/^/  /'
+[ -s signer.txt ] || echo "  (apksigner printed nothing)"
 echo "-- Size by part"
 unzip -l "$APK" | awk 'NR>3 {split($4,p,"/"); s[p[1]]+=$1} END {for (k in s) if (s[k] > 500000) printf "  %-28s %6.1f MB\n", k, s[k]/1048576}' | sort -k2 -nr
