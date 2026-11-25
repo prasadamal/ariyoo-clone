@@ -83,7 +83,10 @@ export function Sheet({ visible, onDismiss, title, subtitle, children }: SheetPr
       handleIndicatorStyle={{ backgroundColor: colors.outline, width: 40 }}
       keyboardBehavior="interactive"
       keyboardBlurBehavior="restore"
-      android_keyboardInputMode="adjustResize"
+      // The sheet lifts itself above the keyboard. Android doesn't shrink the screen for the keyboard
+      // here (edge-to-edge, and the keyboard controller takes over the window's insets), so with
+      // "adjustResize" the sheet waited for a resize that never came and the keyboard covered it.
+      android_keyboardInputMode="adjustPan"
       accessibilityLabel={title}
     >
       <BottomSheetView style={{ paddingHorizontal: 20, paddingTop: 4, paddingBottom: Math.max(insets.bottom, 12) + 12 }}>

@@ -568,55 +568,39 @@
           "text": "const [inList, setInList] = useState(false);"
         },
         {
-          "line": 51,
-          "text": "const [listOpen, setListOpen] = useState(false);"
-        },
-        {
-          "line": 54,
+          "line": 52,
           "text": "const [viewHeight, setViewHeight] = useState(0);"
         },
         {
+          "line": 54,
+          "text": "const [topHeight, setTopHeight] = useState(72);"
+        },
+        {
           "line": 55,
-          "text": "const [greetHeight, setGreetHeight] = useState(72);"
-        },
-        {
-          "line": 56,
-          "text": "const [bannerHeight, setBannerHeight] = useState(0);"
-        },
-        {
-          "line": 57,
           "text": "const [recordingTripId, setRecordingTripId] = useState<string | null>(null);"
         },
         {
-          "line": 58,
+          "line": 56,
           "text": "const [loaded, setLoaded] = useState(false);"
         },
         {
-          "line": 59,
+          "line": 57,
           "text": "const [loadingMore, setLoadingMore] = useState(false);"
         },
         {
-          "line": 60,
+          "line": 58,
           "text": "const [refreshing, setRefreshing] = useState(false);"
         },
         {
-          "line": 62,
+          "line": 60,
           "text": "const [showStatus, setShowStatus] = useState(false);"
         },
         {
-          "line": 143,
+          "line": 141,
           "text": "statusTimer.current = setTimeout(() => setShowStatus(false), 6000);"
         },
         {
-          "line": 181,
-          "text": "setTimeout(() => listRef.current?.scrollToOffset({ offset: Math.max(0, listTop + 8), animated: true }), 60);"
-        },
-        {
-          "line": 185,
-          "text": "setTimeout(() => setListOpen(false), 450);"
-        },
-        {
-          "line": 200,
+          "line": 192,
           "text": "const status = tripStatus(t);"
         }
       ]
@@ -1998,11 +1982,11 @@
           "text": "import { useCallback, useEffect, useRef, useState } from 'react';"
         },
         {
-          "line": 12,
+          "line": 13,
           "text": "const [clips, setClips] = useState<LocalEntryMedia[]>([]);"
         },
         {
-          "line": 13,
+          "line": 14,
           "text": "const [playing, setPlaying] = useState<string | null>(null);"
         }
       ]
@@ -2657,7 +2641,7 @@
       "evidence": [
         {
           "line": 6,
-          "text": "import { useCallback, useEffect, useMemo, useRef, useState } from 'react';"
+          "text": "import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';"
         },
         {
           "line": 67,
@@ -2766,23 +2750,6 @@
       ]
     },
     {
-      "path": "apps/wayfare-mobile/src/features/trip/MomentCard.tsx",
-      "evidence": [
-        {
-          "line": 3,
-          "text": "import { useState } from 'react';"
-        },
-        {
-          "line": 45,
-          "text": "const [menu, setMenu] = useState(false);"
-        },
-        {
-          "line": 46,
-          "text": "const [expanded, setExpanded] = useState(false);"
-        }
-      ]
-    },
-    {
       "path": "apps/wayfare-mobile/src/features/trip/MomentComposer.tsx",
       "evidence": [
         {
@@ -2820,6 +2787,43 @@
         {
           "line": 98,
           "text": "const tool = (icon: string, label: string, onPress: () => void, active = false, disabled = false) => ("
+        }
+      ]
+    },
+    {
+      "path": "apps/wayfare-mobile/src/features/trip/MomentStory.tsx",
+      "evidence": [
+        {
+          "line": 4,
+          "text": "import { useCallback, useEffect, useState } from 'react';"
+        },
+        {
+          "line": 52,
+          "text": "const [photos, setPhotos] = useState<{ media: LocalEntryMedia; uri: string }[]>([]);"
+        },
+        {
+          "line": 53,
+          "text": "const [hasVoice, setHasVoice] = useState(false);"
+        },
+        {
+          "line": 54,
+          "text": "const [page, setPage] = useState(0);"
+        },
+        {
+          "line": 55,
+          "text": "const [width, setWidth] = useState(0);"
+        },
+        {
+          "line": 56,
+          "text": "const [viewer, setViewer] = useState<number | null>(null);"
+        },
+        {
+          "line": 57,
+          "text": "const [menu, setMenu] = useState(false);"
+        },
+        {
+          "line": 58,
+          "text": "const [expanded, setExpanded] = useState(false);"
         }
       ]
     },
