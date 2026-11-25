@@ -25,6 +25,7 @@ import { MomentTile } from './MomentTile';
 import { MomentComposer, type MomentMoney } from './MomentComposer';
 import { pickPhotos, type PickedPhoto } from './photoPicker';
 import { Pill } from '../../ui/Pill';
+import { DayPill } from '../../ui/DayPill';
 import { AFTER_TRIP, datePills, dayBucket, PRE_TRIP, swipeDay, tripDayLabel } from './dayStripCells';
 import { TripGalleryCard } from './TripGalleryCard';
 import { galleryAvailable } from '../../lib/galleryPhotos';
@@ -542,33 +543,22 @@ export function JournalTab({ trip, onChanged, everyday = false, crewNames = {}, 
           }}
         >
           {(() => {
-            // Moments show only their time, so the date lives in the headings: "DAY 2 · SUN 22 NOV",
-            // and inside Pre-trip / After trip (several dates) a date line wherever the day changes.
+            // Moments show only their time, so the day and date live in a pill above them ("Day 2 ·
+            // Mon 23 Nov"). Pre-trip / After trip span several dates: a pill wherever the date changes
+            // ("Pre-trip · Fri 20 Nov"). One day picked above: no pill (that pill already says it).
             const dayOf = (e: LocalEntry) => toDayString(new Date(e.recorded_at));
-            const dates = new Set(g.list.map(dayOf));
-            const multi = dates.size > 1;
-            const dateText = (d: string) => formatDay(d, { weekday: true, year: d.slice(0, 4) !== String(new Date().getFullYear()) }).toUpperCase();
-            const isDateLabel = everyday;
-            const heading = isDateLabel || multi ? g.label.toUpperCase() : `${g.label.toUpperCase()} · ${dateText(g.first)}`;
+            const multi = new Set(g.list.map(dayOf)).size > 1;
+            const dateText = (d: string) => formatDay(d, { weekday: true, year: d.slice(0, 4) !== String(new Date().getFullYear()) }).replace(',', '');
+            const pillText = (d: string) => (everyday ? dateText(d) : `${g.label} · ${dateText(d)}`);
             return (
               <>
-                {/* Which day these are, as a quiet heading (not a button). One day picked above: no heading. */}
-                {dayFilter ? null : (
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10, marginTop: 8 }} accessibilityRole="header">
-                    <Text style={{ fontSize: 12.5, fontWeight: '800', letterSpacing: 1, color: colors.primary }}>{heading}</Text>
-                    <View style={{ flex: 1, height: 1, backgroundColor: colors.border }} />
-                  </View>
-                )}
                 {g.list.map((e, i) => {
                   const d = dayOf(e);
-                  const newDate = multi && (i === 0 || dayOf(g.list[i - 1]) !== d);
+                  const firstOfDate = i === 0 || dayOf(g.list[i - 1]) !== d;
+                  const showPill = firstOfDate && (multi || (i === 0 && !dayFilter));
                   return (
                     <Fragment key={e.id}>
-                      {newDate ? (
-                        <Text style={{ fontSize: 12, fontWeight: '800', letterSpacing: 1, color: colors.muted, marginTop: i === 0 ? 2 : 14, marginBottom: 8 }} accessibilityRole="header">
-                          {dateText(d)}
-                        </Text>
-                      ) : null}
+                      {showPill ? <DayPill label={pillText(d)} /> : null}
                       <MomentTile
                         entry={e}
                         money={moneyByMoment.get(e.id)}
