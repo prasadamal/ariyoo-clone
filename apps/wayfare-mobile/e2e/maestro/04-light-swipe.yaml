@@ -8,6 +8,8 @@ name: A light, slow swipe on the tiles keeps All trips closed
     timeout: 60000
 - waitForAnimationToEnd
 - takeScreenshot: 06-home-two-trips
+# The closed panel must not be findable (it isn't on screen), before any swipe.
+- assertNotVisible: "ALL TRIPS"
 - swipe:
     start: "50%, 55%"
     end: "50%, 50%"
