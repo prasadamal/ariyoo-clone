@@ -51,6 +51,8 @@ export function MomentTile({ entry: e, money, currencySymbol, mediaKey, canShare
   const [width, setWidth] = useState(0);
   const [viewer, setViewer] = useState<number | null>(null);
   const [menu, setMenu] = useState(false);
+  // The photo you long-pressed (its own "Remove this photo"); null when ⋯ opened the menu.
+  const [menuPhoto, setMenuPhoto] = useState<number | null>(null);
   const [expanded, setExpanded] = useState(false);
 
   const load = useCallback(async () => {
@@ -97,18 +99,25 @@ export function MomentTile({ entry: e, money, currencySymbol, mediaKey, canShare
   const actions: SheetAction[] = [
     { icon: 'pencil-outline', label: 'Edit', onPress: () => { setMenu(false); router.push(`/entry/${e.id}`); } },
     { icon: 'image-plus', label: 'Add photos', onPress: () => { setMenu(false); onAddPhotos(); } },
-    ...(photos.length === 1 ? [{ icon: 'image-remove', label: 'Remove photo', onPress: () => { setMenu(false); removePhoto(photos[0].media); } }] : []),
+    ...(menuPhoto != null && photos[menuPhoto]
+      ? [{ icon: 'image-remove', label: photos.length > 1 ? 'Remove this photo' : 'Remove photo', onPress: () => { setMenu(false); removePhoto(photos[menuPhoto].media); } }]
+      : photos.length === 1
+        ? [{ icon: 'image-remove', label: 'Remove photo', onPress: () => { setMenu(false); removePhoto(photos[0].media); } }]
+        : photos.length > 1
+          ? [{ icon: 'image-remove', label: 'Remove a photo', hint: 'Long-press the photo you want to remove', onPress: () => setMenu(false) }]
+          : []),
     ...(canShare ? [{ icon: 'share-variant-outline', label: 'Share to feed', onPress: () => { setMenu(false); router.push({ pathname: '/post/new', params: { entryId: e.id, tripId } }); } }] : []),
     { icon: 'delete-outline', label: 'Delete moment', danger: true, onPress: () => { setMenu(false); onDelete(); } },
   ];
-  const openMenu = canEdit ? () => setMenu(true) : undefined;
+  const openMenu = canEdit ? () => { setMenuPhoto(null); setMenu(true); } : undefined;
+  const openPhotoMenu = (i: number) => (canEdit ? () => { setMenuPhoto(i); setMenu(true); } : undefined);
 
   /** One photo in the mosaic: tap to see it full screen; long-press for the moment's options. */
   const photo = (i: number, w: number, h: number, more = 0) => (
     <Pressable
       key={photos[i].media.id}
       onPress={() => setViewer(i)}
-      onLongPress={openMenu}
+      onLongPress={openPhotoMenu(i)}
       delayLongPress={350}
       accessibilityLabel={`Photo ${i + 1} of ${photos.length}, ${a11yWhen}. Tap to enlarge${canEdit ? ', long press for options' : ''}.`}
       style={{ width: w, height: h }}
@@ -180,7 +189,7 @@ export function MomentTile({ entry: e, money, currencySymbol, mediaKey, canShare
       delayLongPress={350}
       disabled={!openMenu}
       accessibilityActions={canEdit ? [{ name: 'longpress', label: 'Moment options' }] : undefined}
-      onAccessibilityAction={ev => ev.nativeEvent.actionName === 'longpress' && setMenu(true)}
+      onAccessibilityAction={ev => ev.nativeEvent.actionName === 'longpress' && openMenu?.()}
       style={[
         styles.card,
         { backgroundColor: colors.surface },
@@ -199,7 +208,7 @@ export function MomentTile({ entry: e, money, currencySymbol, mediaKey, canShare
           </View>
         ) : null}
         <View style={{ flex: 1 }} />
-        {canEdit ? <IconButton icon="dots-horizontal" size={20} onPress={() => setMenu(true)} accessibilityLabel="Moment options" style={{ margin: -6 }} iconColor={colors.subtle} /> : null}
+        {canEdit ? <IconButton icon="dots-horizontal" size={20} onPress={() => { setMenuPhoto(null); setMenu(true); }} accessibilityLabel="Moment options" style={{ margin: -6 }} iconColor={colors.subtle} /> : null}
       </View>
 
       {/* The photos across the full width of the tile, with their own rounded corners. */}
@@ -233,7 +242,7 @@ export function MomentTile({ entry: e, money, currencySymbol, mediaKey, canShare
       ) : null}
 
       {canEdit ? (
-        <Sheet visible={menu} onDismiss={() => setMenu(false)} title="Moment" subtitle={body ? `${time} · ${body.split('\n')[0].slice(0, 60)}` : time}>
+        <Sheet visible={menu} onDismiss={() => setMenu(false)} title="Moment" subtitle={menuPhoto != null && photos.length > 1 ? `${time} · photo ${menuPhoto + 1} of ${photos.length}` : body ? `${time} · ${body.split('\n')[0].slice(0, 60)}` : time}>
           <SheetActions actions={actions} />
         </Sheet>
       ) : null}
