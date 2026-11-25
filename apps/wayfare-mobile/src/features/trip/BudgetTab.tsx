@@ -7,7 +7,7 @@ import { getRates, type RatesSnapshot } from '../../lib/currency';
 import { formatMoney, sumInCurrency } from '../../lib/currencyMath';
 import { formatDay, timeAgoPhrase, toDayString } from '../../lib/format';
 import { deleteExpense, listExpenses, updateTrip, upsertExpense, type LocalExpense, type LocalTrip } from '../../lib/localDb';
-import { computeBalances, isSpending, ME, parseCompanions, parseSplitWith, SETTLEMENT, settlementFor, settleUp } from '../../lib/split';
+import { computeBalances, expenseForViewer, isSpending, ME, parseCompanions, parseSplitWith, SETTLEMENT, settlementFor, settleUp } from '../../lib/split';
 import { useAppTheme } from '../../theme';
 import { ChipSelect } from '../../ui/ChipSelect';
 import { Icon } from '../../ui/Icon';
@@ -23,7 +23,15 @@ import { useToast } from '../../context/ToastContext';
 const personLabel = (name: string) => (name === ME ? 'You' : firstName(name));
 
 /** readOnly: a crew member (not an admin) sees the spending but can't change it. */
-type Props = { trip: LocalTrip; onChanged: () => void; readOnly?: boolean };
+type Props = {
+  trip: LocalTrip;
+  onChanged: () => void;
+  readOnly?: boolean;
+  /** Crew member id → their name, for expenses others wrote in a shared journey. */
+  authorNames?: Record<string, string>;
+  /** The viewer's own names (first name, username), so their name in someone else's expense reads as You. */
+  myNames?: string[];
+};
 
 export const EXPENSE_CATEGORIES = [
   { value: 'food', label: 'Food', icon: 'silverware-fork-knife' },
@@ -43,10 +51,17 @@ function categoryIcon(c: string) {
   return EXPENSE_CATEGORIES.find(x => x.value === c)?.icon ?? 'cash';
 }
 
-export function BudgetTab({ trip, onChanged, readOnly = false }: Props) {
+export function BudgetTab({ trip, onChanged, readOnly = false, authorNames = {}, myNames = [] }: Props) {
+  // Every expense counted from this viewer's side: "Me" is whoever wrote it.
+  const view = (e: LocalExpense) => expenseForViewer(e, e.author_id ? authorNames[e.author_id] ?? 'Crew member' : null, myNames);
   const { colors } = useAppTheme();
   const tripCurrency = trip.currency || 'INR';
-  const companions = useMemo(() => parseCompanions(trip.companions), [trip.companions]);
+  // Companions the owner typed, minus the viewer's own name (that's "You").
+  const companions = useMemo(() => {
+    const mine = new Set(myNames.map(n => n.toLowerCase()));
+    return parseCompanions(trip.companions).filter(c => !mine.has(c.toLowerCase()));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [trip.companions, myNames.join('|')]);
   const people = useMemo(() => [ME, ...companions], [companions]);
   const [expenses, setExpenses] = useState<LocalExpense[]>([]);
   const [rates, setRates] = useState<RatesSnapshot | null>(null);
@@ -132,16 +147,13 @@ export function BudgetTab({ trip, onChanged, readOnly = false }: Props) {
         currency: cur,
         transfers: settleUp(
           computeBalances(
-            list.map(e => ({
-              amount: e.amount,
-              paidBy: e.paid_by ? capitalizeName(e.paid_by) : null,
-              splitWith: parseSplitWith(e.split_with).map(capitalizeName),
-            }))
+            list.map(e => ({ amount: e.amount, ...view(e) }))
           )
         ),
       }))
       .filter(s => s.transfers.length);
-  }, [expenses]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [expenses, authorNames, myNames]);
 
   const add = async () => {
     const value = Number(amount);
@@ -404,8 +416,8 @@ export function BudgetTab({ trip, onChanged, readOnly = false }: Props) {
                       <View style={{ flex: 1 }}>
                         <Text style={{ fontWeight: '600', textTransform: 'capitalize' }} numberOfLines={1}>{e.note || e.category}</Text>
                         <Text style={{ color: colors.muted, fontSize: 12 }}>
-                          {e.paid_by || companions.length || !e.note ? '' : categoryLabel(e.category)}
-                          {e.paid_by ? `Paid by ${firstName(capitalizeName(e.paid_by))}` : companions.length ? 'Paid by you' : ''}
+                          {view(e).paidBy || companions.length || !e.note ? '' : categoryLabel(e.category)}
+                          {view(e).paidBy ? `Paid by ${firstName(view(e).paidBy!)}` : companions.length || e.author_id ? 'Paid by you' : ''}
                           {split.length > 1 ? ` · split ${split.length} ways` : ''}
                         </Text>
                       </View>

@@ -5,9 +5,11 @@ import { ENTRY_MEDIA_BUCKET, uploadEntryMedia } from './media';
 import { supabase } from './supabase';
 import { mayReconcile, shouldApplyRemote } from './syncRules';
 import { createSyncFlight } from './syncState';
+import { saveUnsavedCopy } from './unsavedChangesStore';
 import {
   clearTombstone,
   discardPendingInTrip,
+  pendingRowsInTrip,
   getDb,
   getRowMeta,
   insertTrackPoint,
@@ -353,7 +355,12 @@ async function applyShares(shares: Share[]) {
     const share = byTrip.get(t.id);
     if (share) await setTripShare(t.id, shareFields(share));
     else if (!t.owner_id && (t.crew_count ?? 0) > 0) await setTripShare(t.id, { ownerId: null, ownerName: null, role: 'owner', crewCount: 0 });
-    if (share?.role === 'member') await discardPendingInTrip(t.id);
+    if (share?.role === 'member') {
+      // A viewer's changes would be refused by the server. Keep a copy of the words first, so a
+      // demoted editor's offline work isn't lost silently (the trip page offers "Copy my words").
+      await saveUnsavedCopy(t.id, await pendingRowsInTrip(t.id)).catch(() => undefined);
+      await discardPendingInTrip(t.id);
+    }
   }
 }
 
@@ -619,6 +626,9 @@ async function runSync(userId: string): Promise<SyncResult> {
   if (shares) await applyShares(shares);
   const shareByTrip = new Map((shares ?? []).map(s => [s.trip_id, s]));
   const sharedTripIds = (shares ?? []).map(s => s.trip_id);
+  // Crew unknown this time (the lookup failed): never remove local rows on the strength of an
+  // incomplete list of shared journeys. Reconciliation waits for a sync that knows the crew.
+  const crewKnown = shares !== null;
 
   await pushDeletes(result);
   await pushTable<LocalTrip>('trips', tripToRemote, userId, result, 'trips');
@@ -654,12 +664,13 @@ async function runSync(userId: string): Promise<SyncResult> {
   } catch (e) {
     result.errors.push((e as Error).message);
   }
-  await pullTable('entries', entryFromRemote, upsertEntry, userId, result, 'entries', sharedTripIds, accessVerified);
-  await pullTable('expenses', expenseFromRemote, upsertExpense, userId, result, 'expenses', sharedTripIds, accessVerified);
+  const mayRemove = accessVerified && crewKnown;
+  await pullTable('entries', entryFromRemote, upsertEntry, userId, result, 'entries', sharedTripIds, mayRemove);
+  await pullTable('expenses', expenseFromRemote, upsertExpense, userId, result, 'expenses', sharedTripIds, mayRemove);
   await pullTable('packing_items', packingFromRemote, upsertPackingItem, userId, result, 'packing', [], accessVerified);
-  await pullTable('itinerary_items', itineraryFromRemote, upsertItineraryItem, userId, result, 'itinerary', sharedTripIds, accessVerified);
+  await pullTable('itinerary_items', itineraryFromRemote, upsertItineraryItem, userId, result, 'itinerary', sharedTripIds, mayRemove);
   await pullTrackPoints(userId, result);
-  await pullEntryMedia(userId, result, sharedTripIds, accessVerified);
+  await pullEntryMedia(userId, result, sharedTripIds, mayRemove);
   await pushEntryMedia(userId, result);
 
   // Server-verified stats (distance / altitude / tier) — best effort. Also after routes come down

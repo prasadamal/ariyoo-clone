@@ -121,7 +121,20 @@ async function startLiveSharingLocked(hours: number, label: string | null) {
     longitude: pos.coords.longitude,
     accuracy: pos.coords.accuracy,
   });
-  await refreshLocationUpdatesLocked();
+  try {
+    await refreshLocationUpdatesLocked();
+  } catch (error) {
+    // The phone wouldn't start location updates (for example Android refused the location
+    // notification). Don't leave a link that shows one old position as if it were live: end it.
+    const ended = await endLiveShare().then(() => true, () => false);
+    await refreshLocationUpdatesLocked().catch(() => undefined);
+    const why = error instanceof Error && error.message ? ` (${error.message})` : '';
+    throw new Error(
+      ended
+        ? `Couldn\u2019t start live location on this phone${why}. The link was turned off; try again.`
+        : `Couldn\u2019t start live location on this phone${why}. Tap Stop sharing to turn the link off.`
+    );
+  }
   return state;
 }
 

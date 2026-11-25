@@ -97,3 +97,9 @@ export async function cancelCheckIn() {
   for (const id of current?.notificationIds ?? []) await cancelLocal(id);
   await AsyncStorage.removeItem(CHECKIN_KEY);
 }
+
+/** Forgets emergency contacts, the SOS name and any check-in (when journals are removed from this phone). */
+export async function clearSafetyData() {
+  await cancelCheckIn().catch(() => undefined);
+  await AsyncStorage.multiRemove([CONTACTS_KEY, NAME_KEY, CHECKIN_KEY]);
+}

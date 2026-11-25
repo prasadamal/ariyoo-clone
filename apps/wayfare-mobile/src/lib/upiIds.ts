@@ -22,3 +22,8 @@ export async function setUpiId(name: string, upiId: string | null) {
 }
 
 export const MY_UPI = 'me';
+
+/** Forgets every remembered UPI ID (when journals are removed from this phone). */
+export async function clearUpiIds() {
+  await AsyncStorage.removeItem(KEY);
+}

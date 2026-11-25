@@ -97,7 +97,7 @@
           const res = await fetch(cfg.supabaseUrl + '/storage/v1/object/sign/entry-media', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', apikey: cfg.supabaseAnonKey, Authorization: 'Bearer ' + cfg.supabaseAnonKey },
-            body: JSON.stringify({ expiresIn: 3600, paths }),
+            body: JSON.stringify({ expiresIn: 600, paths }),
           });
           if (res.ok) for (const r of await res.json()) if (r.signedURL) urls[r.path] = cfg.supabaseUrl + '/storage/v1' + r.signedURL;
         } catch (e) { /* photos are optional */ }

@@ -27,7 +27,7 @@ import {
   type CheckIn,
   type EmergencyContact,
 } from '../src/lib/safety';
-import { buildCheckInMessage, buildSosMessage } from '../src/lib/sosMessage';
+import { buildCheckInMessage, buildSosMessage, STALE_FIX_MS, fixAge } from '../src/lib/sosMessage';
 import { tripPhase } from '../src/lib/format';
 import { useAppTheme } from '../src/theme';
 import { Icon } from '../src/ui/Icon';
@@ -90,14 +90,18 @@ export default function SafetyScreen() {
 
   const numbers = useMemo(() => emergencyNumbersFor(countryCode), [countryCode]);
 
-  const fix = async () => {
+  /**
+   * A location for the SOS text, with the time it was taken. A fresh fix gets up to 8 seconds so
+   * the message opens quickly; otherwise the last known one, which the text labels with its age.
+   */
+  const fix = async (): Promise<{ coords: Location.LocationObjectCoords; at: Date } | null> => {
     const perm = await Location.requestForegroundPermissionsAsync();
     if (!perm.granted) return null;
-    try {
-      return (await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High })).coords;
-    } catch {
-      return (await Location.getLastKnownPositionAsync())?.coords ?? null;
-    }
+    const timeout = new Promise<null>(resolve => setTimeout(() => resolve(null), 8000));
+    const fresh = await Promise.race([Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High }).catch(() => null), timeout]);
+    if (fresh) return { coords: fresh.coords, at: new Date(fresh.timestamp) };
+    const last = await Location.getLastKnownPositionAsync().catch(() => null);
+    return last ? { coords: last.coords, at: new Date(last.timestamp) } : null;
   };
 
   const sos = async () => {
@@ -108,7 +112,8 @@ export default function SafetyScreen() {
     setBusy('sos');
     try {
       if (name) await setSosName(name);
-      const c = await fix();
+      const found = await fix();
+      const c = found?.coords;
       const message = buildSosMessage({
         name: name || profile?.display_name || null,
         latitude: c?.latitude ?? null,
@@ -116,6 +121,7 @@ export default function SafetyScreen() {
         accuracyM: c?.accuracy ?? null,
         altitudeM: c?.altitude ?? null,
         at: new Date(),
+        fixAt: found?.at ?? null,
         tripTitle,
         liveUrl: live ? buildLiveShareUrls(live.id).web : null,
       });
@@ -175,11 +181,14 @@ export default function SafetyScreen() {
       {
         text: 'Text them',
         onPress: async () => {
-          const c = await fix().catch(() => null);
+          const found = await fix().catch(() => null);
+          const c = found?.coords;
+          // An old fix says how old it is, like the SOS text.
+          const old = found && Date.now() - found.at.getTime() > STALE_FIX_MS ? ` (last known, ${fixAge(found.at, new Date())} ago)` : '';
           await sendSms(
             contacts.map(x => x.phone),
             buildCheckInMessage(name || profile?.display_name || null, tripTitle, new Date()) +
-              (c ? `\nhttps://maps.google.com/?q=${c.latitude.toFixed(5)},${c.longitude.toFixed(5)}` : '')
+              (c ? `\nhttps://maps.google.com/?q=${c.latitude.toFixed(5)},${c.longitude.toFixed(5)}${old}` : '')
           );
         },
       },

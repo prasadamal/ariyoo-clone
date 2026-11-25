@@ -40,7 +40,7 @@ export default function SharedTripScreen() {
         {author ? (
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 10 }}>
             <Text style={{ color: '#fff', fontWeight: '700' }}>by {author.display_name}</Text>
-            <TierBadge tier={author.tier} compact />
+            {author.tier ? <TierBadge tier={author.tier} compact /> : null}
           </View>
         ) : null}
       </Hero>

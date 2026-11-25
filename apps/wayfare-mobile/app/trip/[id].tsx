@@ -1,4 +1,5 @@
 import { router, Stack, useLocalSearchParams, useFocusEffect } from 'expo-router';
+import * as Clipboard from 'expo-clipboard';
 import { exportPhotoBook } from '../../src/lib/photoBook';
 import { Image as ExpoImage } from 'expo-image';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -9,6 +10,10 @@ import { getDestination } from '../../src/content/destinations';
 import { useAuth, useCanConnect, useSocial } from '../../src/context/AuthContext';
 import { useSync } from '../../src/context/SyncContext';
 import { shareTripStory, stopTripStory } from '../../src/lib/shareTrip';
+import { sharedMessage, stopMessage } from '../../src/lib/storyLink';
+import { unsavedNotice } from '../../src/lib/unsavedChanges';
+import { clearUnsavedCopy, getUnsavedCopy } from '../../src/lib/unsavedChangesStore';
+import type { UnsavedCopy } from '../../src/lib/unsavedChanges';
 import { useToast } from '../../src/context/ToastContext';
 import { BudgetTab } from '../../src/features/trip/BudgetTab';
 import { CrewTab } from '../../src/features/trip/CrewTab';
@@ -68,7 +73,7 @@ export default function TripDetailScreen() {
   const params = useLocalSearchParams<{ id: string; tab?: string }>();
   const tripId = String(params.id);
   const { colors } = useAppTheme();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const canConnect = useCanConnect();
   const social = useSocial();
   const [rates, setRates] = useState<RatesSnapshot | null>(null);
@@ -83,6 +88,8 @@ export default function TripDetailScreen() {
   const [menu, setMenu] = useState(false);
   const [crew, setCrew] = useState<CrewPerson[]>([]);
   const [coverUri, setCoverUri] = useState<string | null>(null);
+  // Changes made offline that the server refused after the owner made you a viewer.
+  const [unsaved, setUnsaved] = useState<UnsavedCopy | null>(null);
   // The journal hands over its "load more"; scrolling near the bottom calls it.
   const loadMoreRef = useRef<(() => void) | null>(null);
   const pageRef = useRef<ScrollView | null>(null);
@@ -98,6 +105,7 @@ export default function TripDetailScreen() {
       setStats(await computeTripStats(tripId, t));
       setCoverUri(await tripCoverUri(t));
     }
+    setUnsaved(await getUnsavedCopy(tripId).catch(() => null));
     refreshPending();
   }, [tripId, refreshPending]);
 
@@ -134,6 +142,9 @@ export default function TripDetailScreen() {
   // Members only look, so no route recording; the everyday journal is never shared.
   const tabs = ALL_TABS.filter(t => !(t.value === 'route' && !canEdit) && !(t.value === 'crew' && everyday));
   const crewNames: Record<string, string> = Object.fromEntries(crew.map(p => [p.user_id, p.username ? `@${p.username}` : personName(p)]));
+  // Budget: crew members by name, and every name that means the viewer.
+  const authorNames: Record<string, string> = Object.fromEntries(crew.map(p => [p.user_id, personName(p)]));
+  const myNames = [profile?.display_name?.split(' ')[0] ?? '', profile?.display_name ?? '', profile?.username ?? ''].filter(Boolean);
   const dest = getDestination(trip.place_key);
   const phase = tripPhase(trip.starts_on, trip.ends_on);
   const until = daysUntil(trip.starts_on);
@@ -276,11 +287,21 @@ export default function TripDetailScreen() {
                 title={trip.visibility === 'link' ? 'Share story link again' : 'Share story link'}
                 onPress={() => {
                   setMenu(false);
-                  const go = () => shareTripStory(trip, user.id).then(load).catch(e => toast(e instanceof Error ? e.message : 'Could not share the story'));
+                  const go = () =>
+                    shareTripStory(trip, user.id)
+                      .then(r => {
+                        const note = sharedMessage(r.pendingUploads);
+                        if (note) toast(note);
+                        load();
+                      })
+                      .catch(e => {
+                        load();
+                        Alert.alert('Story not shared', e instanceof Error ? e.message : 'Could not share the story');
+                      });
                   if (trip.visibility === 'link') return void go();
                   Alert.alert(
                     'Share a story link?',
-                    'Anyone with the link can see this journey\u2019s moments, photos, moods and place names, day by day, without the app. Money, routes and voice notes stay private. You can stop sharing any time.',
+                    'Anyone with the link can see this journey\u2019s moments, photos, moods and place names, day by day, without the app. Money, routes, weather and voice notes stay private. You can stop sharing any time; sharing again makes a new link.',
                     [{ text: 'Cancel', style: 'cancel' }, { text: 'Share link', onPress: () => void go() }]
                   );
                 }}
@@ -292,7 +313,12 @@ export default function TripDetailScreen() {
                 title="Stop sharing story"
                 onPress={() => {
                   setMenu(false);
-                  stopTripStory(trip, user.id).then(() => { toast('The story link no longer opens'); load(); }).catch(() => toast('Could not stop sharing. Try again.'));
+                  stopTripStory(trip, user.id)
+                    .then(outcome => {
+                      load();
+                      Alert.alert(outcome === 'stopped' ? 'Story link stopped' : 'Stopping when online', stopMessage(outcome));
+                    })
+                    .catch(() => toast('Could not stop sharing. Try again.'));
                 }}
               />
             ) : null}
@@ -375,6 +401,36 @@ export default function TripDetailScreen() {
         </View>
       ) : null}
 
+      {unsaved ? (
+        <View style={{ marginTop: 14, padding: 14, borderRadius: 18, backgroundColor: colors.errorContainer }}>
+          <Text style={{ color: colors.onErrorContainer }}>{unsavedNotice(unsaved.count)}</Text>
+          <View style={{ flexDirection: 'row', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
+            {unsaved.text ? (
+              <Button
+                mode="contained-tonal"
+                compact
+                icon="content-copy"
+                onPress={async () => {
+                  await Clipboard.setStringAsync(unsaved.text);
+                  toast('Copied. Paste it anywhere to keep it.');
+                }}
+              >
+                Copy my words
+              </Button>
+            ) : null}
+            <Button
+              compact
+              onPress={async () => {
+                await clearUnsavedCopy(trip.id);
+                setUnsaved(null);
+              }}
+            >
+              Dismiss
+            </Button>
+          </View>
+        </View>
+      ) : null}
+
       <View style={{ marginVertical: 14 }}>
         {/* Crew opens from the person button on the cover; its tab shows only while you're on it. */}
         <TabStrip tabs={tabs.filter(t => t.value !== 'crew' || tab === 'crew')} value={tabs.some(t => t.value === tab) ? tab : 'journal'} onChange={setTab} />
@@ -391,7 +447,7 @@ export default function TripDetailScreen() {
         </View> : null}
       {tab === 'plan' ? <PlanTab trip={trip} onChanged={load} readOnly={!canEdit} /> : null}
       {tab === 'pack' ? <PackingTab trip={trip} onChanged={load} /> : null}
-      {tab === 'budget' ? <BudgetTab trip={trip} onChanged={load} readOnly={!canEdit} /> : null}
+      {tab === 'budget' ? <BudgetTab trip={trip} onChanged={load} readOnly={!canEdit} authorNames={authorNames} myNames={myNames} /> : null}
       {tab === 'route' && canEdit ? <RouteTab trip={trip} onChanged={load} /> : null}
       {tab === 'crew' && !everyday ? (
         <>

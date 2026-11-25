@@ -116,7 +116,7 @@ export default function SettingsScreen() {
 
   const toggleLock = async (on: boolean) => {
     const ok = await setLock(on);
-    if (on && !ok) toast('Set up Face ID / fingerprint on this device first.');
+    if (on && !ok) toast('Set a screen lock (PIN, pattern, fingerprint or face) on this phone first.');
   };
 
   const backup = { syncing, errors: lastErrors, pending, lastSyncAt };
@@ -168,17 +168,17 @@ export default function SettingsScreen() {
       await wipeDevice();
       await setLocalOwner(null);
       setDeleteOpen(false);
-      Alert.alert('Account deleted', 'Your Wayfare account, journals, posts and messages have been permanently deleted.');
+      Alert.alert('Account deleted', 'Your Wayfare account, its cloud journals, photos and voice notes have been permanently deleted.');
       // Signing out rebuilds the screens; AuthRouteGuard then shows sign-in.
     } catch (e) {
-      toast(e instanceof Error ? e.message : 'Could not delete account — check your connection and try again.');
+      Alert.alert('Account not deleted yet', e instanceof Error ? e.message : 'Could not delete the account. Check your connection and try again.');
     } finally {
       setDeleting(false);
     }
   };
 
   const clearDeviceData = () =>
-    Alert.alert('Remove journals from this phone?', backupVerified ? 'This deletes every trip, photo and voice note stored on this device. Your backup stays in your account.' : 'Your backup isn’t verified yet, so anything not synced will be lost for good. This deletes every trip, photo and voice note on this device.', [
+    Alert.alert('Remove journals from this phone?', backupVerified ? 'This deletes every trip, photo and voice note on this device, plus your emergency contacts and saved UPI IDs. Your backup stays in your account.' : 'Your backup isn’t verified yet, so anything not synced will be lost for good. This deletes every trip, photo and voice note on this device, plus your emergency contacts and saved UPI IDs.', [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Remove',
@@ -209,7 +209,7 @@ export default function SettingsScreen() {
       />
 
       <SectionHeader title="Security" />
-      <ToggleRow icon="fingerprint" title="App lock" body="Require Face ID / fingerprint to open your journal." value={lockEnabled} onChange={toggleLock} />
+      <ToggleRow icon="fingerprint" title="App lock" body="Ask for your fingerprint, face or phone PIN to open your journal." value={lockEnabled} onChange={toggleLock} />
       <ToggleRow
         icon="bell-outline"
         title="Push notifications"
@@ -352,7 +352,7 @@ export default function SettingsScreen() {
       <ToggleRow
         icon="chart-box-outline"
         title="Share usage & crash reports"
-        body="Anonymous counts (like “a moment was added”) and error reports. Never your words, photos or places."
+        body="Counts (like “a moment was added”) and error reports, linked to a random ID for this install, not your account. Never your words, photos or places."
         value={telemetryOn}
         onChange={async on => { setTelemetryOn(on); await setTelemetryEnabled(on); }}
       />
