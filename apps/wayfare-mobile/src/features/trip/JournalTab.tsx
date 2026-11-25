@@ -3,7 +3,7 @@ import { track } from '../../lib/telemetry';
 import * as Haptics from 'expo-haptics';
 import * as Location from 'expo-location';
 import { router } from 'expo-router';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Animated, PanResponder, ScrollView, View } from 'react-native';
 import { Button, IconButton, Menu, Text } from 'react-native-paper';
 import { uuid } from '../../lib/id';
@@ -21,7 +21,7 @@ import { persistFile } from '../../lib/upload';
 import { fetchWeatherSummary } from '../../lib/weather';
 import { useAppTheme } from '../../theme';
 import { EmptyState } from '../../ui/EmptyState';
-import { MomentCard } from './MomentCard';
+import { MomentStory } from './MomentStory';
 import { MomentComposer, type MomentMoney } from './MomentComposer';
 import { pickPhotos, type PickedPhoto } from './photoPicker';
 import { Pill } from '../../ui/Pill';
@@ -541,29 +541,53 @@ export function JournalTab({ trip, onChanged, everyday = false, crewNames = {}, 
             }
           }}
         >
-          {/* Which day these are, as a quiet heading (not a button). One day picked above: no heading. */}
-          {dayFilter ? null : (
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 8, marginTop: 4 }} accessibilityRole="header">
-              <Text style={{ fontSize: 13, fontWeight: '800', letterSpacing: 0.8, color: colors.primary }}>{g.label.toUpperCase()}</Text>
-              <View style={{ flex: 1, height: 1, backgroundColor: colors.border }} />
-            </View>
-          )}
-          {g.list.map(e => (
-            <MomentCard
-              key={e.id}
-              entry={e}
-              money={moneyByMoment.get(e.id)}
-              currencySymbol={symbol}
-              mediaKey={mediaKey}
-              canShare={social && !e.author_id}
-              canEdit={canEdit}
-              author={e.author_id ? crewNames[e.author_id] ?? 'Crew' : isSharedTrip(trip) ? 'You' : undefined}
-              tripId={trip.id}
-              onChanged={onChanged}
-              onAddPhotos={() => addPhotosToEntry(e.id)}
-              onDelete={() => remove(e)}
-            />
-          ))}
+          {(() => {
+            // Moments show only their time, so the date lives in the headings: "DAY 2 · SUN 22 NOV",
+            // and inside Pre-trip / After trip (several dates) a date line wherever the day changes.
+            const dayOf = (e: LocalEntry) => toDayString(new Date(e.recorded_at));
+            const dates = new Set(g.list.map(dayOf));
+            const multi = dates.size > 1;
+            const dateText = (d: string) => formatDay(d, { weekday: true, year: d.slice(0, 4) !== String(new Date().getFullYear()) }).toUpperCase();
+            const isDateLabel = everyday;
+            const heading = isDateLabel || multi ? g.label.toUpperCase() : `${g.label.toUpperCase()} · ${dateText(g.first)}`;
+            return (
+              <>
+                {/* Which day these are, as a quiet heading (not a button). One day picked above: no heading. */}
+                {dayFilter ? null : (
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10, marginTop: 8 }} accessibilityRole="header">
+                    <Text style={{ fontSize: 12.5, fontWeight: '800', letterSpacing: 1, color: colors.primary }}>{heading}</Text>
+                    <View style={{ flex: 1, height: 1, backgroundColor: colors.border }} />
+                  </View>
+                )}
+                {g.list.map((e, i) => {
+                  const d = dayOf(e);
+                  const newDate = multi && (i === 0 || dayOf(g.list[i - 1]) !== d);
+                  return (
+                    <Fragment key={e.id}>
+                      {newDate ? (
+                        <Text style={{ fontSize: 12, fontWeight: '800', letterSpacing: 1, color: colors.muted, marginTop: i === 0 ? 2 : 14, marginBottom: 8 }} accessibilityRole="header">
+                          {dateText(d)}
+                        </Text>
+                      ) : null}
+                      <MomentStory
+                        entry={e}
+                        money={moneyByMoment.get(e.id)}
+                        currencySymbol={symbol}
+                        mediaKey={mediaKey}
+                        canShare={social && !e.author_id}
+                        canEdit={canEdit}
+                        author={e.author_id ? crewNames[e.author_id] ?? 'Crew' : isSharedTrip(trip) ? 'You' : undefined}
+                        tripId={trip.id}
+                        onChanged={onChanged}
+                        onAddPhotos={() => addPhotosToEntry(e.id)}
+                        onDelete={() => remove(e)}
+                      />
+                    </Fragment>
+                  );
+                })}
+              </>
+            );
+          })()}
         </View>
       ))}
       {dayFilter && !grid && !entries.length ? (
