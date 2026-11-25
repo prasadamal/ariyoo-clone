@@ -38,16 +38,21 @@ flow() {  # name, file
 keyboard() {  # label, button regex
   adb shell uiautomator dump /sdcard/ui.xml > /dev/null 2>&1; adb pull /sdcard/ui.xml "$OUT/$1-ui.xml" > /dev/null 2>&1
   adb shell dumpsys window windows > "$OUT/$1-window.txt" 2>&1
+  adb shell dumpsys window >> "$OUT/$1-window.txt" 2>&1
   adb shell dumpsys input_method >> "$OUT/$1-window.txt" 2>&1
   adb exec-out screencap -p > "$OUT/screens/$1-keyboard.png"
-  say "- $(python3 "$E2E/keyboard_check.py" "$OUT/$1-ui.xml" "$OUT/$1-window.txt" "$2" "$1")"
+  r=$(python3 "$E2E/keyboard_check.py" "$OUT/$1-ui.xml" "$OUT/$1-window.txt" "$2" "$1")
+  say "- $r"
+  case "$r" in *UNKNOWN*) grep -iE "type=ime|ITYPE_IME|InputMethod" "$OUT/$1-window.txt" | head -6 | cut -c1-220 | sed 's/^/    /' | tee -a "$SUM" > /dev/null;; esac
 }
 
 flow guest-plan 01-guest-plan.yaml
 keyboard plan-sheet '^Add plan$'
 flow expense 02-expense.yaml
 keyboard expense-sheet '^Add ₹'
-flow home-swipe 03-home-swipe.yaml
+flow second-journey 03-second-journey.yaml
+flow light-swipe-keeps-list-closed 04-light-swipe.yaml
+flow firm-swipe-opens-list 05-firm-swipe.yaml
 
 # Robustness checks the big app stores run: the app killed in the background (Android does this
 # to free memory), no network at launch, very large text, dark mode, and a low-memory signal.

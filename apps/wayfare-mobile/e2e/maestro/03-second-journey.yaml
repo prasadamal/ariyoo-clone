@@ -1,0 +1,19 @@
+appId: com.wayfare.app
+name: A second journey
+---
+- launchApp:
+    stopApp: true
+- extendedWaitUntil:
+    visible: "Device test trip"
+    timeout: 60000
+- tapOn: "Start a new journey"
+- tapOn: "Journey title"
+- inputText: "Second test trip"
+- scrollUntilVisible:
+    element: "Create journey"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Create journey"
+- extendedWaitUntil:
+    visible: "Plan"
+    timeout: 30000
