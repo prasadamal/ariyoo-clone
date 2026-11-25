@@ -457,6 +457,11 @@ export function BudgetTab({ trip, onChanged, readOnly = false, authorNames = {},
             <Text style={{ color: colors.muted, fontSize: 12, marginTop: 6 }}>
               {`${upiSheet.kind === 'pay' ? 'Saved on this phone for next time.' : 'Your friend pays this ID from the link you send.'} It\u2019s shown in GPay, PhonePe or Paytm under your profile.`}
             </Text>
+            <Text style={{ color: colors.muted, fontSize: 12, marginTop: 4 }}>
+              {upiSheet.kind === 'pay'
+                ? 'Wayfare never handles money. Your UPI app gets the ID, amount and the journey\u2019s name as the note, and you confirm the payment there.'
+                : 'Wayfare never handles money. The link carries your UPI ID, the amount and the journey\u2019s name as the note.'}
+            </Text>
             <Button
               mode={upiOpened ? 'outlined' : 'contained'}
               icon={upiSheet.kind === 'pay' ? 'cellphone-arrow-down' : 'send-outline'}

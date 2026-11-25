@@ -2,6 +2,11 @@
 //
 // Creates an account that is already confirmed, so nobody has to wait for an email that may never
 // arrive (Supabase's built-in mailer is rate-limited). The app calls this, then signs in.
+//
+// That skips proving the email belongs to the person. Once a real mail sender (custom SMTP) is set
+// up, set the function secret SIGNUP_VERIFY_EMAIL=on (and keep "Confirm email" on in Auth settings):
+// this function then only checks the name and username and answers { verify: true }, and the app
+// (every version) falls back to Supabase's normal sign-up, which emails a confirmation link.
 // Deploy: supabase functions deploy signup --no-verify-jwt
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 
@@ -40,6 +45,8 @@ Deno.serve(async req => {
 
   const { data: taken } = await admin.from('profiles').select('id').eq('username', username).maybeSingle();
   if (taken) return json(409, { error: 'That username is taken. Try another.' });
+
+  if (Deno.env.get('SIGNUP_VERIFY_EMAIL') === 'on') return json(200, { verify: true });
 
   const { error } = await admin.auth.admin.createUser({
     email,

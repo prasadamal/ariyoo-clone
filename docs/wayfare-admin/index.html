@@ -319,7 +319,26 @@
             : [el('p', { class: 'muted', text: 'No ' + status.value + ' reports.' })])));
         };
         status.addEventListener('change', load);
+
+        // A reported story link (emailed from "Report this page") is turned off here at once.
+        const link = el('input', { type: 'text', id: 'story-link', placeholder: 'Story link or its id (after ?s=)', 'aria-label': 'Story link or id' });
+        const result = el('p', { class: 'muted', role: 'status' });
+        const off = btn('Turn off story link', async e => {
+          const raw = link.value.trim();
+          let id = raw;
+          try { id = new URL(raw).searchParams.get('s') || new URL(raw).searchParams.get('id') || raw; } catch (x) { /* a bare id */ }
+          if (id.length < 8) { result.textContent = 'Paste the whole link or its id.'; return; }
+          if (!confirm('Turn off this story link now? Anyone opening it will see "not available". The owner can share the journey again later, which makes a new link.')) return;
+          e.target.disabled = true;
+          try { const title = await rpc('admin_disable_story', { p_share_id: id }); result.textContent = 'Turned off: ' + title + '.'; link.value = ''; }
+          catch (x) { result.textContent = x.message; }
+          finally { e.target.disabled = false; }
+        }, 'danger');
         main.replaceChildren(el('div', { class: 'head' }, el('h1', { text: 'Reports' }), status),
+          el('div', { class: 'item' },
+            el('b', { text: 'Reported story link' }),
+            el('p', { class: 'muted', text: 'Story pages have "Report this page", which emails you the link. By law (IT Rules, 2026 amendment): intimate images, nudity, sexual acts, impersonation or morphed images: take down within 2 hours. Other unlawful content: within 36 hours. Acknowledge every complaint within 24 hours and resolve it within 7 days.' }),
+            el('div', { class: 'row' }, link, off), result),
           el('p', { class: 'muted', text: 'Reports people send about posts, messages or profiles. Community features are switched off in the app for now, so this stays quiet until they return.' }), box);
         await load();
       },

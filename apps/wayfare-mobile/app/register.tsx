@@ -9,6 +9,7 @@ import { normalizeUsername, usernameAvailable } from '../src/social/profiles';
 import { useAppTheme } from '../src/theme';
 import { EmptyState } from '../src/ui/EmptyState';
 import { Notice } from '../src/ui/Notice';
+import { useGuestBackupNotice } from '../src/lib/guestJournal';
 import { Screen } from '../src/ui/Screen';
 
 export default function RegisterScreen() {
@@ -24,6 +25,7 @@ export default function RegisterScreen() {
   const [confirmEmail, setConfirmEmail] = useState<string | null>(null);
   // Accounts are for adults: under-18s would need a parent's verifiable consent (DPDP Act, s. 9).
   const [adult, setAdult] = useState(false);
+  const backupNotice = useGuestBackupNotice();
 
   useEffect(() => {
     if (!username) {
@@ -35,12 +37,17 @@ export default function RegisterScreen() {
       return;
     }
     setUsernameState('checking');
+    // A slow answer for a name you've since changed must not mark the new name as free.
+    let current = true;
     const t = setTimeout(() => {
       usernameAvailable(username)
-        .then(ok => setUsernameState(ok ? 'ok' : 'taken'))
-        .catch(() => setUsernameState('idle'));
+        .then(ok => current && setUsernameState(ok ? 'ok' : 'taken'))
+        .catch(() => current && setUsernameState('idle'));
     }, 400);
-    return () => clearTimeout(t);
+    return () => {
+      current = false;
+      clearTimeout(t);
+    };
   }, [username]);
 
   const submit = async () => {
@@ -136,6 +143,7 @@ export default function RegisterScreen() {
         <Checkbox.Android status={adult ? 'checked' : 'unchecked'} onPress={() => setAdult(v => !v)} />
         <Text style={{ flex: 1 }}>I am 18 or older</Text>
       </Pressable>
+      {backupNotice ? <Notice text={backupNotice} icon="cloud-upload-outline" /> : null}
       {error ? <Notice tone="error" text={error} /> : null}
       <Button mode="contained" onPress={submit} loading={loading} disabled={!valid || loading} style={{ marginTop: 16 }}>
         Create account

@@ -61,7 +61,18 @@ For every row: **collected, not shared; processed ephemerally: No; data is encry
 
 - Target age groups: **18 and over** only. Not designed for children.
 - Ads: **No ads.**
-- News app: No. Government app: No. Financial features: No. Health: No.
+- News app: No. Government app: No.
+- **Financial features declaration:** answer "My app doesn't provide any financial features".
+  Wayfare never moves money, holds balances, or reads bank or card data. Settle up only opens the
+  user's own UPI app (GPay, PhonePe, Paytm…) through a standard `upi://pay` link with the UPI ID
+  the user typed, the amount and the journey's name as the note; the payment happens and is
+  confirmed in that app. Explain this in the reviewer notes. If Play's form later adds a
+  "payment hand-off" option, pick that.
+- **Health apps declaration:** the Safety screen shows fixed, general altitude-sickness
+  guidance, marked "General guidance, not medical advice". No health data is collected, nothing
+  is measured, and nothing is personalised. Answer that the app has no health features; if the
+  form asks about health or medical *information* content, tick the closest
+  "medical reference / education" option rather than leaving it out.
 - App access: give reviewers a demo account (see `APP_REVIEW_NOTES.md`).
 
 ## Export compliance

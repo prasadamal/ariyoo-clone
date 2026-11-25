@@ -251,6 +251,13 @@ export default function SafetyScreen() {
           <Pill key={cc} label={n.country} selected={countryCode === cc} onPress={() => setCountryCode(cc)} />
         ))}
       </View>
+      <View style={{ marginTop: 10 }}>
+        <Notice
+          tone="warning"
+          icon="signal-cellular-outline"
+          text="What works where: SOS opens your own SMS app with your location, and calls use your phone; both need mobile signal, not internet. The live link needs internet. Wayfare doesn’t alert emergency services or send anything for you, and can’t when your phone has no signal."
+        />
+      </View>
 
       <SectionHeader title="Live location" subtitle="A private link for family and friends — no app needed" />
       {canConnect ? (

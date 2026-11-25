@@ -35,6 +35,8 @@
     .cta { margin-top: 2rem; text-align: center; display: grid; gap: .6rem; justify-items: center; }
     .cta a { display: inline-block; background: var(--accent); color: #fff; text-decoration: none; font-weight: 800; padding: .7rem 1.4rem; border-radius: 999px; }
     .cta small { color: var(--muted); }
+    .report { margin-top: 1.4rem; text-align: center; font-size: .8rem; color: var(--muted); }
+    .report a { color: var(--muted); }
   </style>
 </head>
 <body>
@@ -50,6 +52,11 @@
       <strong>Journaled on Wayfare</strong>
       <small>A travel journal for moments, photos and voice notes, even offline. Now in early testing.</small>
     </div>
+    <p class="report">
+      Something here shouldn’t be public, or is about you without your consent?
+      <a id="report" href="mailto:amalprasadappu@gmail.com?subject=Report%20a%20Wayfare%20story">Report this page</a>.
+      Intimate images or impersonation are taken down within 2 hours.
+    </p>
   </main>
   <script src="../wayfare-config.js"></script>
   <script>
@@ -64,6 +71,12 @@
         $('title').textContent = 'This journey isn’t available';
         story.replaceChildren(el('p', { class: 'note', text: msg }));
       };
+      // Report this page: the email names the link, so an admin can turn it off (admin console).
+      if (share) {
+        const subject = 'Report a Wayfare story: ' + share.slice(0, 64);
+        const body = 'Link: ' + location.href + '\n\nWhat is wrong (for example: my photo or private details, harassment, illegal content):\n';
+        $('report').href = 'mailto:amalprasadappu@gmail.com?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
+      }
       if (share.length < 8) return fail('The link looks incomplete. Ask for it again.');
 
       let data;

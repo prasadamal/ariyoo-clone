@@ -1014,6 +1014,15 @@ async function wipeLocalDataLocked() {
   `);
 }
 
+/** Journeys (not the everyday diary) and moments on this phone, for the guest backup notice. */
+export async function guestJournalCounts() {
+  const database = await getDb();
+  const row = await database.getFirstAsync<{ trips: number; entries: number }>(
+    "SELECT (SELECT COUNT(*) FROM trips WHERE trip_type <> 'everyday') AS trips, (SELECT COUNT(*) FROM entries) AS entries"
+  );
+  return { trips: row?.trips ?? 0, entries: row?.entries ?? 0 };
+}
+
 export async function countTrips() {
   const database = await getDb();
   const row = await database.getFirstAsync<{ c: number }>('SELECT COUNT(*) as c FROM trips');

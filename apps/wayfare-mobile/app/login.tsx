@@ -6,10 +6,12 @@ import { useAuth } from '../src/context/AuthContext';
 import { useAppTheme } from '../src/theme';
 import { Hero } from '../src/ui/Hero';
 import { Notice } from '../src/ui/Notice';
+import { useGuestBackupNotice } from '../src/lib/guestJournal';
 import { Screen } from '../src/ui/Screen';
 
 export default function LoginScreen() {
   const { signIn, offlineMode, continueAsGuest } = useAuth();
+  const backupNotice = useGuestBackupNotice();
   const { colors } = useAppTheme();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -76,6 +78,7 @@ export default function LoginScreen() {
           right={<TextInput.Icon icon={showPassword ? 'eye-off' : 'eye'} onPress={() => setShowPassword(!showPassword)} />}
           onSubmitEditing={submit}
         />
+        {backupNotice ? <Notice text={backupNotice} icon="cloud-upload-outline" /> : null}
         {error ? <Notice tone="error" text={error} /> : null}
         <Button mode="contained" onPress={submit} loading={loading} disabled={loading || !email || !password}>
           Sign in
