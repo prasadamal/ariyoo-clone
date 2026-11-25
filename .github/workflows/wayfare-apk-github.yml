@@ -5,6 +5,10 @@ name: Wayfare APK (GitHub build, no EAS)
 on:
   push:
     branches: [claude/wayfare-apk-build]
+    # Changes to the device checks alone re-run those (wayfare-device-checks.yml), not the build.
+    paths-ignore:
+      - apps/wayfare-mobile/e2e/**
+      - .github/workflows/wayfare-device-checks.yml
   workflow_dispatch:
 
 permissions:
@@ -50,4 +54,48 @@ jobs:
         with:
           name: wayfare-apk
           path: apps/wayfare-mobile/wayfare-*.apk
+          retention-days: 14
+
+  # Release checks on the APK just built: an audit and a run on an Android phone emulator.
+  device-checks:
+    needs: apk
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: wayfare-apk
+          path: apk
+      - name: Audit the APK (permissions, 16 KB pages, signing, exported parts)
+        run: bash apps/wayfare-mobile/e2e/apk-audit.sh "$(ls apk/*.apk)" 2>&1 | tee audit.txt
+      - name: Let the emulator use hardware acceleration
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Install Maestro (scripted UI flows)
+        run: curl -fsSL "https://get.maestro.mobile.dev" | bash
+      - name: Run on an Android phone emulator (Pixel 6, Android 14)
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -camera-front none
+          script: bash apps/wayfare-mobile/e2e/device-checks.sh "$(ls apk/*.apk)" device-results
+      - name: Report
+        if: always()
+        run: |
+          { echo '```'; cat audit.txt; echo '```'; cat device-results/summary.md 2>/dev/null; } >> "$GITHUB_STEP_SUMMARY"
+          echo "===== REPORT ====="; cat audit.txt; cat device-results/summary.md 2>/dev/null
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: device-results
+          path: |
+            device-results
+            audit.txt
           retention-days: 14
