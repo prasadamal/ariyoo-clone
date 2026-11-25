@@ -1,0 +1,16 @@
+appId: com.wayfare.app
+name: Add expense with the keyboard up
+---
+- hideKeyboard
+- back
+- waitForAnimationToEnd
+- tapOn: "Budget"
+- tapOn:
+    text: "Add expense"
+    index: 0
+- extendedWaitUntil:
+    visible: "Amount.*"
+    timeout: 10000
+- inputText: "500"
+- waitForAnimationToEnd
+- takeScreenshot: 05-expense-sheet-keyboard
