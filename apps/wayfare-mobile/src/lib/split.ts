@@ -117,3 +117,27 @@ export function sharePerPerson(expenses: SplitExpense[]): Record<string, number>
   }
   return out;
 }
+
+/**
+ * An expense as the viewer should count it. "Me" (an empty payer, or "Me" in the split) means the
+ * person who WROTE the expense: on a crew member's phone that's the crew member, not the viewer.
+ * So an expense by someone else becomes theirs by name, and the viewer's own name in it becomes
+ * "Me". Without this, two phones looking at the same shared expense would each show "You paid".
+ * authorName: the writer's name (null = the viewer wrote it); myNames: the viewer's names, any case.
+ */
+export function expenseForViewer(
+  e: { paid_by: string | null; split_with: string | null },
+  authorName: string | null,
+  myNames: readonly string[]
+): Pick<SplitExpense, 'paidBy' | 'splitWith'> {
+  const mine = new Set(myNames.map(n => n.trim().toLowerCase()).filter(Boolean));
+  const name = (raw: string) => capitalizeName(raw);
+  const split = parseSplitWith(e.split_with).map(name);
+  if (authorName == null) {
+    return { paidBy: e.paid_by ? name(e.paid_by) : null, splitWith: split };
+  }
+  const author = name(authorName) || 'Crew member';
+  const map = (n: string) => (n === ME ? author : mine.has(n.toLowerCase()) ? ME : n);
+  const payer = e.paid_by ? map(name(e.paid_by)) : author;
+  return { paidBy: payer === ME ? null : payer, splitWith: split.map(map) };
+}

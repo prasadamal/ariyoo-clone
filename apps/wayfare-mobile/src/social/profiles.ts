@@ -150,33 +150,47 @@ export async function listBlocked(): Promise<TravellerSummary[]> {
   return rows.map(r => ({ ...r, tier: 'traveler' }));
 }
 
-/** Removes the caller's uploaded files, then deletes the account (cascades all rows). */
+/**
+ * Deletes the account. First every file the person uploaded (photos, voice notes, profile photo),
+ * page by page and checked: if any file is left (offline, a failed removal), the account is NOT
+ * deleted and the person is asked to try again, which carries on where it stopped. Then the
+ * account itself (the database cascades every row).
+ */
 export async function deleteMyAccount() {
   const me = await currentUserId();
   const client = db();
-  for (const bucket of ['entry-media', 'avatars', 'post-media']) {
-    try {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    let left = 0;
+    for (const bucket of ['entry-media', 'avatars', 'post-media']) {
       const files = await listAllFiles(bucket, me);
       for (let i = 0; i < files.length; i += 100) {
-        await client.storage.from(bucket).remove(files.slice(i, i + 100));
+        const { error } = await client.storage.from(bucket).remove(files.slice(i, i + 100));
+        if (error) throw new CommunityError('Could not delete your photos and voice notes. Check your connection and try again; nothing else was deleted.');
       }
-    } catch {
-      // Storage cleanup is best effort; the account row deletion below is what matters.
+      left += (await listAllFiles(bucket, me)).length;
     }
+    if (left === 0) break;
+    if (attempt === 1) throw new CommunityError('Some of your files could not be deleted yet. Try again in a minute; your account stays until they are gone.');
   }
   await rpc('delete_my_account');
   // The account no longer exists server-side, so only clear the local session.
   await client.auth.signOut({ scope: 'local' }).catch(() => undefined);
 }
 
+/** Every file under a folder, all pages and subfolders. A listing error stops deletion (throws). */
 async function listAllFiles(bucket: string, prefix: string): Promise<string[]> {
   const out: string[] = [];
-  const { data } = await db().storage.from(bucket).list(prefix, { limit: 1000 });
-  for (const item of data ?? []) {
-    const path = `${prefix}/${item.name}`;
-    // Folders have no id/metadata in storage listings.
-    if (item.id) out.push(path);
-    else out.push(...(await listAllFiles(bucket, path)));
+  const PAGE = 1000;
+  for (let offset = 0; ; offset += PAGE) {
+    const { data, error } = await db().storage.from(bucket).list(prefix, { limit: PAGE, offset });
+    if (error) throw new CommunityError('Could not check your files. Check your connection and try again; nothing was deleted.');
+    for (const item of data ?? []) {
+      const path = `${prefix}/${item.name}`;
+      // Folders have no id/metadata in storage listings.
+      if (item.id) out.push(path);
+      else out.push(...(await listAllFiles(bucket, path)));
+    }
+    if (!data || data.length < PAGE) break;
   }
   return out;
 }

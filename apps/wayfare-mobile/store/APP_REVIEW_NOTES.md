@@ -28,6 +28,13 @@ the user share a journey with people they choose.
 6. **Safety:** Journeys → shield icon: SOS opens the SMS app pre-filled for the user's own
    emergency contacts; nothing is sent automatically. Live-location links are user-started and
    end within 72 hours.
+7. **Settle up / UPI:** Budget → Settle up → Pay with UPI opens the phone's own UPI app with the
+   payee's UPI ID, the amount and the journey name; Wayfare never handles money or payment data.
+   "Mark as paid" only records it in the journal.
+8. **Altitude guidance (Safety screen):** fixed general information, labelled "not medical
+   advice". No health data is collected.
+9. **Reporting content:** every public story page has "Report this page", which emails the
+   Grievance Officer with the link's id; admins can turn a story link off at once.
 
 Privacy policy: https://ariyoo-docs.onrender.com/privacy/wayfare.html
 Terms of use: https://ariyoo-docs.onrender.com/privacy/wayfare-terms.html

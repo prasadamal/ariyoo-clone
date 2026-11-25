@@ -94,6 +94,11 @@ select tests.check(public.get_trip_story('not-a-real-link') is null, 'unknown li
 select tests.check(not public.is_story_photo('u/' || tests.id('trip') || '/p1.jpg'), 'private journey photos stay private');
 reset role;
 update public.trips set share_id = 'story-link-0001', visibility = 'link' where id = tests.id('trip');
+-- A recorded route and weather that no public reader may show.
+insert into public.track_points (trip_id, user_id, recorded_at, latitude, longitude) values
+  (tests.id('trip'), tests.uid('ana@adm.test'), '2026-02-09T06:00:00Z', 10.0891, 77.0595),
+  (tests.id('trip'), tests.uid('ana@adm.test'), '2026-02-09T06:10:00Z', 10.0925, 77.0611);
+update public.entries set weather = 'Misty 14°C' where id = tests.id('entry');
 
 -- Story on: the moment and its photo, never money, GPS or voice notes.
 set role anon;
@@ -108,11 +113,22 @@ select tests.check((select json_array_length(j -> 'moments' -> 0 -> 'photos') fr
 select tests.check((select j::text from story) not like '%10.12%' and (select j::text from story) not like '%1200%', 'no coordinates and no money');
 select tests.check(public.is_story_photo('u/' || tests.id('trip') || '/p1.jpg'), 'story photo is readable');
 select tests.check(not public.is_story_photo('u/' || tests.id('trip') || '/v1.m4a'), 'voice notes never are');
+-- The older reader takes the same link id: it must show no more than the story.
+create temp table shared (j jsonb);
+grant all on shared to anon, authenticated;
+insert into shared select public.get_shared_trip('story-link-0001')::jsonb;
+select tests.check((select j -> 'trip' ->> 'title' from shared) = 'Munnar tea hills', 'old reader still opens old links');
+select tests.check((select jsonb_array_length(j -> 'route') from shared) = 0, 'old reader shows no route');
+select tests.check((select j::text from shared) not like '%10.08%' and (select j::text from shared) not like '%77.05%' and (select j::text from shared) not like '%10.12%', 'old reader shows no coordinates');
+select tests.check((select j::text from shared) not like '%Misty%', 'old reader shows no weather');
+select tests.check(not ((select j -> 'author' from shared) ? 'username') and not ((select j -> 'author' from shared) ? 'tier'), 'old reader shows no username or tier');
+select tests.check((select j -> 'author' ->> 'display_name' from shared) = 'Ana', 'old reader shows only the first name');
 reset role;
 -- The everyday journal is never a story, even with a link.
 update public.trips set trip_type = 'everyday' where id = tests.id('trip');
 set role anon;
 select tests.check(public.get_trip_story('story-link-0001') is null, 'the diary is never shared as a story');
+select tests.check(public.get_shared_trip('story-link-0001') is null, 'nor through the old reader');
 reset role;
 update public.trips set trip_type = 'trek', visibility = 'private' where id = tests.id('trip');
 set role anon;
@@ -137,7 +153,11 @@ select tests.expect_error($$select public.admin_announce('Hello', 'info', null)$
 select tests.expect_error(format($$select public.admin_set_suspended(%L, true)$$, tests.uid('ana@adm.test')), 'Admins only');
 select tests.expect_error($$select count(*) from public.admin_users$$, 'permission denied');
 select tests.expect_error($$insert into public.admin_users (user_id) values (auth.uid())$$, 'permission denied');
+select tests.expect_error($$select public.admin_disable_story('story-link-0002')$$, 'Admins only');
+-- A signed-in event isn't tied to the account.
+insert into public.app_events (device_id, kind, name) values ('device-ben-0009', 'event', 'moment_added');
 reset role;
+select tests.check((select user_id from public.app_events where device_id = 'device-ben-0009') is null, 'usage events are not linked to the account');
 insert into public.admin_users (user_id) values (tests.uid('boss@adm.test'));
 insert into public.app_feedback (device_id, message, user_id) values ('device-ben-0001', 'Diary swipe is lovely', tests.uid('ben@adm.test'));
 insert into public.app_events (device_id, kind, name, detail, app_version, platform) values
@@ -169,6 +189,19 @@ select tests.check((select suspended from public.admin_users_list('ben_a')), 'Be
 select public.admin_set_suspended(tests.uid('ben@adm.test'), false);
 select tests.check(not (select suspended from public.admin_users_list('ben_a')), 'and back');
 select tests.expect_error(format($$select public.admin_set_suspended(%L, true)$$, tests.uid('boss@adm.test')), 'can''t be suspended');
+
+-- A reported story can be turned off by an admin; its link stops opening.
+reset role;
+update public.trips set share_id = 'story-link-0002', visibility = 'link' where id = tests.id('trip');
+select tests.act_as('boss@adm.test');
+select tests.check(public.admin_disable_story('story-link-0002') = 'Munnar tea hills', 'admin turns off a story');
+select tests.expect_error($$select public.admin_disable_story('story-link-0002')$$, 'No story with that link');
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+set role anon;
+select tests.check(public.get_trip_story('story-link-0002') is null, 'the turned-off story no longer opens');
+reset role;
+select tests.act_as('boss@adm.test');
 
 -- Announcement: publish, everyone sees it, a new one replaces it, clear ends it.
 select public.admin_announce('Sync is slow today, nothing is lost', 'warning', 2);

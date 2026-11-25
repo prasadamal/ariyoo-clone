@@ -61,8 +61,18 @@ export default function EditProfileScreen() {
       return;
     }
     setUsernameOk(null);
-    const t = setTimeout(() => usernameAvailable(username).then(setUsernameOk).catch(() => setUsernameOk(null)), 400);
-    return () => clearTimeout(t);
+    let current = true;
+    const t = setTimeout(
+      () =>
+        usernameAvailable(username)
+          .then(ok => current && setUsernameOk(ok))
+          .catch(() => current && setUsernameOk(null)),
+      400
+    );
+    return () => {
+      current = false;
+      clearTimeout(t);
+    };
   }, [username, profile?.username]);
 
   if (!profile) return null;

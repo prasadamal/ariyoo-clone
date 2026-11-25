@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { screenText } from '../contentFilter';
-import { buildCheckInMessage, buildSosMessage, mapsLink, stampTime } from '../sosMessage';
+import { buildCheckInMessage, buildSosMessage, fixAge, mapsLink, stampTime } from '../sosMessage';
 import { weatherCodeIcon, weatherCodeLabel } from '../weather';
 import { shouldApplyRemote } from '../syncRules';
 
@@ -64,4 +64,18 @@ test('SOS and check-in times carry a time zone', () => {
   const sos = buildSosMessage({ name: 'Asha', latitude: 32.24, longitude: 77.19, at });
   assert.ok(sos.includes(stampTime(at)));
   assert.ok(buildCheckInMessage('Asha', 'Manali', at).includes(stampTime(at)));
+});
+
+test('an old GPS fix is sent as a last-known location with its age, never as "now"', () => {
+  const build = buildSosMessage;
+  const now = new Date('2026-11-24T12:00:00Z');
+  const old = build({ name: 'Ana', latitude: 10.1, longitude: 77.1, at: now, fixAt: new Date('2026-11-24T09:00:00Z') });
+  assert.match(old, /Last known location, from 3 h ago/);
+  assert.match(old, /no current fix/);
+  const fresh = build({ name: 'Ana', latitude: 10.1, longitude: 77.1, at: now, fixAt: new Date('2026-11-24T11:59:30Z') });
+  assert.match(fresh, /^SOS from Ana/);
+  assert.doesNotMatch(fresh, /Last known/);
+  assert.match(build({ name: 'Ana', latitude: null, longitude: null, at: now }), /Location unavailable/);
+  assert.equal(fixAge(new Date('2026-11-24T11:48:00Z'), now), '12 min');
+  assert.equal(fixAge(new Date('2026-11-21T12:00:00Z'), now), '3 days');
 });
