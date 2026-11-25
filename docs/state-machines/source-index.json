@@ -544,55 +544,47 @@
           "text": "import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';"
         },
         {
-          "line": 43,
+          "line": 44,
           "text": "const [all, setAll] = useState<LocalTrip[]>([]);"
         },
         {
-          "line": 44,
+          "line": 45,
           "text": "const [rows, setRows] = useState<TripRow[]>([]);"
         },
         {
-          "line": 45,
+          "line": 46,
           "text": "const [featured, setFeatured] = useState<TripRow[]>([]);"
         },
         {
-          "line": 46,
+          "line": 47,
           "text": "const [counts, setCounts] = useState<Record<TripStatus, number>>({ ongoing: 0, upcoming: 0, completed: 0 });"
         },
         {
-          "line": 48,
-          "text": "const [listTop, setListTop] = useState(0);"
-        },
-        {
-          "line": 49,
-          "text": "const [inList, setInList] = useState(false);"
+          "line": 51,
+          "text": "const [tilesArea, setTilesArea] = useState(0);"
         },
         {
           "line": 52,
-          "text": "const [viewHeight, setViewHeight] = useState(0);"
-        },
-        {
-          "line": 54,
-          "text": "const [topHeight, setTopHeight] = useState(72);"
-        },
-        {
-          "line": 55,
-          "text": "const [recordingTripId, setRecordingTripId] = useState<string | null>(null);"
+          "text": "const [listOpen, setListOpen] = useState(false);"
         },
         {
           "line": 56,
-          "text": "const [loaded, setLoaded] = useState(false);"
+          "text": "const [recordingTripId, setRecordingTripId] = useState<string | null>(null);"
         },
         {
           "line": 57,
-          "text": "const [loadingMore, setLoadingMore] = useState(false);"
+          "text": "const [loaded, setLoaded] = useState(false);"
         },
         {
           "line": 58,
+          "text": "const [loadingMore, setLoadingMore] = useState(false);"
+        },
+        {
+          "line": 59,
           "text": "const [refreshing, setRefreshing] = useState(false);"
         },
         {
-          "line": 60,
+          "line": 61,
           "text": "const [showStatus, setShowStatus] = useState(false);"
         },
         {
@@ -600,7 +592,11 @@
           "text": "statusTimer.current = setTimeout(() => setShowStatus(false), 6000);"
         },
         {
-          "line": 192,
+          "line": 203,
+          "text": "setTimeout(() => {"
+        },
+        {
+          "line": 228,
           "text": "const status = tripStatus(t);"
         }
       ]
@@ -2112,11 +2108,11 @@
           "text": "const status = tripStatus(trip);"
         },
         {
-          "line": 92,
+          "line": 94,
           "text": "<StatusChip status={status} count={groupCount} />"
         },
         {
-          "line": 102,
+          "line": 104,
           "text": "{showUpload && trip.sync_status === 'pending' ? <Icon name=\"cloud-upload-outline\" size={16} color=\"#ffffffaa\" /> : null}"
         }
       ]
@@ -3773,15 +3769,15 @@
           "text": "if (status === 'completed') return list.sort((a, b) => (b.ends_on ?? b.starts_on ?? '').localeCompare(a.ends_on ?? a.starts_on ?? ''));"
         },
         {
-          "line": 84,
+          "line": 85,
           "text": "const status = tripStatus(t, today);"
         },
         {
-          "line": 87,
+          "line": 88,
           "text": "if (status === 'upcoming') {"
         },
         {
-          "line": 92,
+          "line": 93,
           "text": "if (status === 'ongoing') {"
         }
       ]

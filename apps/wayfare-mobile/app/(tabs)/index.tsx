@@ -1,6 +1,8 @@
 import { router, useFocusEffect, useNavigation } from 'expo-router';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, FlatList, Pressable, RefreshControl, View } from 'react-native';
+import BottomSheet, { BottomSheetFlatList } from '@gorhom/bottom-sheet';
+import { ActivityIndicator, Animated, BackHandler, Platform, Pressable, View } from 'react-native';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { IconButton, Text } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AnnouncementBanner } from '../../src/components/AnnouncementBanner';
@@ -21,7 +23,6 @@ import { Icon } from '../../src/ui/Icon';
 import { Pill } from '../../src/ui/Pill';
 import { SOCIAL_ENABLED } from '../../src/lib/features';
 import { Glass } from '../../src/ui/Glass';
-import { TAB_BAR_SPACE } from '../../src/ui/GlassTabBar';
 
 /** Journeys are prepared (stats, money, cover) a few at a time as you scroll, not all at once. */
 const PAGE_SIZE = 5;
@@ -44,14 +45,14 @@ export default function JourneysTab() {
   const [rows, setRows] = useState<TripRow[]>([]);
   const [featured, setFeatured] = useState<TripRow[]>([]);
   const [counts, setCounts] = useState<Record<TripStatus, number>>({ ongoing: 0, upcoming: 0, completed: 0 });
-  // Where the full list starts, and whether you've scrolled into it (the floating pill then says "Top").
-  const [listTop, setListTop] = useState(0);
-  const [inList, setInList] = useState(false);
-  // The first screen is exactly one screen tall: the three tiles fill it down to the "All trips"
-  // button, so the full list always starts below the edge and shows only when you swipe up or tap.
-  const [viewHeight, setViewHeight] = useState(0);
-  // Everything above the tiles (greeting, backup line, announcement, recording banner).
-  const [topHeight, setTopHeight] = useState(72);
+  // The home page doesn't scroll: the three tiles share whatever room is left under the greeting
+  // (measured on the tiles' own box, so it's right on every phone). All trips is a panel that slides
+  // up over them: tap "All trips", or swipe up firmly on the tiles.
+  const [tilesArea, setTilesArea] = useState(0);
+  const [listOpen, setListOpen] = useState(false);
+  const sheetRef = useRef<BottomSheet>(null);
+  const lift = useRef(new Animated.Value(0)).current;
+  const swiping = useRef(false);
   const [recordingTripId, setRecordingTripId] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -62,7 +63,6 @@ export default function JourneysTab() {
   const busy = useRef(false);
   const nudgedAt = useRef(0);
   const shown = useRef(PAGE_SIZE);
-  const listRef = useRef<FlatList<TripRow>>(null);
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
 
@@ -172,33 +172,66 @@ export default function JourneysTab() {
         : backupLabel(backup);
 
   const hasList = all.length > featured.length || all.length > 1;
-  const showList = hasList;
-  const openList = () => listRef.current?.scrollToOffset({ offset: Math.max(0, listTop + 8), animated: true });
-  const closeList = () => listRef.current?.scrollToOffset({ offset: 0, animated: true });
+  const openList = () => sheetRef.current?.expand();
+  const closeList = () => sheetRef.current?.close();
   const fabBottom = Math.max(insets.bottom, 10) + 84;
+
+  // Android's back button closes the All trips panel first.
+  useEffect(() => {
+    if (!listOpen || Platform.OS === 'web') return;
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      closeList();
+      return true;
+    });
+    return () => sub.remove();
+  }, [listOpen]);
+
+  // Swipe up on the tiles: they follow the finger a little (with resistance) and spring back; a firm
+  // swipe (far enough, or fast enough) slides the All trips panel up. A firm pull down reloads.
+  const swipe = useMemo(
+    () =>
+      Gesture.Pan()
+        .runOnJS(true)
+        .activeOffsetY([-14, 14])
+        .failOffsetX([-24, 24])
+        // While swiping, a tile under the finger must not open when you let go.
+        .onStart(() => {
+          swiping.current = true;
+        })
+        .onUpdate(e => lift.setValue(e.translationY < 0 ? Math.max(-60, e.translationY * 0.3) : Math.min(40, e.translationY * 0.25)))
+        .onFinalize(() => {
+          setTimeout(() => {
+            swiping.current = false;
+          }, 250);
+        })
+        .onEnd(e => {
+          Animated.spring(lift, { toValue: 0, useNativeDriver: Platform.OS !== 'web', speed: 18, bounciness: 6 }).start();
+          if (hasList && (e.translationY < -110 || (e.translationY < -40 && e.velocityY < -900))) openList();
+          else if (e.translationY > 110) void onRefresh();
+        }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [hasList, lift]
+  );
 
   // Your year so far (the year in travel recap), beside your name.
   const yearPill = <Pill icon="party-popper" label={`${new Date().getFullYear()} so far`} onPress={() => router.push('/wrapped')} />;
 
-  // The three tiles share one screen: what's left between the greeting and the "All trips" button
-  // above the tab bar, less the gaps (a stacked group tile needs a little more room underneath).
-  const gaps = featured.reduce((sum, t) => sum + (counts[tripStatus(t)] > 1 ? 30 : 14), 0) + 14;
-  const firstScreen = viewHeight ? viewHeight - 16 : 0;
-  const tileHeight = viewHeight && featured.length
-    ? Math.max(96, Math.min(260, Math.floor((firstScreen - topHeight - gaps - (fabBottom + 62)) / Math.max(featured.length, 3))))
+  // The three tiles share the room left under the greeting, less the gaps (a stacked group tile
+  // needs a little more room underneath).
+  const gaps = featured.reduce((sum, t) => sum + (counts[tripStatus(t)] > 1 ? 30 : 14), 0);
+  const tileHeight = tilesArea && featured.length
+    ? Math.max(96, Math.min(240, Math.floor((tilesArea - gaps) / Math.max(featured.length, 3))))
     : undefined;
   /** A tile: the journey itself when it's the only one in its group, else that group's list. */
   const openTile = (t: TripRow) => {
+    if (swiping.current) return;
     const status = tripStatus(t);
     if (status !== 'ongoing' && counts[status] > 1) router.push({ pathname: '/trips/[status]', params: { status } } as never);
     else router.push(`/trip/${t.id}`);
   };
 
-  const header = (
-    <View style={{ paddingBottom: 6 }}>
-      {/* The first screen: greeting and the three tiles, exactly one screen tall. */}
-      <View style={{ minHeight: hasList && firstScreen ? firstScreen : undefined }}>
-      <View onLayout={e => setTopHeight(e.nativeEvent.layout.height)}>
+  const top = (
+    <View>
       <View style={{ flexDirection: 'row', alignItems: 'center' }}>
         <View style={{ flex: 1 }}>
           {firstName ? (
@@ -245,68 +278,41 @@ export default function JourneysTab() {
           </View>
         </Pressable>
       ) : null}
-      </View>
-
-      {/* On going, coming soon and the last one completed. */}
-      {featured.length ? (
-        <View style={{ marginTop: 14 }}>
-          {featured.map(t => (
-            <TripCard
-              key={t.id}
-              trip={t}
-              synopsis={t.synopsis}
-              large
-              height={tileHeight}
-              onPress={() => openTile(t)}
-              groupCount={counts[tripStatus(t)]}
-              tracking={t.id === recordingTripId}
-              coverUri={t.cover}
-              showUpload={Boolean(user)}
-            />
-          ))}
-        </View>
-      ) : null}
-      </View>
-
-      {/* Always measured (so "All trips" knows where to scroll); the heading shows once the list is open. */}
-      {hasList ? (
-        <View onLayout={e => setListTop(e.nativeEvent.layout.y)} style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6, marginTop: 10, marginBottom: 10 }}>
-          {showList ? (
-            <>
-              <Text style={{ fontSize: 13, fontWeight: '800', color: colors.onSurfaceVariant, letterSpacing: 0.6 }}>ALL TRIPS</Text>
-              <Text style={{ fontSize: 13, color: colors.muted }}>{all.length}</Text>
-            </>
-          ) : null}
-        </View>
-      ) : null}
     </View>
   );
 
+  const tiles = featured.length ? (
+    <Animated.View style={{ transform: [{ translateY: lift }] }}>
+      {featured.map(t => (
+        <TripCard
+          key={t.id}
+          trip={t}
+          synopsis={t.synopsis}
+          large
+          height={tileHeight}
+          onPress={() => openTile(t)}
+          groupCount={counts[tripStatus(t)]}
+          tracking={t.id === recordingTripId}
+          coverUri={t.cover}
+          showUpload={Boolean(user)}
+        />
+      ))}
+    </Animated.View>
+  ) : null;
+
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <FlatList
-        ref={listRef}
-        onLayout={e => setViewHeight(e.nativeEvent.layout.height)}
-        data={showList ? rows : []}
-        onScroll={e => setInList(listTop > 0 && e.nativeEvent.contentOffset.y > listTop - 60)}
-        scrollEventThrottle={64}
-        onScrollToIndexFailed={() => listRef.current?.scrollToOffset({ offset: 0, animated: true })}
-        keyExtractor={t => t.id}
-        ListHeaderComponent={header}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} colors={[colors.primary]} />}
-        contentContainerStyle={{ padding: 16, paddingBottom: TAB_BAR_SPACE + 80 }}
-        onEndReached={showList ? loadMore : undefined}
-        onEndReachedThreshold={0.4}
-        ListFooterComponent={
-          showList && (loadingMore || hasMore) ? (
-            <View style={{ paddingVertical: 18, alignItems: 'center' }} accessibilityLabel="Loading more journeys">
-              <ActivityIndicator color={colors.primary} />
-            </View>
-          ) : null
-        }
-        ListEmptyComponent={
-          loaded ? (
-            all.length ? null : (
+      <GestureDetector gesture={swipe}>
+        <View style={{ flex: 1, paddingHorizontal: 16, paddingTop: 16 }}>
+          {top}
+          {refreshing ? <ActivityIndicator color={colors.primary} style={{ marginTop: 8 }} /> : null}
+          {/* The tiles' own box: everything between the greeting and the "All trips" button. */}
+          <View style={{ flex: 1, marginTop: 14 }} onLayout={e => setTilesArea(e.nativeEvent.layout.height)}>
+            {!loaded ? (
+              <ActivityIndicator style={{ marginTop: 30 }} color={colors.primary} />
+            ) : all.length ? (
+              tiles
+            ) : (
               <EmptyState
                 icon="map-marker-path"
                 animation="travel"
@@ -317,30 +323,18 @@ export default function JourneysTab() {
                 secondary={SOCIAL_ENABLED ? 'Explore destinations' : undefined}
                 onSecondary={SOCIAL_ENABLED ? () => router.push('/(tabs)/discover') : undefined}
               />
-            )
-          ) : (
-            <ActivityIndicator style={{ marginTop: 30 }} color={colors.primary} />
-          )
-        }
-        renderItem={({ item }) => (
-          <TripCard
-            trip={item}
-            synopsis={item.synopsis}
-            tracking={item.id === recordingTripId}
-            coverUri={item.cover}
-            showUpload={Boolean(user)}
-          />
-        )}
-      />
-      {/* All trips: a small pill (like "2026 so far") centred above the tab bar; jumps to the full list, then back to the top. */}
+            )}
+          </View>
+          {/* Room for the "All trips" button and the + above the tab bar. */}
+          <View style={{ height: fabBottom + 62 }} />
+        </View>
+      </GestureDetector>
+
+      {/* All trips: a small pill centred above the tab bar; it slides the full list up. */}
       {loaded && hasList ? (
         <View pointerEvents="box-none" style={{ position: 'absolute', left: 0, right: 0, bottom: fabBottom + 17, alignItems: 'center' }}>
           <View style={{ borderRadius: 999, shadowColor: '#000', shadowOpacity: 0.12, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 3 }}>
-            <Pill
-              icon={showList && inList ? 'arrow-up' : 'format-list-bulleted'}
-              label={showList && inList ? 'Top' : 'All trips'}
-              onPress={() => (showList && inList ? closeList() : openList())}
-            />
+            <Pill icon="chevron-up" label="All trips" onPress={openList} />
           </View>
         </View>
       ) : null}
@@ -363,6 +357,48 @@ export default function JourneysTab() {
         </Glass>
       </Pressable>
       )}
+
+      {/* The full list: a panel that slides up over the tiles and drags back down to close. */}
+      {hasList ? (
+        <BottomSheet
+          ref={sheetRef}
+          index={-1}
+          snapPoints={['100%']}
+          enableDynamicSizing={false}
+          enablePanDownToClose
+          bottomInset={fabBottom - 6}
+          onChange={i => setListOpen(i >= 0)}
+          backgroundStyle={{ backgroundColor: colors.background, borderRadius: 28 }}
+          handleIndicatorStyle={{ backgroundColor: colors.outline, width: 40 }}
+          style={{ shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 18, shadowOffset: { width: 0, height: -4 }, elevation: 12 }}
+        >
+          <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6, paddingHorizontal: 16, paddingBottom: 10 }} accessibilityRole="header">
+            <Text style={{ fontSize: 13, fontWeight: '800', color: colors.onSurfaceVariant, letterSpacing: 0.6 }}>ALL TRIPS</Text>
+            <Text style={{ fontSize: 13, color: colors.muted }}>{all.length}</Text>
+            <View style={{ flex: 1 }} />
+            <Pressable onPress={closeList} accessibilityRole="button" accessibilityLabel="Close all trips" hitSlop={10}>
+              <Icon name="chevron-down" size={22} color={colors.muted} />
+            </Pressable>
+          </View>
+          <BottomSheetFlatList
+            data={rows}
+            keyExtractor={(t: TripRow) => t.id}
+            contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 24 }}
+            onEndReached={loadMore}
+            onEndReachedThreshold={0.4}
+            ListFooterComponent={
+              loadingMore || hasMore ? (
+                <View style={{ paddingVertical: 18, alignItems: 'center' }} accessibilityLabel="Loading more journeys">
+                  <ActivityIndicator color={colors.primary} />
+                </View>
+              ) : null
+            }
+            renderItem={({ item }: { item: TripRow }) => (
+              <TripCard trip={item} synopsis={item.synopsis} tracking={item.id === recordingTripId} coverUri={item.cover} showUpload={Boolean(user)} />
+            )}
+          />
+        </BottomSheet>
+      ) : null}
     </View>
   );
 }
