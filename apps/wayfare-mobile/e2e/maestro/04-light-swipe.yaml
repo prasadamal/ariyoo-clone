@@ -1,6 +1,8 @@
 appId: com.wayfare.app
-name: A light, slow swipe on the tiles keeps All trips closed
+name: A light, slow swipe on the tiles
 ---
+# Whether All trips stayed closed is checked afterwards from what TalkBack sees (device-checks.sh):
+# the closed panel waits just below the screen, so Maestro's own visibility check can't tell.
 - launchApp:
     stopApp: true
 - extendedWaitUntil:
@@ -8,12 +10,9 @@ name: A light, slow swipe on the tiles keeps All trips closed
     timeout: 60000
 - waitForAnimationToEnd
 - takeScreenshot: 06-home-two-trips
-# The closed panel must not be findable (it isn't on screen), before any swipe.
-- assertNotVisible: "ALL TRIPS"
 - swipe:
     start: "50%, 55%"
     end: "50%, 50%"
     duration: 600
 - waitForAnimationToEnd
 - takeScreenshot: 07-light-swipe
-- assertNotVisible: "ALL TRIPS"

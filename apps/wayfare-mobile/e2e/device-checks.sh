@@ -62,8 +62,14 @@ keyboard plan-sheet '^Add plan$'
 flow expense 02-expense.yaml
 keyboard expense-sheet '^Add ₹'
 flow second-journey 03-second-journey.yaml
-flow light-swipe-keeps-list-closed 04-light-swipe.yaml
+# "Is All trips open?" = does the screen reader find its header (hidden while it is closed).
+listopen() { texts | grep -q "ALL TRIPS" && echo open || echo closed; }
+before=$(listopen)
+flow light-swipe 04-light-swipe.yaml
+after=$(listopen)
+if [ "$before" = closed ] && [ "$after" = closed ]; then say "- Light swipe keeps All trips closed: PASS"; else say "- Light swipe keeps All trips closed: FAIL (before: $before, after: $after)"; fi
 flow firm-swipe-opens-list 05-firm-swipe.yaml
+if [ "$(listopen)" = closed ]; then say "- Back closes All trips: PASS"; else say "- Back closes All trips: FAIL"; fi
 
 # Robustness checks the big app stores run: the app killed in the background (Android does this
 # to free memory), no network at launch, very large text, dark mode, and a low-memory signal.
