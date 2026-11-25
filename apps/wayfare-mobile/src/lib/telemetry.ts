@@ -40,7 +40,8 @@ export async function deviceId() {
 }
 
 async function push(e: QueuedEvent) {
-  if (!(await telemetryEnabled())) return;
+  // The browser preview is only used for testing: its counts would mix with real phones' numbers.
+  if (Platform.OS === 'web' || !(await telemetryEnabled())) return;
   const raw = await AsyncStorage.getItem(QUEUE_KEY).catch(() => null);
   let queue: QueuedEvent[] = [];
   try {
@@ -80,7 +81,7 @@ export async function reportError(error: unknown, where = 'app') {
 
 /** Sends whatever is waiting. Keeps it for later if offline or the server says no. */
 export async function flushTelemetry() {
-  if (flushing || !supabase || !(await telemetryEnabled())) return;
+  if (flushing || !supabase || Platform.OS === 'web' || !(await telemetryEnabled())) return;
   flushing = true;
   try {
     const raw = await AsyncStorage.getItem(QUEUE_KEY);

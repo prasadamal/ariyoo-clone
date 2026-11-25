@@ -20,7 +20,7 @@ export function Meter({ progress, color, height = 8, style, accessibilityLabel }
   return (
     <View
       accessibilityRole="progressbar"
-      accessibilityLabel={accessibilityLabel}
+      accessibilityLabel={accessibilityLabel ?? `${Math.round(value * 100)} percent`}
       accessibilityValue={{ min: 0, max: 100, now: Math.round(value * 100) }}
       style={[{ height, borderRadius: height / 2, backgroundColor: colors.surfaceVariant, overflow: 'hidden' }, style]}
     >

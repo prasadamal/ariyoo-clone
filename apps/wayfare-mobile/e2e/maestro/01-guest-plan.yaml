@@ -1,0 +1,44 @@
+appId: com.wayfare.app
+name: Guest starts a journey and opens Plan with the keyboard up
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: "Skip|Just journal for now.*"
+    timeout: 120000
+- runFlow:
+    when:
+      visible: "Skip"
+    commands:
+      - tapOn: "Skip"
+- extendedWaitUntil:
+    visible: "Just journal for now.*"
+    timeout: 30000
+- takeScreenshot: 01-sign-in
+- tapOn: "Just journal for now.*"
+- extendedWaitUntil:
+    visible: "Start a journey"
+    timeout: 30000
+- takeScreenshot: 02-home-empty
+- tapOn: "Start a journey"
+- tapOn: "Journey title"
+- inputText: "Device test trip"
+# The form is long: the button sits below the fold (and under the keyboard).
+- scrollUntilVisible:
+    element: "Create journey"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Create journey"
+- extendedWaitUntil:
+    visible: "Plan"
+    timeout: 30000
+- takeScreenshot: 03-trip
+- tapOn: "Plan"
+- tapOn:
+    text: "Add a plan.*"
+    index: 0
+- extendedWaitUntil:
+    visible: "Add plan"
+    timeout: 10000
+- waitForAnimationToEnd
+- takeScreenshot: 04-plan-sheet-keyboard

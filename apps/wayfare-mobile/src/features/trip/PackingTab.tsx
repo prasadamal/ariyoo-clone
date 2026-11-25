@@ -203,7 +203,7 @@ export function PackingTab({ trip, onChanged }: Props) {
           <Text style={{ color: colors.muted, fontWeight: '600', flex: 1 }}> of {all.length} packed</Text>
           {progress === 1 && all.length ? <Text style={{ color: colors.success, fontWeight: '800' }}>All packed 🎒</Text> : null}
         </View>
-        <Meter progress={progress} color={colors.secondary} height={8} />
+        <Meter accessibilityLabel={`Packed: ${Math.round(progress * 100)} percent`} progress={progress} color={colors.secondary} height={8} />
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 12 }}>
           <View style={{ flex: 1 }}>
             <FloatingTabs
