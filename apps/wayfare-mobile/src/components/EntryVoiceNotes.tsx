@@ -7,7 +7,7 @@ import { Icon } from '../ui/Icon';
 import { deleteEntryMedia, listEntryMedia, type LocalEntryMedia } from '../lib/localDb';
 import { isAudio, resolveMediaUri } from '../lib/media';
 
-export function EntryVoiceNotes({ entryId, refreshKey = 0, inset = 14 }: { entryId: string; refreshKey?: number; inset?: number }) {
+export function EntryVoiceNotes({ entryId, refreshKey = 0, inset = 14, canEdit = true }: { entryId: string; refreshKey?: number; inset?: number; canEdit?: boolean }) {
   const { colors } = useAppTheme();
   const [clips, setClips] = useState<LocalEntryMedia[]>([]);
   const [playing, setPlaying] = useState<string | null>(null);
@@ -86,7 +86,7 @@ export function EntryVoiceNotes({ entryId, refreshKey = 0, inset = 14 }: { entry
           <Pressable
             key={c.id}
             onPress={() => play(c)}
-            onLongPress={() => remove(c)}
+            onLongPress={canEdit ? () => remove(c) : undefined}
             accessibilityRole="button"
             accessibilityLabel={`${on ? 'Stop' : 'Play'} voice note ${i + 1}`}
             style={({ pressed }) => ({
@@ -105,6 +105,7 @@ export function EntryVoiceNotes({ entryId, refreshKey = 0, inset = 14 }: { entry
             <Text style={{ fontSize: 13, fontWeight: '700', color: on ? colors.onPrimary : colors.onPrimaryContainer }}>
               Voice note{clips.length > 1 ? ` ${i + 1}` : ''}
             </Text>
+            <Icon name="waveform" size={16} color={on ? colors.onPrimary : colors.primary} />
           </Pressable>
         );
       })}

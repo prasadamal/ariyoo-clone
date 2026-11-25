@@ -3,7 +3,7 @@ import { track } from '../../lib/telemetry';
 import * as Haptics from 'expo-haptics';
 import * as Location from 'expo-location';
 import { router } from 'expo-router';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Animated, PanResponder, ScrollView, View } from 'react-native';
 import { Button, IconButton, Menu, Text } from 'react-native-paper';
 import { uuid } from '../../lib/id';
@@ -21,10 +21,11 @@ import { persistFile } from '../../lib/upload';
 import { fetchWeatherSummary } from '../../lib/weather';
 import { useAppTheme } from '../../theme';
 import { EmptyState } from '../../ui/EmptyState';
-import { MomentCard } from './MomentCard';
+import { MomentTile } from './MomentTile';
 import { MomentComposer, type MomentMoney } from './MomentComposer';
 import { pickPhotos, type PickedPhoto } from './photoPicker';
 import { Pill } from '../../ui/Pill';
+import { DayPill } from '../../ui/DayPill';
 import { AFTER_TRIP, datePills, dayBucket, PRE_TRIP, swipeDay, tripDayLabel } from './dayStripCells';
 import { TripGalleryCard } from './TripGalleryCard';
 import { galleryAvailable } from '../../lib/galleryPhotos';
@@ -541,29 +542,42 @@ export function JournalTab({ trip, onChanged, everyday = false, crewNames = {}, 
             }
           }}
         >
-          {/* Which day these are, as a quiet heading (not a button). One day picked above: no heading. */}
-          {dayFilter ? null : (
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 8, marginTop: 4 }} accessibilityRole="header">
-              <Text style={{ fontSize: 13, fontWeight: '800', letterSpacing: 0.8, color: colors.primary }}>{g.label.toUpperCase()}</Text>
-              <View style={{ flex: 1, height: 1, backgroundColor: colors.border }} />
-            </View>
-          )}
-          {g.list.map(e => (
-            <MomentCard
-              key={e.id}
-              entry={e}
-              money={moneyByMoment.get(e.id)}
-              currencySymbol={symbol}
-              mediaKey={mediaKey}
-              canShare={social && !e.author_id}
-              canEdit={canEdit}
-              author={e.author_id ? crewNames[e.author_id] ?? 'Crew' : isSharedTrip(trip) ? 'You' : undefined}
-              tripId={trip.id}
-              onChanged={onChanged}
-              onAddPhotos={() => addPhotosToEntry(e.id)}
-              onDelete={() => remove(e)}
-            />
-          ))}
+          {(() => {
+            // Moments show only their time, so the day and date live in a pill above them ("Day 2 ·
+            // Mon 23 Nov"). Pre-trip / After trip span several dates: a pill wherever the date changes
+            // ("Pre-trip · Fri 20 Nov"). One day picked above: no pill (that pill already says it).
+            const dayOf = (e: LocalEntry) => toDayString(new Date(e.recorded_at));
+            const multi = new Set(g.list.map(dayOf)).size > 1;
+            const dateText = (d: string) => formatDay(d, { weekday: true, year: d.slice(0, 4) !== String(new Date().getFullYear()) }).replace(',', '');
+            const pillText = (d: string) => (everyday ? dateText(d) : `${g.label} · ${dateText(d)}`);
+            return (
+              <>
+                {g.list.map((e, i) => {
+                  const d = dayOf(e);
+                  const firstOfDate = i === 0 || dayOf(g.list[i - 1]) !== d;
+                  const showPill = firstOfDate && (multi || (i === 0 && !dayFilter));
+                  return (
+                    <Fragment key={e.id}>
+                      {showPill ? <DayPill label={pillText(d)} /> : null}
+                      <MomentTile
+                        entry={e}
+                        money={moneyByMoment.get(e.id)}
+                        currencySymbol={symbol}
+                        mediaKey={mediaKey}
+                        canShare={social && !e.author_id}
+                        canEdit={canEdit}
+                        author={e.author_id ? crewNames[e.author_id] ?? 'Crew' : isSharedTrip(trip) ? 'You' : undefined}
+                        tripId={trip.id}
+                        onChanged={onChanged}
+                        onAddPhotos={() => addPhotosToEntry(e.id)}
+                        onDelete={() => remove(e)}
+                      />
+                    </Fragment>
+                  );
+                })}
+              </>
+            );
+          })()}
         </View>
       ))}
       {dayFilter && !grid && !entries.length ? (

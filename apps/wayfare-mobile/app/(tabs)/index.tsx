@@ -47,13 +47,11 @@ export default function JourneysTab() {
   // Where the full list starts, and whether you've scrolled into it (the floating pill then says "Top").
   const [listTop, setListTop] = useState(0);
   const [inList, setInList] = useState(false);
-  // The full list stays hidden under the three tiles until you tap "All trips" or swipe up.
-  const [listOpen, setListOpen] = useState(false);
-  const touchY = useRef<number | null>(null);
-  // Room on screen for the three tiles: the list's height and the greeting's.
+  // The first screen is exactly one screen tall: the three tiles fill it down to the "All trips"
+  // button, so the full list always starts below the edge and shows only when you swipe up or tap.
   const [viewHeight, setViewHeight] = useState(0);
-  const [greetHeight, setGreetHeight] = useState(72);
-  const [bannerHeight, setBannerHeight] = useState(0);
+  // Everything above the tiles (greeting, backup line, announcement, recording banner).
+  const [topHeight, setTopHeight] = useState(72);
   const [recordingTripId, setRecordingTripId] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -174,26 +172,20 @@ export default function JourneysTab() {
         : backupLabel(backup);
 
   const hasList = all.length > featured.length || all.length > 1;
-  const showList = hasList && listOpen;
-  const openList = () => {
-    if (!listOpen) setListOpen(true);
-    // Wait a frame for the list to appear, then scroll to it.
-    setTimeout(() => listRef.current?.scrollToOffset({ offset: Math.max(0, listTop + 8), animated: true }), 60);
-  };
-  const closeList = () => {
-    listRef.current?.scrollToOffset({ offset: 0, animated: true });
-    setTimeout(() => setListOpen(false), 450);
-  };
+  const showList = hasList;
+  const openList = () => listRef.current?.scrollToOffset({ offset: Math.max(0, listTop + 8), animated: true });
+  const closeList = () => listRef.current?.scrollToOffset({ offset: 0, animated: true });
   const fabBottom = Math.max(insets.bottom, 10) + 84;
 
   // Your year so far (the year in travel recap), beside your name.
   const yearPill = <Pill icon="party-popper" label={`${new Date().getFullYear()} so far`} onPress={() => router.push('/wrapped')} />;
 
-  // The three tiles share one screen: what's left between the greeting and the + button above the
-  // tab bar, less the gaps (a stacked group tile needs a little more room underneath).
+  // The three tiles share one screen: what's left between the greeting and the "All trips" button
+  // above the tab bar, less the gaps (a stacked group tile needs a little more room underneath).
   const gaps = featured.reduce((sum, t) => sum + (counts[tripStatus(t)] > 1 ? 30 : 14), 0) + 14;
+  const firstScreen = viewHeight ? viewHeight - 16 : 0;
   const tileHeight = viewHeight && featured.length
-    ? Math.max(96, Math.min(200, Math.floor((viewHeight - 16 - greetHeight - bannerHeight - gaps - (fabBottom + 70)) / Math.max(featured.length, 3))))
+    ? Math.max(96, Math.min(260, Math.floor((firstScreen - topHeight - gaps - (fabBottom + 62)) / Math.max(featured.length, 3))))
     : undefined;
   /** A tile: the journey itself when it's the only one in its group, else that group's list. */
   const openTile = (t: TripRow) => {
@@ -204,7 +196,10 @@ export default function JourneysTab() {
 
   const header = (
     <View style={{ paddingBottom: 6 }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center' }} onLayout={e => setGreetHeight(e.nativeEvent.layout.height)}>
+      {/* The first screen: greeting and the three tiles, exactly one screen tall. */}
+      <View style={{ minHeight: hasList && firstScreen ? firstScreen : undefined }}>
+      <View onLayout={e => setTopHeight(e.nativeEvent.layout.height)}>
+      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
         <View style={{ flex: 1 }}>
           {firstName ? (
             <>
@@ -237,7 +232,7 @@ export default function JourneysTab() {
       </View>
 
       {/* A short message from the Wayfare team (admin console), if there is one. */}
-      <AnnouncementBanner onHeight={setBannerHeight} />
+      <AnnouncementBanner />
 
       {recordingTrip ? (
         <Pressable onPress={() => router.push(`/trip/${recordingTrip.id}`)} accessibilityRole="button">
@@ -250,6 +245,7 @@ export default function JourneysTab() {
           </View>
         </Pressable>
       ) : null}
+      </View>
 
       {/* On going, coming soon and the last one completed. */}
       {featured.length ? (
@@ -270,10 +266,11 @@ export default function JourneysTab() {
           ))}
         </View>
       ) : null}
+      </View>
 
-            {/* Always measured (so "All trips" knows where to scroll); the heading shows once the list is open. */}
+      {/* Always measured (so "All trips" knows where to scroll); the heading shows once the list is open. */}
       {hasList ? (
-        <View onLayout={e => setListTop(e.nativeEvent.layout.y)} style={showList ? { flexDirection: 'row', alignItems: 'baseline', gap: 6, marginTop: 10, marginBottom: 10 } : { height: 0 }}>
+        <View onLayout={e => setListTop(e.nativeEvent.layout.y)} style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6, marginTop: 10, marginBottom: 10 }}>
           {showList ? (
             <>
               <Text style={{ fontSize: 13, fontWeight: '800', color: colors.onSurfaceVariant, letterSpacing: 0.6 }}>ALL TRIPS</Text>
@@ -292,15 +289,6 @@ export default function JourneysTab() {
         onLayout={e => setViewHeight(e.nativeEvent.layout.height)}
         data={showList ? rows : []}
         onScroll={e => setInList(listTop > 0 && e.nativeEvent.contentOffset.y > listTop - 60)}
-        // A swipe up on the tiles opens the full list (the tiles alone don't scroll).
-        onTouchStart={e => {
-          touchY.current = e.nativeEvent.pageY;
-        }}
-        onTouchEnd={e => {
-          const from = touchY.current;
-          touchY.current = null;
-          if (!listOpen && hasList && from != null && from - e.nativeEvent.pageY > 80) openList();
-        }}
         scrollEventThrottle={64}
         onScrollToIndexFailed={() => listRef.current?.scrollToOffset({ offset: 0, animated: true })}
         keyExtractor={t => t.id}
