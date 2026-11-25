@@ -91,7 +91,7 @@ select set_config('request.jwt.claim.sub', '', false);
 set role anon;
 insert into public.app_events (device_id, kind, name) values ('device-guest-1', 'event', 'app_open');
 reset role;
-select tests.check((select count(*) from public.app_events where device_id = 'device-ana-1' and user_id = tests.uid('ana@inv.test')) = 2, 'events carry the signed-in user');
+select tests.check((select count(*) from public.app_events where device_id = 'device-ana-1') = 2 and (select count(*) from public.app_events where device_id = 'device-ana-1' and user_id is not null) = 0, 'signed-in events are stored without the account');
 select tests.check((select count(*) from public.app_events where device_id = 'device-guest-1' and user_id is null) = 1, 'guest events have no user');
 select tests.check((select new_devices from public.app_retention_weekly limit 1) >= 1, 'retention view works for the founder');
 

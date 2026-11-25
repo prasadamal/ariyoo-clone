@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { computeBalances, isSpending, ME, parseCompanions, parseSplitWith, SETTLEMENT, settlementFor, settleUp, sharePerPerson } from '../split';
+import { computeBalances, isSpending, ME, parseCompanions, parseSplitWith, SETTLEMENT, settlementFor, settleUp, sharePerPerson, expenseForViewer } from '../split';
 
 test('parseCompanions trims, dedupes and drops "Me"', () => {
   assert.deepEqual(parseCompanions(' Asha, Ravi;asha\nMe ,  Kabir  Singh '), ['Asha', 'Ravi', 'Kabir Singh']);
@@ -67,4 +67,21 @@ test('marking a settle-up payment as paid clears that debt, and it is not spendi
   assert.equal(half.length, 1, 'one payment clears one debt');
   assert.equal(isSpending({ category: SETTLEMENT }), false);
   assert.equal(isSpending({ category: 'food' }), true);
+});
+
+test('a shared expense reads the same on both phones: "Me" is whoever wrote it', () => {
+  // Meera (owner) and Arjun (admin) split ₹600; Arjun wrote it and paid.
+  const byArjun = { paid_by: null, split_with: JSON.stringify(['Me', 'Meera']) };
+  // On Meera's phone Arjun paid and she owes him.
+  const onMeera = expenseForViewer(byArjun, 'Arjun', ['Meera']);
+  assert.deepEqual(onMeera, { paidBy: 'Arjun', splitWith: ['Arjun', 'Me'] });
+  assert.deepEqual(settleUp(computeBalances([{ amount: 600, ...onMeera }])), [{ from: 'Me', to: 'Arjun', amount: 300 }]);
+  // On Arjun's phone (he wrote it) he paid and Meera owes him.
+  const onArjun = expenseForViewer(byArjun, null, ['Arjun']);
+  assert.deepEqual(settleUp(computeBalances([{ amount: 600, ...onArjun }])), [{ from: 'Meera', to: 'Me', amount: 300 }]);
+});
+
+test('a named payer in someone else\'s expense who is the viewer becomes You', () => {
+  const e = { paid_by: 'meera', split_with: JSON.stringify(['Meera', 'Me']) };
+  assert.deepEqual(expenseForViewer(e, 'Arjun', ['Meera']), { paidBy: null, splitWith: ['Me', 'Arjun'] });
 });

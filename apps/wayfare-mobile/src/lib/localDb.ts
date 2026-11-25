@@ -580,6 +580,26 @@ export async function setTripShare(
  * As a member you can't change a shared journey, so anything still waiting to upload there (say you were
  * an admin a moment ago) is dropped; the next pull brings back the journey as it is.
  */
+/** What's waiting to upload in one journey (to keep a copy before it's dropped). */
+export async function pendingRowsInTrip(tripId: string) {
+  const database = await getDb();
+  const entries = await database.getAllAsync<{ body: string | null; recorded_at: string | null }>(
+    "SELECT body, recorded_at FROM entries WHERE trip_id = ? AND sync_status = 'pending'",
+    [tripId]
+  );
+  const expenses = await database.getAllAsync<{ category: string; amount: number; currency: string; note: string | null }>(
+    "SELECT category, amount, currency, note FROM expenses WHERE trip_id = ? AND sync_status = 'pending'",
+    [tripId]
+  );
+  const plans = await database.getAllAsync<{ title: string; notes: string | null }>(
+    "SELECT title, notes FROM itinerary_items WHERE trip_id = ? AND sync_status = 'pending'",
+    [tripId]
+  );
+  const media = await database.getFirstAsync<{ n: number }>("SELECT COUNT(*) AS n FROM entry_media WHERE trip_id = ? AND sync_status = 'pending'", [tripId]);
+  const trip = await database.getFirstAsync<{ n: number }>("SELECT COUNT(*) AS n FROM trips WHERE id = ? AND sync_status = 'pending'", [tripId]);
+  return { entries, expenses, plans, other: (media?.n ?? 0) + (trip?.n ?? 0) };
+}
+
 export async function discardPendingInTrip(tripId: string) {
   const database = await getDb();
   await database.runAsync("UPDATE trips SET sync_status = 'synced', updated_at = '1970-01-01T00:00:00.000Z' WHERE id = ? AND sync_status = 'pending'", [tripId]);
@@ -946,6 +966,19 @@ export async function removeSyncedTripsNotIn(keepIds: Set<string>) {
   return removed;
 }
 
+/** Moments and photos of one journey still waiting to upload (a story shows them once they're up). */
+export async function countTripPendingUploads(tripId: string) {
+  const database = await getDb();
+  const row = await database.getFirstAsync<{ c: number }>(
+    `SELECT (
+      (SELECT COUNT(*) FROM entries WHERE trip_id = ? AND sync_status = 'pending') +
+      (SELECT COUNT(*) FROM entry_media WHERE trip_id = ? AND sync_status = 'pending')
+    ) as c`,
+    [tripId, tripId]
+  );
+  return row?.c ?? 0;
+}
+
 export async function countPendingSync() {
   const database = await getDb();
   const row = await database.getFirstAsync<{ c: number }>(`
@@ -979,6 +1012,15 @@ async function wipeLocalDataLocked() {
     DELETE FROM trips;
     DELETE FROM deleted_records;
   `);
+}
+
+/** Journeys (not the everyday diary) and moments on this phone, for the guest backup notice. */
+export async function guestJournalCounts() {
+  const database = await getDb();
+  const row = await database.getFirstAsync<{ trips: number; entries: number }>(
+    "SELECT (SELECT COUNT(*) FROM trips WHERE trip_type <> 'everyday') AS trips, (SELECT COUNT(*) FROM entries) AS entries"
+  );
+  return { trips: row?.trips ?? 0, entries: row?.entries ?? 0 };
 }
 
 export async function countTrips() {

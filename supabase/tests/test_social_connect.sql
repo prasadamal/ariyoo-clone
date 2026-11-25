@@ -461,7 +461,7 @@ select tests.act_as_anon();
 select tests.check((public.get_live_share(tests.id('live')) ->> 'active')::boolean, 'anon can view live link');
 select tests.check((public.get_live_share(tests.id('live')) ->> 'display_name') = 'Alice', 'live link names traveller');
 select tests.check((select count(*) from public.live_shares) = 0, 'anon cannot list live shares');
-select tests.check((public.get_shared_trip('share-alice-123') -> 'author' ->> 'username') = 'alice', 'shared trip author');
+select tests.check((public.get_shared_trip('share-alice-123') -> 'author' ->> 'username') is null, 'shared trip shows no username');
 select tests.check((public.get_shared_trip('share-alice-123')::jsonb -> 'trip') ? 'title', 'shared trip payload');
 select tests.check(not ((public.get_shared_trip('share-alice-123')::jsonb -> 'trip') ? 'user_id'), 'shared trip hides user ids');
 select tests.check(json_array_length(public.get_shared_trip('share-alice-123') -> 'entries') = 1, 'shared entries');

@@ -1,6 +1,6 @@
 import * as LocalAuthentication from 'expo-local-authentication';
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
-import { AppState, StyleSheet, View } from 'react-native';
+import { AppState, Linking, StyleSheet, View } from 'react-native';
 import { isLockHeld, shouldLockOnReturn } from '../lib/lockHold';
 import { ActivityIndicator, Button, Portal, Text } from 'react-native-paper';
 import { getBiometricLockEnabled, setBiometricLockEnabled } from '../lib/settings';
@@ -17,7 +17,20 @@ export function AppLockProvider({ children }: { children: React.ReactNode }) {
   const [unlocked, setUnlocked] = useState(true);
   const [checking, setChecking] = useState(true);
 
-  /** Turning the lock on requires a successful biometric check first. */
+  // The phone has no screen lock, fingerprint or face at all: the lock can't be satisfied, so the
+  // journal stays locked and says how to fix it (never opens without a check).
+  const [noSecurity, setNoSecurity] = useState(false);
+
+  /** Any way the phone itself can confirm it's you: fingerprint, face, or the phone's PIN/pattern. */
+  const phoneCanVerify = async () => {
+    try {
+      return (await LocalAuthentication.getEnrolledLevelAsync()) !== LocalAuthentication.SecurityLevel.NONE;
+    } catch {
+      return false;
+    }
+  };
+
+  /** Turning the lock on requires a successful check first. */
   const setEnabled = useCallback(async (v: boolean) => {
     if (!v) {
       await setBiometricLockEnabled(false);
@@ -25,10 +38,8 @@ export function AppLockProvider({ children }: { children: React.ReactNode }) {
       setUnlocked(true);
       return true;
     }
-    const hasHardware = await LocalAuthentication.hasHardwareAsync();
-    const enrolled = await LocalAuthentication.isEnrolledAsync();
-    if (!hasHardware || !enrolled) return false;
-    const result = await LocalAuthentication.authenticateAsync({ promptMessage: 'Enable Wayfare lock' });
+    if (!(await phoneCanVerify())) return false;
+    const result = await LocalAuthentication.authenticateAsync({ promptMessage: 'Enable Wayfare lock', disableDeviceFallback: false });
     if (!result.success) return false;
     await setBiometricLockEnabled(true);
     setEnabledState(true);
@@ -37,13 +48,13 @@ export function AppLockProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const promptUnlock = useCallback(async () => {
-    const hasHardware = await LocalAuthentication.hasHardwareAsync();
-    const enrolled = await LocalAuthentication.isEnrolledAsync();
-    if (!hasHardware || !enrolled) {
-      setUnlocked(true);
+    if (!(await phoneCanVerify())) {
+      setNoSecurity(true);
+      setUnlocked(false);
       return;
     }
-    const result = await LocalAuthentication.authenticateAsync({ promptMessage: 'Unlock Wayfare', cancelLabel: 'Cancel' });
+    setNoSecurity(false);
+    const result = await LocalAuthentication.authenticateAsync({ promptMessage: 'Unlock Wayfare', cancelLabel: 'Cancel', disableDeviceFallback: false });
     setUnlocked(result.success);
   }, []);
 
@@ -100,10 +111,17 @@ export function AppLockProvider({ children }: { children: React.ReactNode }) {
           Wayfare is locked
         </Text>
         <Text style={{ textAlign: 'center', color: colors.muted, marginBottom: 24 }}>
-          Use your device biometrics to open your travel journal.
+          {noSecurity
+            ? 'This phone has no screen lock, fingerprint or face set up any more, so Wayfare can\u2019t check it\u2019s you. Set one up in your phone\u2019s settings, then come back.'
+            : 'Use your fingerprint, face or phone PIN to open your travel journal.'}
         </Text>
+        {noSecurity ? (
+          <Button mode="outlined" icon="cog-outline" onPress={() => void Linking.openSettings()} style={{ marginBottom: 10 }}>
+            Open phone settings
+          </Button>
+        ) : null}
         <Button mode="contained" icon="fingerprint" onPress={promptUnlock}>
-          Unlock
+          {noSecurity ? 'Try again' : 'Unlock'}
         </Button>
       </View>
     );

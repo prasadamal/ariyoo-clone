@@ -140,7 +140,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signUp = useCallback(async (email: string, password: string, displayName: string, username?: string) => {
     if (!supabase) throw new Error('Cloud sign-up is not configured in this build');
     // Accounts are created already confirmed (no email to wait for), then signed in right away.
-    // If that service isn't reachable, fall back to the normal Supabase sign-up.
+    // If that service isn't reachable, or it answers { verify: true } (email verification switched
+    // on server-side), fall back to the normal Supabase sign-up, which emails a confirmation link.
     let created = false;
     if (username) {
       try {

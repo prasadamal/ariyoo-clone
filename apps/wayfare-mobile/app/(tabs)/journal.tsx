@@ -199,10 +199,9 @@ export default function DiaryScreen() {
   }, []);
 
   /** Writes one of today's pages: creates its entry on the first words, removes it when emptied. */
-  const save = useCallback(
+  const writePage = useCallback(
     async (key: string, body: string) => {
       if (!trip) return;
-      dirty.current.delete(key);
       const now = new Date().toISOString();
       const current = entryByKey.current[key] ?? null;
       if (current) {
@@ -234,10 +233,41 @@ export default function DiaryScreen() {
         entryByKey.current[key] = created;
         void track('diary_written');
       }
-      refreshPending();
     },
-    [trip, refreshPending]
+    [trip]
   );
+
+  // Saves for one page run one after another (never two creating the same page twice). A page stays
+  // "unsaved" until its write succeeds, so reopening the diary never replaces words that didn't save;
+  // a failed write says so and tries again.
+  const chains = useRef<Record<string, Promise<void>>>({});
+  const mounted = useRef(true);
+  const warned = useRef(false);
+  const saveRef = useRef<(key: string, body: string) => Promise<void>>(async () => undefined);
+  const save = useCallback(
+    (key: string, body: string) => {
+      const run = (chains.current[key] ?? Promise.resolve()).then(async () => {
+        if (!trip) return;
+        try {
+          await writePage(key, body);
+          // Words typed while this was saving stay unsaved for their own save.
+          if ((latestDrafts.current[key] ?? '') === body) dirty.current.delete(key);
+          warned.current = false;
+          refreshPending();
+        } catch {
+          if (!warned.current) toast('Couldn\u2019t save this page yet. Your words are still here; trying again.');
+          warned.current = true;
+          if (!mounted.current) return;
+          if (timers.current[key]) clearTimeout(timers.current[key]);
+          timers.current[key] = setTimeout(() => void saveRef.current(key, latestDrafts.current[key] ?? body), 3000);
+        }
+      });
+      chains.current[key] = run;
+      return run;
+    },
+    [trip, writePage, refreshPending, toast]
+  );
+  saveRef.current = save;
 
   const onText = (key: string, t: string) => {
     setDrafts(d => ({ ...d, [key]: t }));
@@ -247,13 +277,14 @@ export default function DiaryScreen() {
   };
 
   // Never lose the last words: save every unsaved page when leaving the screen.
-  useEffect(
-    () => () => {
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
       for (const t of Object.values(timers.current)) clearTimeout(t);
       for (const key of dirty.current) void save(key, latestDrafts.current[key] ?? '');
-    },
-    [save]
-  );
+    };
+  }, [save]);
 
   const sheets = useMemo(() => diarySheets(entries, today, todayKeys), [entries, today, todayKeys]);
   // Moods from every moment you wrote (journeys too), for the calendar; the diary's own writing streak.
