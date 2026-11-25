@@ -2814,7 +2814,11 @@
           "text": "const [menu, setMenu] = useState(false);"
         },
         {
-          "line": 54,
+          "line": 55,
+          "text": "const [menuPhoto, setMenuPhoto] = useState<number | null>(null);"
+        },
+        {
+          "line": 56,
           "text": "const [expanded, setExpanded] = useState(false);"
         }
       ]
