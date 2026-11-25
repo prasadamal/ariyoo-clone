@@ -23,7 +23,11 @@ name: Guest starts a journey and opens Plan with the keyboard up
 - tapOn: "Start a journey"
 - tapOn: "Journey title"
 - inputText: "Device test trip"
-- hideKeyboard
+# The form is long: the button sits below the fold (and under the keyboard).
+- scrollUntilVisible:
+    element: "Create journey"
+    direction: DOWN
+    timeout: 20000
 - tapOn: "Create journey"
 - extendedWaitUntil:
     visible: "Plan"
@@ -31,7 +35,7 @@ name: Guest starts a journey and opens Plan with the keyboard up
 - takeScreenshot: 03-trip
 - tapOn: "Plan"
 - tapOn:
-    text: "Add a plan"
+    text: "Add a plan.*"
     index: 0
 - extendedWaitUntil:
     visible: "Add plan"

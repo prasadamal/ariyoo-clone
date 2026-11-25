@@ -292,7 +292,7 @@ export function BudgetTab({ trip, onChanged, readOnly = false, authorNames = {},
             accessible
             accessibilityLabel={used > 1 ? `${formatMoney(total.total - budget, tripCurrency)} over the ${formatMoney(budget, tripCurrency)} budget` : `${formatMoney(budget - total.total, tripCurrency)} left of the ${formatMoney(budget, tripCurrency)} budget`}
           >
-            <Meter progress={Math.min(1, used)} color={used > 1 ? colors.danger : used > 0.85 ? colors.warning : colors.primary} height={8} style={{ marginTop: 10 }} />
+            <Meter accessibilityLabel={`Budget used: ${Math.round(used * 100)} percent`} progress={Math.min(1, used)} color={used > 1 ? colors.danger : used > 0.85 ? colors.warning : colors.primary} height={8} style={{ marginTop: 10 }} />
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 6 }}>
               <Text style={{ color: colors.muted, fontSize: 13, fontWeight: '600' }}>{formatMoney(0, tripCurrency)}</Text>
               <Text style={{ color: used > 1 ? colors.danger : colors.muted, fontSize: 13, fontWeight: '600' }}>{formatMoney(budget, tripCurrency)}</Text>

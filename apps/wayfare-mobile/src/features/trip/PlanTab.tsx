@@ -160,7 +160,7 @@ export function PlanTab({ trip, onChanged, readOnly = false }: Props) {
             <Text style={{ color: colors.muted, fontWeight: '600', flex: 1 }}> of {items.length} done</Text>
             <Text style={{ color: colors.muted, fontSize: 12 }}>{totalDays} {totalDays === 1 ? 'day' : 'days'}</Text>
           </View>
-          <Meter progress={items.length ? doneCount / items.length : 0} color={colors.primary} />
+          <Meter accessibilityLabel={`Plans done: ${doneCount} of ${items.length}`} progress={items.length ? doneCount / items.length : 0} color={colors.primary} />
         </View>
       ) : (
         <EmptyState

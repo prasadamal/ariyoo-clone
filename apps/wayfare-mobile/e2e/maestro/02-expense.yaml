@@ -1,9 +1,16 @@
 appId: com.wayfare.app
 name: Add expense with the keyboard up
 ---
-- hideKeyboard
-- back
-- waitForAnimationToEnd
+# Starts fresh from home (the app keeps the guest journey from flow 1).
+- launchApp:
+    stopApp: true
+- extendedWaitUntil:
+    visible: "Device test trip"
+    timeout: 60000
+- tapOn: "Device test trip"
+- extendedWaitUntil:
+    visible: "Budget"
+    timeout: 30000
 - tapOn: "Budget"
 - tapOn:
     text: "Add expense"

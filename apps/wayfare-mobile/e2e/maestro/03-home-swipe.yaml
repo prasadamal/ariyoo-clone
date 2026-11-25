@@ -1,26 +1,29 @@
 appId: com.wayfare.app
 name: A second journey, then the home swipe
 ---
-- hideKeyboard
-- back
-- waitForAnimationToEnd
-- back
+- launchApp:
+    stopApp: true
 - extendedWaitUntil:
     visible: "Device test trip"
-    timeout: 20000
+    timeout: 60000
 - tapOn: "Start a new journey"
 - tapOn: "Journey title"
 - inputText: "Second test trip"
-- hideKeyboard
+- scrollUntilVisible:
+    element: "Create journey"
+    direction: DOWN
+    timeout: 20000
 - tapOn: "Create journey"
 - extendedWaitUntil:
     visible: "Plan"
     timeout: 30000
-- back
+- launchApp:
+    stopApp: true
 - extendedWaitUntil:
     visible: "All trips"
-    timeout: 20000
+    timeout: 60000
 - takeScreenshot: 06-home-two-trips
+# A light flick must not open the list...
 - swipe:
     start: "50%, 55%"
     end: "50%, 50%"
@@ -28,6 +31,7 @@ name: A second journey, then the home swipe
 - waitForAnimationToEnd
 - assertNotVisible: "ALL TRIPS"
 - takeScreenshot: 07-light-swipe
+# ...a firm swipe up does.
 - swipe:
     start: "50%, 70%"
     end: "50%, 20%"

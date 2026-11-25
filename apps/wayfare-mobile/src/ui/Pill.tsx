@@ -35,7 +35,7 @@ export function Pill({ label, icon, color, background, onPress, selected }: Prop
   );
   if (!onPress) return body;
   return (
-    <Pressable onPress={onPress} accessibilityRole="button" accessibilityState={{ selected: !!selected }} hitSlop={4}>
+    <Pressable onPress={onPress} accessibilityRole="button" accessibilityState={{ selected: !!selected }} hitSlop={{ top: 9, bottom: 9, left: 4, right: 4 }}>
       {body}
     </Pressable>
   );
