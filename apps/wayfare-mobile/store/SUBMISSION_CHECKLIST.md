@@ -66,9 +66,9 @@ npm run submit:ios
 - [ ] App Store Connect app record
 - [ ] `eas.json` submit.ios: `appleId`, `ascAppId`, `appleTeamId`
 - [ ] Listing: `store/app-store-listing.md`
-- [ ] App Privacy labels per `store/DATA_SAFETY_AND_PRIVACY.md`
-- [ ] Custom EULA = Terms of Use URL; age rating questionnaire (expect 17+)
-- [ ] TestFlight → App Review with demo credentials
+- [ ] App Privacy labels per `store/APP_STORE_PRIVACY.md`
+- [ ] Custom EULA = Terms of Use URL; age rating questionnaire per `store/app-store-listing.md` (journal-only build: expect 13+ or 16+)
+- [ ] TestFlight → App Review with demo credentials and `store/APP_STORE_REVIEW_NOTES.md`
 
 ## 5. Device QA
 
