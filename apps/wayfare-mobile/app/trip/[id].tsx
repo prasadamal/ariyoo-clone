@@ -399,6 +399,12 @@ export default function TripDetailScreen() {
               </Pressable>
             ) : null}
             {stats.distanceKm >= 0.1 ? <Pill icon="map-marker-path" label={formatKm(stats.distanceKm)} color="#fff" background="#ffffff26" /> : null}
+            {/* Places recorded where they happened (tap the pin when adding a moment). */}
+            {stats.verifiedPlaces ? (
+              <View accessible accessibilityLabel={`Verified: ${stats.verifiedPlaces} ${stats.verifiedPlaces === 1 ? 'place' : 'places'} recorded where ${stats.verifiedPlaces === 1 ? 'it' : 'they'} happened`}>
+                <Pill icon="check-decagram" label="Verified" color="#fff" background="#ffffff26" />
+              </View>
+            ) : null}
             {social && trip.open_to_meet ? <Pill icon="account-group" label="Open to meet" color="#fff" background="#ffffff26" /> : null}
           </View>
             <BudgetBar

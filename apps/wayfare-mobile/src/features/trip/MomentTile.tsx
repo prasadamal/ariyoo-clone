@@ -1,3 +1,4 @@
+import { isVerifiedPlace } from '../../lib/fixTrust';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
@@ -163,8 +164,9 @@ export function MomentTile({ entry: e, money, currencySymbol, mediaKey, canShare
 
   const meta = [
     hasLocation ? (
-      <View key="place" style={styles.metaItem} accessible accessibilityLabel={e.place_name ? `Place: ${e.place_name}` : 'Location saved'}>
-        <Icon name="map-marker" size={14} color={colors.muted} />
+      <View key="place" style={styles.metaItem} accessible accessibilityLabel={`${e.place_name ? `Place: ${e.place_name}` : 'Location saved'}${isVerifiedPlace(e) ? ', verified: recorded where it happened' : ''}`}>
+        {/* A check on the pin: the place came from a trustworthy reading where the moment happened. */}
+        <Icon name={isVerifiedPlace(e) ? 'map-marker-check' : 'map-marker'} size={14} color={isVerifiedPlace(e) ? colors.primary : colors.muted} />
         {e.place_name ? <Text style={[styles.metaText, { color: colors.muted }]} numberOfLines={1}>{e.place_name}</Text> : null}
       </View>
     ) : null,

@@ -27,9 +27,16 @@ type Props = {
   onAddPhotos: () => void;
   money: MomentMoney | null;
   onMoney: (m: MomentMoney | null) => void;
-  /** A place typed or picked from the list (no GPS): it adds the moment to "Places visited". */
-  place?: { name: string | null; region: string | null; countryCode: string | null } | null;
+  /**
+   * The moment's place: from the pin (where you are now; verified when the reading is trustworthy)
+   * or typed after a long-press. It adds the moment to "Places visited".
+   */
+  place?: { name: string | null; region: string | null; countryCode: string | null; verified?: boolean } | null;
   onPlace?: (p: { name: string | null; region: string | null; countryCode: string | null } | null) => void;
+  /** Tap the pin: use where you are now. */
+  onPlaceHere?: () => void;
+  /** Finding where you are (the pin shows a spinner). */
+  placeBusy?: boolean;
   currencySymbol: string;
   recording: boolean;
   /** Voice notes recorded for this moment, waiting for Save. */
@@ -102,7 +109,11 @@ export function MomentComposer(p: Props) {
   const amount = parseAmount(amountText);
   const voiceCount = p.voiceCount ?? 0;
   // The place isn't a chip: the pin below turns purple once one is added (tap it to change or clear).
-  const hasTray = p.photos.length > 0 || Boolean(p.money) || p.recording || voiceCount > 0 || Boolean(p.addingPhotos) || Boolean(p.photoTime);
+  const hasTray = p.photos.length > 0 || Boolean(p.money) || p.recording || voiceCount > 0 || Boolean(p.addingPhotos) || Boolean(p.photoTime) || Boolean(p.place);
+  const openPlaceSheet = () => {
+    setPlaceText(p.place?.name ?? '');
+    setPlaceOpen(true);
+  };
   // A fixed height keeps the sideways tray from stretching on Android (chips grew and touched the border).
   const trayHeight = (p.photos.length || p.addingPhotos ? 60 : 34) + 14;
   // The chosen mood's emoji replaces the smiley button itself (no extra chip).
@@ -174,6 +185,15 @@ export function MomentComposer(p: Props) {
               label={`${photoTimeLabel(p.photoTime)} · photo time`}
               onRemove={p.onClearPhotoTime}
               removeLabel="Use the time now instead of the photo's time"
+            />
+          ) : null}
+          {p.place ? (
+            <TrayPill
+              icon={p.place.verified ? 'map-marker-check' : 'map-marker'}
+              label={`${p.place.name ?? 'Place'}${p.place.verified ? ' · verified' : ''}`}
+              onPress={openPlaceSheet}
+              onRemove={() => p.onPlace?.(null)}
+              removeLabel="Remove place"
             />
           ) : null}
           {p.money ? (
@@ -262,9 +282,21 @@ export function MomentComposer(p: Props) {
           p.recording,
           p.voiceBusy || (!p.recording && Boolean(p.voiceFull))
         )}
-        {p.onPlace
-          ? tool(p.place ? 'map-marker' : 'map-marker-outline', p.place ? `Place: ${p.place.name ?? 'added'}. Tap to change` : 'Add a place', () => { setPlaceText(p.place?.name ?? ''); setPlaceOpen(true); }, Boolean(p.place), p.recording)
-          : null}
+        {/* The pin: tap for where you are now (verified), long-press to type a place. */}
+        {p.onPlace ? (
+          <IconButton
+            icon="map-marker-outline"
+            size={22}
+            loading={p.placeBusy}
+            onPress={p.onPlaceHere ?? openPlaceSheet}
+            onLongPress={openPlaceSheet}
+            disabled={p.recording || p.placeBusy}
+            accessibilityLabel={p.onPlaceHere ? 'Add where you are now' : 'Add a place'}
+            accessibilityHint={p.onPlaceHere ? 'Long-press to type a place instead' : undefined}
+            iconColor={colors.onSurfaceVariant}
+            style={{ margin: 0 }}
+          />
+        ) : null}
         {tool('currency-inr', p.money ? 'Change money spent' : 'Add money spent', openMoney, false, p.recording)}
         <View style={{ flex: 1 }} />
         <IconButton
@@ -282,7 +314,7 @@ export function MomentComposer(p: Props) {
       </View>
 
       {/* Place and money slide up from the bottom; typing lifts them above the keyboard. */}
-      <Sheet visible={placeOpen} onDismiss={() => setPlaceOpen(false)} title="Where was this?" subtitle="Pick from the list to add it to Places visited. No GPS is used.">
+      <Sheet visible={placeOpen} onDismiss={() => setPlaceOpen(false)} title="Where was this?" subtitle="Type the place and pick it from the list to add it to Places visited. Tap the pin instead to use where you are (verified).">
         <PlaceField
           label="Place"
           inSheet

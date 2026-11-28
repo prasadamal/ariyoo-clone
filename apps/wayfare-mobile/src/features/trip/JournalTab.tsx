@@ -31,6 +31,7 @@ import { TripGalleryCard } from './TripGalleryCard';
 import { galleryAvailable } from '../../lib/galleryPhotos';
 import { PhotoGrid } from './PhotoGrid';
 import { placeFromCoords, type FoundPlace } from '../../lib/reverseGeocode';
+import { placeHere, type HerePlace } from '../../lib/herePlace';
 import { canEditTrip, isSharedTrip } from '../../lib/crew';
 import { Notice } from '../../ui/Notice';
 
@@ -87,7 +88,22 @@ export function JournalTab({ trip, onChanged, everyday = false, crewNames = {}, 
     if (viewRequest) setGrid(viewRequest.grid);
   }, [viewRequest]);
   const [money, setMoney] = useState<MomentMoney | null>(null);
-  const [typedPlace, setTypedPlace] = useState<FoundPlace | null>(null);
+  // The moment's place: where you are now (the pin) or typed (long-press the pin).
+  const [typedPlace, setTypedPlace] = useState<FoundPlace | HerePlace | null>(null);
+  const [placeBusy, setPlaceBusy] = useState(false);
+  const addPlaceHere = async () => {
+    if (placeBusy) return;
+    setPlaceBusy(true);
+    try {
+      const here = await placeHere();
+      setTypedPlace(here);
+      toast(here.verified ? `Added ${here.name ?? 'this place'} · verified` : `Added ${here.name ?? 'this place'} (the reading couldn\u2019t be verified)`);
+    } catch (e) {
+      toast(e instanceof Error ? e.message : 'Couldn\u2019t find where you are');
+    } finally {
+      setPlaceBusy(false);
+    }
+  };
   const [expenses, setExpenses] = useState<LocalExpense[]>([]);
   const [photos, setPhotos] = useState<PickedPhoto[]>([]);
   // The phone is handing over picked photos (a spinner tile shows in the moment box).
@@ -230,6 +246,11 @@ export function JournalTab({ trip, onChanged, everyday = false, crewNames = {}, 
       } catch {
         // offline / no fix — the entry still saves
       }
+    }
+    // Tapped the pin: a trustworthy reading keeps its point, which is what marks the moment verified.
+    const here = typedPlace && 'verified' in typedPlace && typedPlace.verified ? typedPlace : null;
+    if (!coords && here?.latitude != null && here.longitude != null) {
+      coords = { latitude: here.latitude, longitude: here.longitude, altitude: here.altitude, accuracy: null, altitudeAccuracy: null, heading: null, speed: null };
     }
     const entry: LocalEntry = {
       id: uuid(),
@@ -498,8 +519,10 @@ export function JournalTab({ trip, onChanged, everyday = false, crewNames = {}, 
         onAddPhotos={addPhotosToDraft}
         money={money}
         onMoney={setMoney}
-        place={typedPlace}
+        place={typedPlace ? { ...typedPlace, verified: 'verified' in typedPlace ? typedPlace.verified : false } : null}
         onPlace={setTypedPlace}
+        onPlaceHere={addPlaceHere}
+        placeBusy={placeBusy}
         currencySymbol={symbol}
         recording={recording}
         voiceCount={voices.length}

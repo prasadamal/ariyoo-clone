@@ -4,6 +4,7 @@ import { formatKm } from './format';
 import { elevationStats, trackDistanceKm } from './geo';
 import { listEntries, listExpenses, listItinerary, listPacking, listTrackPoints, listTripMedia } from './localDb';
 import { isAudio } from './media';
+import { isVerifiedPlace } from './fixTrust';
 import { defaultListFor, packCounts } from './packingLists';
 import { loadPackingLists, loadTripList } from './packingListsStore';
 
@@ -22,6 +23,8 @@ export type TripStats = {
   planTotal: number;
   topMood: string | null;
   lastEntryAt: string | null;
+  /** Moments whose place came from a trustworthy reading where they happened. */
+  verifiedPlaces: number;
 };
 
 /** dates: the journey's start/end, used to pick its default packing list when none was chosen yet. */
@@ -46,6 +49,7 @@ export async function computeTripStats(tripId: string, dates?: { starts_on: stri
   const topMood = [...moodCounts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
   return {
     entryCount: entries.length,
+    verifiedPlaces: entries.filter(isVerifiedPlace).length,
     photoCount: media.filter(m => !isAudio(m.mime_type)).length,
     voiceCount: media.filter(m => isAudio(m.mime_type)).length,
     distanceKm: trackDistanceKm(points),
