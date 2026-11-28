@@ -11,7 +11,11 @@ import {
   defaultListFor,
   deleteList,
   labelKey,
+  listNameProblem,
   listOrDefault,
+  MAX_ITEM_LABEL,
+  MAX_LIST_NAME,
+  MAX_LISTS,
   packView,
   removeFromList,
   updateItems,
@@ -32,9 +36,9 @@ type Props = { trip: LocalTrip; onChanged: () => void };
 const TIP_ICONS: Record<string, string> = { 'Rain jacket': 'weather-pouring', 'Warm gloves': 'snowflake', 'Warm layer': 'thermometer-low', Sunscreen: 'white-balance-sunny' };
 
 /**
- * Pack for this journey from one of your checklists (Short trip, Long trip, or your own). Ticks are
- * saved per journey; items you add or remove here change the checklist for next time too. New
- * checklists are made here (⋯ menu).
+ * Pack for this journey from one of your checklists (Short trip, Long trip, or one of your own). Ticks
+ * are saved per journey; items you add or remove here change the checklist for next time too. The +
+ * beside the lists makes your own list (one at most); its ⋯ menu deletes it.
  */
 export function PackingTab({ trip, onChanged }: Props) {
   const { colors } = useAppTheme();
@@ -137,7 +141,9 @@ export function PackingTab({ trip, onChanged }: Props) {
       { text: 'Remove', style: 'destructive', onPress: async () => { await deletePackingItem(item.id); await load(); onChanged(); } },
     ]);
 
+  const nameProblem = newName.trim() ? listNameProblem(lists, newName) : null;
   const createList = async () => {
+    if (listNameProblem(lists, newName)) return;
     const id = `list-${uuid().slice(0, 8)}`;
     const next = addList(lists, newName, id);
     setNaming(false);
@@ -213,17 +219,30 @@ export function PackingTab({ trip, onChanged }: Props) {
               onChange={choose}
             />
           </View>
-          <Menu
-            visible={menu}
-            onDismiss={() => setMenu(false)}
-            anchor={<IconButton icon="dots-horizontal" onPress={() => setMenu(true)} accessibilityLabel="Checklist options" style={{ margin: 0 }} />}
-          >
-            <Menu.Item leadingIcon="playlist-plus" title="New checklist" onPress={() => { setMenu(false); setNaming(true); }} />
-            {packed ? <Menu.Item leadingIcon="restore" title="Unpack all (for the return)" onPress={() => { setMenu(false); void uncheckAll(); }} /> : null}
-            {BUILT_IN_LISTS.includes(current.id) ? null : (
-              <Menu.Item leadingIcon="delete-outline" title={`Delete “${current.name}”`} onPress={() => { setMenu(false); removeList(); }} />
-            )}
-          </Menu>
+          {lists.length < MAX_LISTS ? (
+            // Your own list (Trek, Wedding, Work…): one at most, so the + goes once you have it.
+            <Pressable
+              onPress={() => setNaming(true)}
+              accessibilityRole="button"
+              accessibilityLabel="Make your own checklist"
+              hitSlop={6}
+              style={({ pressed }) => ({ width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center', backgroundColor: pressed ? colors.primary : colors.primaryContainer })}
+            >
+              <Icon name="plus" size={22} color={colors.onPrimaryContainer} />
+            </Pressable>
+          ) : null}
+          {packed || !BUILT_IN_LISTS.includes(current.id) ? (
+            <Menu
+              visible={menu}
+              onDismiss={() => setMenu(false)}
+              anchor={<IconButton icon="dots-horizontal" onPress={() => setMenu(true)} accessibilityLabel="Checklist options" style={{ margin: 0 }} />}
+            >
+              {packed ? <Menu.Item leadingIcon="restore" title="Unpack all (for the return)" onPress={() => { setMenu(false); void uncheckAll(); }} /> : null}
+              {BUILT_IN_LISTS.includes(current.id) ? null : (
+                <Menu.Item leadingIcon="delete-outline" title={`Delete “${current.name}”`} onPress={() => { setMenu(false); removeList(); }} />
+              )}
+            </Menu>
+          ) : null}
         </View>
       </View>
 
@@ -258,7 +277,7 @@ export function PackingTab({ trip, onChanged }: Props) {
 
       {/* Add an item: it joins this checklist for next time too. */}
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 6 }}>
-        <TextInput dense mode="outlined" placeholder={`Add to ${current.name}`} value={label} onChangeText={setLabel} style={{ flex: 1 }} onSubmitEditing={add} returnKeyType="done" />
+        <TextInput dense mode="outlined" placeholder={`Add to ${current.name}`} value={label} onChangeText={setLabel} maxLength={MAX_ITEM_LABEL} style={{ flex: 1 }} onSubmitEditing={add} returnKeyType="done" />
         {label.trim() ? <Button mode="contained" compact onPress={add}>Add</Button> : null}
       </View>
       <Text style={{ color: colors.muted, fontSize: 12, marginTop: 6, marginLeft: 4 }}>Tap to pack · long-press to remove</Text>
@@ -273,9 +292,20 @@ export function PackingTab({ trip, onChanged }: Props) {
         </View>
       ) : null}
 
-      <Sheet visible={naming} onDismiss={() => setNaming(false)} title="New checklist" subtitle="Reuse it on any journey, like Trek, Wedding or Work.">
-        <SheetTextInput mode="outlined" label="Name" value={newName} onChangeText={setNewName} maxLength={30} autoFocus onSubmitEditing={createList} />
-        <Button mode="contained" disabled={!newName.trim()} onPress={createList} style={{ marginTop: 14 }} contentStyle={{ height: 46 }}>
+      <Sheet visible={naming} onDismiss={() => setNaming(false)} title="Your own checklist" subtitle="One list of your own, reused on any journey: Trek, Wedding, Work…">
+        <SheetTextInput
+          mode="outlined"
+          label="Name"
+          value={newName}
+          onChangeText={setNewName}
+          maxLength={MAX_LIST_NAME}
+          autoFocus
+          onSubmitEditing={createList}
+          error={Boolean(nameProblem)}
+          right={<TextInput.Affix text={`${newName.length}/${MAX_LIST_NAME}`} />}
+        />
+        {nameProblem ? <Text style={{ color: colors.error, fontSize: 12, marginTop: 6 }}>{nameProblem}</Text> : null}
+        <Button mode="contained" disabled={!newName.trim() || Boolean(nameProblem)} onPress={createList} style={{ marginTop: 14 }} contentStyle={{ height: 46 }}>
           Create checklist
         </Button>
       </Sheet>

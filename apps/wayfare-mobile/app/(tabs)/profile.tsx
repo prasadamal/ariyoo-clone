@@ -295,33 +295,56 @@ export default function ProfileTab() {
           action={<Pill icon="medal-outline" label={`See all ${allBadges}`} onPress={() => router.push('/badges')} />}
         >
           {earned.length || memberNo ? (
-            // Two rows at a glance; more badges scroll inside the box.
-            <ScrollView style={{ maxHeight: 232 }} nestedScrollEnabled showsVerticalScrollIndicator={earned.length + (memberNo ? 1 : 0) > 8}>
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', rowGap: 14 }}>
-              {memberNo ? (
-                <View style={{ width: '25%', alignItems: 'center' }} accessible accessibilityLabel={`Member number ${memberNo}`}>
-                  <View style={{ width: 52, height: 52, borderRadius: 18, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' }}>
-                    <Text style={{ color: '#fff', fontWeight: '900', fontSize: memberNo > 9999 ? 12 : memberNo > 999 ? 14 : 17 }} numberOfLines={1}>
-                      #{memberNo}
-                    </Text>
-                  </View>
-                  <Text style={{ fontSize: 11, textAlign: 'center', marginTop: 4 }} numberOfLines={2}>
-                    Member
-                  </Text>
+            // One row at a glance (four places); when there are more, the last place says how many
+            // more and opens every badge, like See all.
+            (() => {
+              const cells: ({ kind: 'member' } | { kind: 'badge'; b: (typeof earned)[number] })[] = [
+                ...(memberNo ? [{ kind: 'member' as const }] : []),
+                ...earned.map(b => ({ kind: 'badge' as const, b })),
+              ];
+              const overflow = cells.length > 4 ? cells.length - 3 : 0;
+              const shown = overflow ? cells.slice(0, 3) : cells;
+              return (
+                <View style={{ flexDirection: 'row' }}>
+                  {shown.map(c =>
+                    c.kind === 'member' ? (
+                      <View key="member" style={{ width: '25%', alignItems: 'center' }} accessible accessibilityLabel={`Member number ${memberNo}`}>
+                        <View style={{ width: 52, height: 52, borderRadius: 18, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' }}>
+                          <Text style={{ color: '#fff', fontWeight: '900', fontSize: (memberNo ?? 0) > 9999 ? 12 : (memberNo ?? 0) > 999 ? 14 : 17 }} numberOfLines={1}>
+                            #{memberNo}
+                          </Text>
+                        </View>
+                        <Text style={{ fontSize: 11, textAlign: 'center', marginTop: 4 }} numberOfLines={2}>
+                          Member
+                        </Text>
+                      </View>
+                    ) : (
+                      <View key={c.b.id} style={{ width: '25%', alignItems: 'center' }} accessible accessibilityLabel={c.b.title}>
+                        <View style={{ width: 52, height: 52, borderRadius: 18, backgroundColor: c.b.color, alignItems: 'center', justifyContent: 'center' }}>
+                          <Icon name={c.b.icon} size={26} color="#fff" />
+                        </View>
+                        <Text style={{ fontSize: 11, textAlign: 'center', marginTop: 4 }} numberOfLines={2}>
+                          {c.b.title}
+                        </Text>
+                      </View>
+                    )
+                  )}
+                  {overflow ? (
+                    <Pressable
+                      onPress={() => router.push('/badges')}
+                      accessibilityRole="button"
+                      accessibilityLabel={`${overflow} more badges, see all`}
+                      style={{ width: '25%', alignItems: 'center' }}
+                    >
+                      <View style={{ width: 52, height: 52, borderRadius: 18, backgroundColor: colors.surfaceVariant, alignItems: 'center', justifyContent: 'center' }}>
+                        <Text style={{ fontWeight: '900', fontSize: 17, color: colors.onSurfaceVariant }}>+{overflow}</Text>
+                      </View>
+                      <Text style={{ fontSize: 11, textAlign: 'center', marginTop: 4, color: colors.primary, fontWeight: '700' }}>See all</Text>
+                    </Pressable>
+                  ) : null}
                 </View>
-              ) : null}
-              {earned.map(b => (
-                <View key={b.id} style={{ width: '25%', alignItems: 'center' }} accessible accessibilityLabel={b.title}>
-                  <View style={{ width: 52, height: 52, borderRadius: 18, backgroundColor: b.color, alignItems: 'center', justifyContent: 'center' }}>
-                    <Icon name={b.icon} size={26} color="#fff" />
-                  </View>
-                  <Text style={{ fontSize: 11, textAlign: 'center', marginTop: 4 }} numberOfLines={2}>
-                    {b.title}
-                  </Text>
-                </View>
-              ))}
-            </View>
-            </ScrollView>
+              );
+            })()
           ) : (
             <Text style={{ color: colors.muted }}>Your first badge is one journey away.</Text>
           )}

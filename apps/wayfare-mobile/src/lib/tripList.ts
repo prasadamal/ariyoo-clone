@@ -40,17 +40,35 @@ export function tripStatus(t: TripLike, today = new Date()): TripStatus {
 /**
  * The three tiles on top of Journeys: the journey you're on, the next one coming up (dated ones
  * before undated plans) and the one that ended most recently. Any of them may be missing.
+ * A journey you pinned takes its group's tile (the most recently pinned one, when there are several).
  */
-export function featuredTrips<T extends DatedTrip>(trips: T[], today = new Date()) {
+export function featuredTrips<T extends DatedTrip>(trips: T[], today = new Date(), pins: string[] = []) {
   const by = (s: TripStatus) => trips.filter(t => tripStatus(t, today) === s);
-  const ongoing = by('ongoing').sort((a, b) => (a.starts_on ?? '').localeCompare(b.starts_on ?? ''))[0] ?? null;
+  const pinnedIn = (list: T[]) => {
+    const id = pins.find(p => list.some(t => t.id === p));
+    return id ? list.find(t => t.id === id) ?? null : null;
+  };
+  const on = by('ongoing');
+  const next = by('upcoming');
+  const done = by('completed');
+  const ongoing = pinnedIn(on) ?? on.sort((a, b) => (a.starts_on ?? '').localeCompare(b.starts_on ?? ''))[0] ?? null;
   const upcoming =
-    by('upcoming').sort((a, b) => {
+    pinnedIn(next) ??
+    next.sort((a, b) => {
       if (!a.starts_on !== !b.starts_on) return a.starts_on ? -1 : 1;
       return (a.starts_on ?? a.updated_at ?? '').localeCompare(b.starts_on ?? b.updated_at ?? '');
-    })[0] ?? null;
-  const completed = by('completed').sort((a, b) => (b.ends_on ?? b.starts_on ?? '').localeCompare(a.ends_on ?? a.starts_on ?? ''))[0] ?? null;
+    })[0] ??
+    null;
+  const completed = pinnedIn(done) ?? done.sort((a, b) => (b.ends_on ?? b.starts_on ?? '').localeCompare(a.ends_on ?? a.starts_on ?? ''))[0] ?? null;
   return { ongoing, upcoming, completed };
+}
+
+/** Pinned journeys first (the most recently pinned on top), then the rest in their own order. */
+export function pinnedFirst<T extends { id: string }>(list: T[], pins: string[]): T[] {
+  if (!pins.length) return list;
+  const rank = new Map(pins.map((id, i) => [id, i]));
+  const pinned = list.filter(t => rank.has(t.id)).sort((a, b) => (rank.get(a.id) ?? 0) - (rank.get(b.id) ?? 0));
+  return [...pinned, ...list.filter(t => !rank.has(t.id))];
 }
 
 /** Every journey, most recent first (by start date; undated plans by when they were last edited). */
@@ -66,14 +84,20 @@ export function statusCounts<T extends TripLike>(trips: T[], today = new Date())
   return out;
 }
 
-/** One group's journeys, as its list shows them: on the road and coming up soonest first, finished newest first. */
-export function statusTrips<T extends DatedTrip>(trips: T[], status: TripStatus, today = new Date()): T[] {
+/**
+ * One group's journeys, as its list shows them: pinned ones first, then on the road and coming up
+ * soonest first, finished newest first.
+ */
+export function statusTrips<T extends DatedTrip>(trips: T[], status: TripStatus, today = new Date(), pins: string[] = []): T[] {
   const list = trips.filter(t => tripStatus(t, today) === status);
-  if (status === 'completed') return list.sort((a, b) => (b.ends_on ?? b.starts_on ?? '').localeCompare(a.ends_on ?? a.starts_on ?? ''));
-  return list.sort((a, b) => {
-    if (!a.starts_on !== !b.starts_on) return a.starts_on ? -1 : 1;
-    return (a.starts_on ?? a.updated_at ?? '').localeCompare(b.starts_on ?? b.updated_at ?? '');
-  });
+  if (status === 'completed') return pinnedFirst(list.sort((a, b) => (b.ends_on ?? b.starts_on ?? '').localeCompare(a.ends_on ?? a.starts_on ?? '')), pins);
+  return pinnedFirst(
+    list.sort((a, b) => {
+      if (!a.starts_on !== !b.starts_on) return a.starts_on ? -1 : 1;
+      return (a.starts_on ?? a.updated_at ?? '').localeCompare(b.starts_on ?? b.updated_at ?? '');
+    }),
+    pins
+  );
 }
 
 /**

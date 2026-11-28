@@ -63,13 +63,19 @@ type Props = {
   onPress?: () => void;
   /** Tile height (the three tiles on Journeys share the screen). */
   height?: number;
+  /** Pinned to the top of your lists: a small pin by the status chip. */
+  pinned?: boolean;
+  /** Long-press (pin or unpin from the lists). */
+  onLongPress?: () => void;
+  /** Bump to redraw the cover photo (see TripCover). */
+  imageKey?: string | number;
 };
 
 /**
  * A journey tile: its cover photo (or an illustration for its type) with a status chip, the title
  * and a line or two of details; upcoming and ongoing journeys show the day count on the right.
  */
-export function TripCard({ trip, synopsis, tracking, coverUri, showUpload = true, large = false, groupCount, onPress, height }: Props) {
+export function TripCard({ trip, synopsis, tracking, coverUri, showUpload = true, large = false, groupCount, onPress, height, pinned, onLongPress, imageKey }: Props) {
   const cover = coverUri === undefined ? trip.cover_uri : coverUri;
   const { colors } = useAppTheme();
   const status = tripStatus(trip);
@@ -85,13 +91,21 @@ export function TripCard({ trip, synopsis, tracking, coverUri, showUpload = true
   const card = (
     <Pressable
       onPress={onPress ?? (() => router.push(`/trip/${trip.id}`))}
+      onLongPress={onLongPress}
+      delayLongPress={350}
       style={({ pressed }) => ({ marginBottom: stacked ? 0 : 14, borderRadius: 22, overflow: 'hidden', opacity: pressed ? 0.92 : 1, transform: [{ scale: pressed ? 0.99 : 1 }] })}
       accessibilityRole="button"
-      accessibilityLabel={`${trip.title}, ${STATUS[status].label}${stacked ? `, newest of ${groupCount}` : ''}`}
+      accessibilityLabel={`${trip.title}, ${STATUS[status].label}${pinned ? ', pinned' : ''}${stacked ? `, one of ${groupCount}` : ''}`}
+      accessibilityHint={onLongPress ? (pinned ? 'Long-press to unpin' : 'Long-press to pin to the top') : undefined}
     >
-      <TripCover uri={cover} art={coverArtFor(trip.trip_type)} gradient={[colors.heroStart, colors.heroEnd]} style={{ borderRadius: 22, padding: compact ? 12 : snug ? 13 : 18, minHeight: height ?? (large ? 190 : 160), justifyContent: 'space-between' }}>
+      <TripCover uri={cover} imageKey={imageKey} art={coverArtFor(trip.trip_type)} gradient={[colors.heroStart, colors.heroEnd]} style={{ borderRadius: 22, padding: compact ? 12 : snug ? 13 : 18, minHeight: height ?? (large ? 190 : 160), justifyContent: 'space-between' }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
           <StatusChip status={status} count={groupCount} />
+          {pinned ? (
+            <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={{ width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.30)' }}>
+              <Icon name="pin" size={14} color="#fff" />
+            </View>
+          ) : null}
           <View style={{ flex: 1 }} />
           {tracking ? <Pill icon="record-circle" label="Recording" color="#fff" background="#dc2626" /> : null}
           {SOCIAL_ENABLED && trip.open_to_meet ? <Icon name="account-group" size={18} color="#fff" /> : null}

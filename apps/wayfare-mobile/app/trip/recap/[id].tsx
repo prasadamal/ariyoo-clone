@@ -3,9 +3,15 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
 import * as Sharing from 'expo-sharing';
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, ScrollView, Share, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Alert, ScrollView, Share, StyleSheet, View } from 'react-native';
 import { Button, Text } from 'react-native-paper';
 import { captureRef } from 'react-native-view-shot';
+import { useAuth } from '../../../src/context/AuthContext';
+import { useToast } from '../../../src/context/ToastContext';
+import { tripRole } from '../../../src/lib/crewRules';
+import { isEverydayTrip } from '../../../src/lib/everydayMemories';
+import { shareTripStory } from '../../../src/lib/shareTrip';
+import { sharedMessage } from '../../../src/lib/storyLink';
 import { getRates } from '../../../src/lib/currency';
 import { formatMoney, splitSpend } from '../../../src/lib/currencyMath';
 import { dayCount, formatDateRange, formatKm } from '../../../src/lib/format';
@@ -30,7 +36,10 @@ export default function TripRecapScreen() {
   const [cover, setCover] = useState<string | null>(null);
   const [spent, setSpent] = useState<string | null>(null);
   const [sharing, setSharing] = useState(false);
+  const [linking, setLinking] = useState(false);
   const [burst, setBurst] = useState(0);
+  const { user } = useAuth();
+  const toast = useToast();
 
   useEffect(() => {
     (async () => {
@@ -62,7 +71,36 @@ export default function TripRecapScreen() {
     }
   };
 
+  /**
+   * The journey's own page for family and friends: they read it day by day in a browser, without the
+   * app, and can't change anything. The first time asks first (it makes the moments readable by link).
+   */
+  const shareLink = () => {
+    if (!trip || !user || linking) return;
+    const go = async () => {
+      setLinking(true);
+      try {
+        const r = await shareTripStory(trip, user.id);
+        const note = sharedMessage(r.pendingUploads);
+        if (note) toast(note);
+        setTrip((await getTrip(trip.id)) ?? trip);
+      } catch (e) {
+        Alert.alert('Link not shared', e instanceof Error ? e.message : 'Could not share the link');
+      } finally {
+        setLinking(false);
+      }
+    };
+    if (trip.visibility === 'link') return void go();
+    Alert.alert(
+      'Share a trip link?',
+      'Anyone with the link can read this journey\u2019s moments, photos, moods and place names, day by day, without the app. They can read it, not change it. Money, routes, weather and voice notes stay private. You can stop sharing any time from the journey\u2019s menu.',
+      [{ text: 'Cancel', style: 'cancel' }, { text: 'Share link', onPress: () => void go() }]
+    );
+  };
+
   if (!trip || !stats) return <ActivityIndicator style={{ marginTop: 60 }} color={colors.primary} />;
+  // Only the owner, signed in, can make the link (the page reads the backed-up copy).
+  const canLink = Boolean(user) && tripRole(trip) === 'owner' && !isEverydayTrip(trip);
   const days = Math.max(dayCount(trip.starts_on, trip.ends_on), 1);
   const facts = [
     { value: String(days), label: days === 1 ? 'day' : 'days' },
@@ -104,8 +142,13 @@ export default function TripRecapScreen() {
         </View>
       </View>
       <Button mode="contained" icon="share-variant" onPress={share} loading={sharing} disabled={sharing} style={{ marginTop: 20, alignSelf: 'stretch' }} contentStyle={{ height: 48 }}>
-        Share recap
+        Share Recap
       </Button>
+      {canLink ? (
+        <Button mode="outlined" icon="link-variant" onPress={shareLink} loading={linking} disabled={linking} style={{ marginTop: 10, alignSelf: 'stretch' }} contentStyle={{ height: 48 }}>
+          {trip.visibility === 'link' ? 'Share trip link again' : 'Share trip link (read-only)'}
+        </Button>
+      ) : null}
       <Button onPress={() => router.back()} style={{ marginTop: 6 }}>
         Done
       </Button>

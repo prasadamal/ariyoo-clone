@@ -15,6 +15,7 @@ import { unsavedNotice } from '../../src/lib/unsavedChanges';
 import { clearUnsavedCopy, getUnsavedCopy } from '../../src/lib/unsavedChangesStore';
 import type { UnsavedCopy } from '../../src/lib/unsavedChanges';
 import { useToast } from '../../src/context/ToastContext';
+import { loadPins, setPinned } from '../../src/lib/pins';
 import { BudgetTab } from '../../src/features/trip/BudgetTab';
 import { CrewTab } from '../../src/features/trip/CrewTab';
 import { TripCrew } from '../../src/features/trip/TripCrew';
@@ -94,6 +95,10 @@ export default function TripDetailScreen() {
   const loadMoreRef = useRef<(() => void) | null>(null);
   const pageRef = useRef<ScrollView | null>(null);
   const journalY = useRef(0);
+  // The moments and photos pills on the cover open the journal as a list or as a photo grid.
+  const [journalView, setJournalView] = useState<{ grid: boolean; at: number } | undefined>(undefined);
+  const [pinned, setPinnedState] = useState(false);
+  const pinOwner = user?.id ?? 'guest';
   const registerLoadMore = useCallback((fn: () => void) => {
     loadMoreRef.current = fn;
   }, []);
@@ -106,8 +111,28 @@ export default function TripDetailScreen() {
       setCoverUri(await tripCoverUri(t));
     }
     setUnsaved(await getUnsavedCopy(tripId).catch(() => null));
+    setPinnedState((await loadPins(pinOwner).catch(() => [] as string[])).includes(tripId));
     refreshPending();
-  }, [tripId, refreshPending]);
+  }, [tripId, refreshPending, pinOwner]);
+
+  /** Tap the moments pill (list) or the photos pill (grid) on the cover: open the journal that way. */
+  const openJournal = (grid: boolean) => {
+    setTab('journal');
+    setJournalView({ grid, at: Date.now() });
+    setTimeout(() => pageRef.current?.scrollTo({ y: Math.max(0, journalY.current - 8), animated: true }), 60);
+  };
+
+  const togglePin = async () => {
+    if (!trip) return;
+    const next = !pinned;
+    try {
+      await setPinned(pinOwner, trip.id, next);
+      setPinnedState(next);
+      toast(next ? 'Pinned to the top of your journeys' : 'Unpinned');
+    } catch {
+      toast('Could not change the pin. Try again.');
+    }
+  };
 
   // Names for moments written by other people in a shared journey (last known list works offline).
   const shared = trip ? isSharedTrip(trip) : false;
@@ -269,6 +294,7 @@ export default function TripDetailScreen() {
             {canEdit ? (
               <Menu.Item leadingIcon="pencil-outline" title="Edit details" onPress={() => { setMenu(false); router.push(`/trip/edit/${trip.id}`); }} />
             ) : null}
+            <Menu.Item leadingIcon={pinned ? 'pin-off-outline' : 'pin-outline'} title={pinned ? 'Unpin from the top' : 'Pin to the top'} onPress={() => { setMenu(false); void togglePin(); }} />
             <Menu.Item leadingIcon="image-edit-outline" title={trip.cover_uri ? 'Change cover photo' : 'Add cover photo'} onPress={() => { setMenu(false); void changeCover(); }} />
             {social ? (
               <Menu.Item
@@ -284,7 +310,7 @@ export default function TripDetailScreen() {
             {role === 'owner' && user && !everyday ? (
               <Menu.Item
                 leadingIcon="link-variant"
-                title={trip.visibility === 'link' ? 'Share story link again' : 'Share story link'}
+                title={trip.visibility === 'link' ? 'Share trip link again' : 'Share trip link'}
                 onPress={() => {
                   setMenu(false);
                   const go = () =>
@@ -300,8 +326,8 @@ export default function TripDetailScreen() {
                       });
                   if (trip.visibility === 'link') return void go();
                   Alert.alert(
-                    'Share a story link?',
-                    'Anyone with the link can see this journey\u2019s moments, photos, moods and place names, day by day, without the app. Money, routes, weather and voice notes stay private. You can stop sharing any time; sharing again makes a new link.',
+                    'Share a trip link?',
+                    'Anyone with the link can read this journey\u2019s moments, photos, moods and place names, day by day, without the app. They can read it, not change it. Money, routes, weather and voice notes stay private. You can stop sharing any time; sharing again makes a new link.',
                     [{ text: 'Cancel', style: 'cancel' }, { text: 'Share link', onPress: () => void go() }]
                   );
                 }}
@@ -310,7 +336,7 @@ export default function TripDetailScreen() {
             {role === 'owner' && user && trip.visibility === 'link' ? (
               <Menu.Item
                 leadingIcon="link-variant-off"
-                title="Stop sharing story"
+                title="Stop sharing trip link"
                 onPress={() => {
                   setMenu(false);
                   stopTripStory(trip, user.id)
@@ -322,7 +348,7 @@ export default function TripDetailScreen() {
                 }}
               />
             ) : null}
-            <Menu.Item leadingIcon="image-outline" title="Share recap image" onPress={() => { setMenu(false); router.push(`/trip/recap/${trip.id}` as never); }} />
+            <Menu.Item leadingIcon="image-outline" title="Share Recap" onPress={() => { setMenu(false); router.push(`/trip/recap/${trip.id}` as never); }} />
             <Menu.Item leadingIcon="file-pdf-box" title="Export PDF journal" onPress={() => { setMenu(false); exportPdf(); }} />
             <Menu.Item
               leadingIcon="book-open-page-variant-outline"
@@ -356,11 +382,22 @@ export default function TripDetailScreen() {
           <View style={{ marginTop: 14, marginRight: 10 }}>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
             {/* Moments carry the app's own mark, in the same white as the other pills. */}
-            <View accessible accessibilityLabel={`${stats.entryCount} ${stats.entryCount === 1 ? 'moment' : 'moments'}`} style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999, backgroundColor: '#ffffff26' }}>
+            <Pressable
+              onPress={() => openJournal(false)}
+              accessibilityRole="button"
+              accessibilityLabel={`${stats.entryCount} ${stats.entryCount === 1 ? 'moment' : 'moments'}`}
+              accessibilityHint="Opens the moments"
+              hitSlop={6}
+              style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999, backgroundColor: pressed ? '#ffffff40' : '#ffffff26' })}
+            >
               <ExpoImage source={require('../../assets/logo-mark.png')} style={{ width: 22, height: 13 }} tintColor="#fff" contentFit="contain" />
               <Text style={{ color: '#fff', fontWeight: '600', fontSize: 13 }}>{`${stats.entryCount} ${stats.entryCount === 1 ? 'moment' : 'moments'}`}</Text>
-            </View>
-            {stats.photoCount ? <Pill icon="camera-outline" label={`${stats.photoCount}`} color="#fff" background="#ffffff26" /> : null}
+            </Pressable>
+            {stats.photoCount ? (
+              <Pressable onPress={() => openJournal(true)} accessibilityRole="button" accessibilityLabel={`${stats.photoCount} photos`} accessibilityHint="Opens all photos as a grid" hitSlop={6}>
+                <Pill icon="camera-outline" label={`${stats.photoCount}`} color="#fff" background="#ffffff26" />
+              </Pressable>
+            ) : null}
             {stats.distanceKm >= 0.1 ? <Pill icon="map-marker-path" label={formatKm(stats.distanceKm)} color="#fff" background="#ffffff26" /> : null}
             {social && trip.open_to_meet ? <Pill icon="account-group" label="Open to meet" color="#fff" background="#ffffff26" /> : null}
           </View>
@@ -440,6 +477,7 @@ export default function TripDetailScreen() {
           <JournalTab
             trip={trip}
             onChanged={load}
+            viewRequest={journalView}
             crewNames={crewNames}
             registerLoadMore={registerLoadMore}
             onJumpTo={y => pageRef.current?.scrollTo({ y: Math.max(0, journalY.current + y - 8), animated: true })}

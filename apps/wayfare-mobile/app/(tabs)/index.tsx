@@ -1,8 +1,9 @@
 import { router, useFocusEffect, useNavigation } from 'expo-router';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import BottomSheet, { BottomSheetFlatList } from '@gorhom/bottom-sheet';
-import { ActivityIndicator, Animated, BackHandler, Platform, Pressable, View } from 'react-native';
+import BottomSheet, { BottomSheetFlatList, useBottomSheetSpringConfigs } from '@gorhom/bottom-sheet';
+import { ActivityIndicator, BackHandler, Platform, Pressable, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import Reanimated, { runOnJS, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import { IconButton, Text } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AnnouncementBanner } from '../../src/components/AnnouncementBanner';
@@ -16,7 +17,9 @@ import { prepareTripRows, type TripRow } from '../../src/lib/tripRows';
 import { refreshPackingNudges } from '../../src/lib/packingReminders';
 import { getActiveTrackingTripId } from '../../src/lib/locationTask';
 import { backupLabel, backupState } from '../../src/lib/backupStatus';
-import { featuredTrips, recentFirst, statusCounts, tripStatus, type TripStatus } from '../../src/lib/tripList';
+import { featuredTrips, pinnedFirst, recentFirst, statusCounts, tripStatus, type TripStatus } from '../../src/lib/tripList';
+import { loadPins, setPinned } from '../../src/lib/pins';
+import { useToast } from '../../src/context/ToastContext';
 import { useAppTheme } from '../../src/theme';
 import { EmptyState } from '../../src/ui/EmptyState';
 import { Icon } from '../../src/ui/Icon';
@@ -51,8 +54,15 @@ export default function JourneysTab() {
   const [tilesArea, setTilesArea] = useState(0);
   const [listOpen, setListOpen] = useState(false);
   const sheetRef = useRef<BottomSheet>(null);
-  const lift = useRef(new Animated.Value(0)).current;
+  // The tiles follow your finger a little while you swipe (moved on the UI thread, so it stays smooth).
+  const lift = useSharedValue(0);
   const swiping = useRef(false);
+  // Journeys you pinned (newest pin first): they lead their group's tile and the lists.
+  const [pins, setPins] = useState<string[]>([]);
+  // Bumped when you come back to Journeys or close All trips: covers redraw (see TripCover).
+  const [coverEpoch, setCoverEpoch] = useState(0);
+  const toast = useToast();
+  const pinOwner = user?.id ?? 'guest';
   const [recordingTripId, setRecordingTripId] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -67,14 +77,15 @@ export default function JourneysTab() {
   const navigation = useNavigation();
 
   const load = useCallback(async () => {
-    const list = journeysOnly(await listTrips());
-    const f = featuredTrips(list);
+    const [list, pinned] = await Promise.all([listTrips().then(journeysOnly), loadPins(pinOwner)]);
+    const f = featuredTrips(list, new Date(), pinned);
     const top = [f.ongoing, f.upcoming, f.completed].filter((t): t is LocalTrip => Boolean(t));
-    const sorted = recentFirst(list);
+    const sorted = pinnedFirst(recentFirst(list), pinned);
     // Keep as many cards as were already on screen, at least one page.
     const count = Math.max(PAGE_SIZE, Math.min(shown.current, sorted.length));
     const [page, topRows] = await Promise.all([prepareTripRows(sorted.slice(0, count)), prepareTripRows(top)]);
     shown.current = count;
+    setPins(pinned);
     setAll(list);
     // Packing nudges follow packing and date changes; re-planned at most every 10 minutes.
     if (Date.now() - nudgedAt.current > 10 * 60 * 1000) {
@@ -87,11 +98,12 @@ export default function JourneysTab() {
     setRecordingTripId(await getActiveTrackingTripId());
     setLoaded(true);
     refreshPending();
-  }, [refreshPending]);
+  }, [refreshPending, pinOwner]);
 
   useFocusEffect(
     useCallback(() => {
       load();
+      setCoverEpoch(e => e + 1);
     }, [load])
   );
 
@@ -100,7 +112,19 @@ export default function JourneysTab() {
     load();
   }, [load, lastSyncAt, journalReady]);
 
-  const sortedAll = useMemo(() => recentFirst(all), [all]);
+  const sortedAll = useMemo(() => pinnedFirst(recentFirst(all), pins), [all, pins]);
+
+  /** Long-press a journey: pin it to the top of its group and of All trips (or unpin it). */
+  const togglePin = async (t: TripRow) => {
+    const pin = !pins.includes(t.id);
+    try {
+      setPins(await setPinned(pinOwner, t.id, pin));
+      toast(pin ? `Pinned ${t.title} to the top` : `Unpinned ${t.title}`);
+      await load();
+    } catch {
+      toast('Could not change the pin. Try again.');
+    }
+  };
   const hasMore = rows.length < sortedAll.length;
 
   /** The next page of cards, with a spinner while they're prepared. */
@@ -188,30 +212,40 @@ export default function JourneysTab() {
 
   // Swipe up on the tiles: they follow the finger a little (with resistance) and spring back; a firm
   // swipe (far enough, or fast enough) slides the All trips panel up. A firm pull down reloads.
+  // The movement runs on the UI thread (Reanimated), so it keeps up with the finger.
+  const markSwiping = (on: boolean) => {
+    if (on) swiping.current = true;
+    // A tile under the finger must not open when you let go.
+    else setTimeout(() => (swiping.current = false), 250);
+  };
+  const refreshFromSwipe = () => void onRefresh();
   const swipe = useMemo(
     () =>
       Gesture.Pan()
-        .runOnJS(true)
         .activeOffsetY([-14, 14])
         .failOffsetX([-24, 24])
-        // While swiping, a tile under the finger must not open when you let go.
         .onStart(() => {
-          swiping.current = true;
+          runOnJS(markSwiping)(true);
         })
-        .onUpdate(e => lift.setValue(e.translationY < 0 ? Math.max(-60, e.translationY * 0.3) : Math.min(40, e.translationY * 0.25)))
-        .onFinalize(() => {
-          setTimeout(() => {
-            swiping.current = false;
-          }, 250);
+        .onUpdate(e => {
+          lift.value = e.translationY < 0 ? Math.max(-64, e.translationY * 0.32) : Math.min(40, e.translationY * 0.25);
         })
         .onEnd(e => {
-          Animated.spring(lift, { toValue: 0, useNativeDriver: Platform.OS !== 'web', speed: 18, bounciness: 6 }).start();
-          if (hasList && (e.translationY < -110 || (e.translationY < -40 && e.velocityY < -900))) openList();
-          else if (e.translationY > 110) void onRefresh();
+          const open = hasList && (e.translationY < -110 || (e.translationY < -40 && e.velocityY < -900));
+          // Settle back without bouncing; when the panel opens it rises over the tiles as they settle.
+          lift.value = withSpring(0, { damping: 22, stiffness: 240, mass: 0.7, overshootClamping: open });
+          if (open) runOnJS(openList)();
+          else if (e.translationY > 110) runOnJS(refreshFromSwipe)();
+        })
+        .onFinalize(() => {
+          runOnJS(markSwiping)(false);
         }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [hasList, lift]
+    [hasList]
   );
+  const liftStyle = useAnimatedStyle(() => ({ transform: [{ translateY: lift.value }] }));
+  // The All trips panel glides up and settles without a wobble.
+  const sheetSpring = useBottomSheetSpringConfigs({ damping: 30, stiffness: 260, mass: 0.8, overshootClamping: true });
 
   // Your year so far (the year in travel recap), beside your name.
   const yearPill = <Pill icon="party-popper" label={`${new Date().getFullYear()} so far`} onPress={() => router.push('/wrapped')} />;
@@ -226,7 +260,8 @@ export default function JourneysTab() {
   const openTile = (t: TripRow) => {
     if (swiping.current) return;
     const status = tripStatus(t);
-    if (status !== 'ongoing' && counts[status] > 1) router.push({ pathname: '/trips/[status]', params: { status } } as never);
+    // Several journeys on the road (or coming up, or done): the tile opens that group's list.
+    if (counts[status] > 1) router.push({ pathname: '/trips/[status]', params: { status } } as never);
     else router.push(`/trip/${t.id}`);
   };
 
@@ -282,7 +317,7 @@ export default function JourneysTab() {
   );
 
   const tiles = featured.length ? (
-    <Animated.View style={{ transform: [{ translateY: lift }] }}>
+    <Reanimated.View style={liftStyle}>
       {featured.map(t => (
         <TripCard
           key={t.id}
@@ -291,13 +326,16 @@ export default function JourneysTab() {
           large
           height={tileHeight}
           onPress={() => openTile(t)}
+          onLongPress={() => void togglePin(t)}
+          pinned={pins.includes(t.id)}
+          imageKey={coverEpoch}
           groupCount={counts[tripStatus(t)]}
           tracking={t.id === recordingTripId}
           coverUri={t.cover}
           showUpload={Boolean(user)}
         />
       ))}
-    </Animated.View>
+    </Reanimated.View>
   ) : null;
 
   return (
@@ -366,8 +404,13 @@ export default function JourneysTab() {
           snapPoints={['100%']}
           enableDynamicSizing={false}
           enablePanDownToClose
+          animationConfigs={sheetSpring}
           bottomInset={fabBottom - 6}
-          onChange={i => setListOpen(i >= 0)}
+          onChange={i => {
+            setListOpen(i >= 0);
+            // Back on the tiles: redraw their covers (Android may have lent their memory to the list).
+            if (i < 0) setCoverEpoch(e => e + 1);
+          }}
           // Flip as the panel starts moving, so screen readers only find its contents while it is up.
           onAnimate={(_from, to) => setListOpen(to >= 0)}
           backgroundStyle={{ backgroundColor: colors.background, borderRadius: 28 }}
@@ -404,7 +447,15 @@ export default function JourneysTab() {
               ) : null
             }
             renderItem={({ item }: { item: TripRow }) => (
-              <TripCard trip={item} synopsis={item.synopsis} tracking={item.id === recordingTripId} coverUri={item.cover} showUpload={Boolean(user)} />
+              <TripCard
+                trip={item}
+                synopsis={item.synopsis}
+                tracking={item.id === recordingTripId}
+                coverUri={item.cover}
+                showUpload={Boolean(user)}
+                pinned={pins.includes(item.id)}
+                onLongPress={() => void togglePin(item)}
+              />
             )}
           />
         </BottomSheet>

@@ -18,6 +18,12 @@ type Props = {
   style?: StyleProp<ViewStyle>;
   /** The cover holds glass controls: let Android blur the photo behind them (the journey page). */
   glass?: boolean;
+  /**
+   * Changing this redraws the photo from the cache. Home bumps it when you come back to it or close
+   * All trips: Android can hand a tile's picture memory to the list underneath, which leaves the tile
+   * black until the photo is drawn again.
+   */
+  imageKey?: string | number;
   children: ReactNode;
 };
 
@@ -25,11 +31,19 @@ type Props = {
  * The top of a journey card or page: the cover photo with a dark fade so white text stays readable,
  * or a colour gradient when there is no photo. The total spent is a small label in the corner.
  */
-export function TripCover({ uri, gradient, art, spent, style, glass, children }: Props) {
+export function TripCover({ uri, gradient, art, spent, style, glass, imageKey, children }: Props) {
   const picture = uri ? { uri } : art ?? null;
   const background = picture ? (
     <>
-      <Image source={picture} style={StyleSheet.absoluteFill} contentFit="cover" transition={150} accessibilityElementsHidden />
+      <Image
+        key={imageKey}
+        source={picture}
+        recyclingKey={uri ?? undefined}
+        style={StyleSheet.absoluteFill}
+        contentFit="cover"
+        transition={150}
+        accessibilityElementsHidden
+      />
       <LinearGradient colors={['rgba(0,0,0,0.15)', 'rgba(0,0,0,0.72)']} style={StyleSheet.absoluteFill} />
     </>
   ) : (

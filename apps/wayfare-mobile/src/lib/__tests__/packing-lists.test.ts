@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { addList, addToList, defaultListFor, DEFAULT_PACKING_LISTS, deleteList, listOrDefault, packCounts, packView, parseLists, removeFromList } from '../packingLists';
+import { addList, addToList, defaultListFor, DEFAULT_PACKING_LISTS, deleteList, listNameProblem, listOrDefault, MAX_LIST_NAME, packCounts, packView, parseLists, removeFromList } from '../packingLists';
 
 test('adding and removing items ignores case and spacing', () => {
   assert.deepEqual(addToList(['Phone charger'], '  phone   CHARGER '), ['Phone charger']);
@@ -18,13 +18,29 @@ test('stored lists: old format, new format, broken data', () => {
   assert.deepEqual(fresh.map(l => l.id), ['short', 'long', 'trek'], 'built-ins always present, broken entries dropped');
 });
 
-test('new checklists, and only custom ones can be deleted', () => {
+test('one list of your own: the empty Custom placeholder goes, extra lists merge into the first', () => {
+  const placeholder = parseLists(JSON.stringify([{ id: 'short', name: 'Short trip', items: ['A'] }, { id: 'custom', name: 'Custom', items: [] }]));
+  assert.deepEqual(placeholder.map(l => l.id), ['short', 'long']);
+  const many = parseLists(JSON.stringify([
+    { id: 'trek', name: 'Trek', items: ['Boots', 'Poles'] },
+    { id: 'work', name: 'Work', items: ['Laptop', 'boots'] },
+    { id: 'custom', name: 'Custom', items: [] },
+  ]));
+  assert.deepEqual(many.map(l => l.id), ['short', 'long', 'trek']);
+  assert.deepEqual(many[2].items, ['Boots', 'Poles', 'Laptop'], 'items kept once each');
+});
+
+test('new checklists: one of your own, a short unique name, and only yours can be deleted', () => {
   let lists = parseLists(null);
+  assert.equal(listNameProblem(lists, '   '), 'Give the list a name.');
+  assert.match(listNameProblem(lists, 'x'.repeat(MAX_LIST_NAME + 1)) ?? '', /letters/);
+  assert.match(listNameProblem(lists, 'short TRIP') ?? '', /already/);
   lists = addList(lists, '  Wedding ', 'w1');
   assert.equal(lists.at(-1)?.name, 'Wedding');
-  assert.equal(addList(lists, 'wedding', 'w2'), lists, 'names are unique');
-  assert.equal(addList(lists, '  ', 'w3'), lists);
-  assert.deepEqual(deleteList(lists, 'w1').map(l => l.id), ['short', 'long', 'custom']);
+  assert.equal(lists.length, 3);
+  assert.equal(addList(lists, 'Trek', 'w2'), lists, 'three lists at most');
+  assert.match(listNameProblem(lists, 'Trek') ?? '', /one list of your own/);
+  assert.deepEqual(deleteList(lists, 'w1').map(l => l.id), ['short', 'long']);
   assert.equal(deleteList(lists, 'short'), lists);
   assert.equal(listOrDefault(lists, 'gone').id, 'short');
 });

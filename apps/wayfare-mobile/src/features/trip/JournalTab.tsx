@@ -4,6 +4,7 @@ import * as Haptics from 'expo-haptics';
 import * as Location from 'expo-location';
 import { router } from 'expo-router';
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { tripStatus } from '../../lib/tripList';
 import { ActivityIndicator, Alert, Animated, PanResponder, ScrollView, View } from 'react-native';
 import { Button, IconButton, Menu, Text } from 'react-native-paper';
 import { uuid } from '../../lib/id';
@@ -47,6 +48,8 @@ type Props = {
   registerLoadMore?: (loadMore: () => void) => void;
   /** Scroll the page to this position (within the journal) — used by the day-jump strip. */
   onJumpTo?: (y: number) => void;
+  /** The cover's moments pill asks for the list, its photos pill for the grid (a new `at` each tap). */
+  viewRequest?: { grid: boolean; at: number };
 };
 
 /** A journey's moments load this many at a time as you scroll. */
@@ -60,7 +63,7 @@ async function currentFix() {
   return pos.coords;
 }
 
-export function JournalTab({ trip, onChanged, everyday = false, crewNames = {}, registerLoadMore, onJumpTo }: Props) {
+export function JournalTab({ trip, onChanged, everyday = false, crewNames = {}, registerLoadMore, onJumpTo, viewRequest }: Props) {
   const { colors } = useAppTheme();
   const toast = useToast();
   const canConnect = useCanConnect();
@@ -72,10 +75,14 @@ export function JournalTab({ trip, onChanged, everyday = false, crewNames = {}, 
   const attachContext = false;
   // Which day's moments are shown (null: every day), and in which order.
   const [dayFilter, setDayFilter] = useState<string | null>(null);
-  const [newestFirst, setNewestFirst] = useState(false);
+  // On the road and coming up: newest first. A finished journey reads like a story: oldest first.
+  const [newestFirst, setNewestFirst] = useState(() => !everyday && tripStatus(trip) !== 'completed');
   const [sortOpen, setSortOpen] = useState(false);
   // Moments as a list, or every photo as a grid.
-  const [grid, setGrid] = useState(false);  const [money, setMoney] = useState<MomentMoney | null>(null);
+  const [grid, setGrid] = useState(false);
+  useEffect(() => {
+    if (viewRequest) setGrid(viewRequest.grid);
+  }, [viewRequest]);  const [money, setMoney] = useState<MomentMoney | null>(null);
   const [typedPlace, setTypedPlace] = useState<FoundPlace | null>(null);
   const [expenses, setExpenses] = useState<LocalExpense[]>([]);
   const [photos, setPhotos] = useState<PickedPhoto[]>([]);
@@ -488,7 +495,8 @@ export function JournalTab({ trip, onChanged, everyday = false, crewNames = {}, 
         />
       ) : null}
 
-      {groups.length > shownDays ? (
+      {/* Oldest first: the earlier days wait above. (Newest first: below, after the shown days.) */}
+      {!newestFirst && groups.length > shownDays ? (
         <Button mode="outlined" onPress={() => setShownDays(n => n + DAYS_PER_PAGE)} style={{ alignSelf: 'center', marginBottom: 12 }}>
           Show earlier days ({groups.length - shownDays} more)
         </Button>
@@ -530,7 +538,7 @@ export function JournalTab({ trip, onChanged, everyday = false, crewNames = {}, 
 
       {grid ? <PhotoGrid tripId={trip.id} refreshKey={mediaKey} /> : null}
       <Animated.View style={{ transform: [{ translateX: slide }] }} {...(pills.length ? swipe.panHandlers : {})}>
-      {(grid ? [] : groups.slice(-shownDays)).map(g => (
+      {(grid ? [] : newestFirst ? groups.slice(0, shownDays) : groups.slice(-shownDays)).map(g => (
         <View
           key={g.day}
           onLayout={e => {
@@ -582,6 +590,11 @@ export function JournalTab({ trip, onChanged, everyday = false, crewNames = {}, 
       ))}
       {dayFilter && !grid && !entries.length ? (
         <Text style={{ color: colors.muted, textAlign: 'center', paddingVertical: 28 }}>Nothing written this day yet.</Text>
+      ) : null}
+      {newestFirst && !grid && groups.length > shownDays ? (
+        <Button mode="outlined" onPress={() => setShownDays(n => n + DAYS_PER_PAGE)} style={{ alignSelf: 'center', marginTop: 4, marginBottom: 12 }}>
+          Show earlier days ({groups.length - shownDays} more)
+        </Button>
       ) : null}
       </Animated.View>
       {hasMore && !grid ? (
