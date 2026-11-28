@@ -58,13 +58,11 @@ export async function cachedCrew(tripId: string): Promise<CrewPerson[]> {
 /** Look someone up by exact username, for the preview before adding them. */
 export async function findTraveller(handle: string): Promise<Traveller | null> {
   if (!supabase || !validHandle(handle)) return null;
-  const { data, error } = await supabase
-    .from('profiles')
-    .select('id, username, display_name, avatar_path')
-    .eq('username', handle)
-    .maybeSingle();
+  // Exact-username lookup on the server: profiles aren't readable beyond your own crew.
+  const { data, error } = await supabase.rpc('find_traveller', { p_username: handle });
   if (error) throw error;
-  return (data as Traveller | null) ?? null;
+  const row = Array.isArray(data) ? data[0] : data;
+  return (row as Traveller | undefined) ?? null;
 }
 
 /** Add someone, or change their role if they're already crew. */

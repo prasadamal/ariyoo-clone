@@ -82,8 +82,8 @@ insert into public.trips (id, user_id, title, destination, starts_on, ends_on) v
 insert into public.entries (id, trip_id, user_id, recorded_at, body, mood, place_name, latitude, longitude)
   values (tests.id('entry'), tests.id('trip'), auth.uid(), '2026-02-09T07:10:00Z', 'Chai on a wood stove', '😌 Calm', 'Top Station', 10.12, 77.24);
 insert into public.entry_media (id, trip_id, entry_id, user_id, storage_path, mime_type) values
-  (gen_random_uuid(), tests.id('trip'), tests.id('entry'), auth.uid(), 'u/' || tests.id('trip') || '/p1.jpg', 'image/jpeg'),
-  (gen_random_uuid(), tests.id('trip'), tests.id('entry'), auth.uid(), 'u/' || tests.id('trip') || '/v1.m4a', 'audio/mp4');
+  (gen_random_uuid(), tests.id('trip'), tests.id('entry'), auth.uid(), tests.uid('ana@adm.test') || '/' || tests.id('trip') || '/p1.jpg', 'image/jpeg'),
+  (gen_random_uuid(), tests.id('trip'), tests.id('entry'), auth.uid(), tests.uid('ana@adm.test') || '/' || tests.id('trip') || '/v1.m4a', 'audio/mp4');
 insert into public.expenses (id, trip_id, user_id, amount, currency, category) values (gen_random_uuid(), tests.id('trip'), auth.uid(), 1200, 'INR', 'food');
 
 -- Private journey: no story, no photos.
@@ -91,7 +91,7 @@ reset role;
 select set_config('request.jwt.claim.sub', '', false);
 set role anon;
 select tests.check(public.get_trip_story('not-a-real-link') is null, 'unknown link: nothing');
-select tests.check(not public.is_story_photo('u/' || tests.id('trip') || '/p1.jpg'), 'private journey photos stay private');
+select tests.check(not public.is_story_photo(tests.uid('ana@adm.test') || '/' || tests.id('trip') || '/p1.jpg'), 'private journey photos stay private');
 reset role;
 update public.trips set share_id = 'story-link-0001', visibility = 'link' where id = tests.id('trip');
 -- A recorded route and weather that no public reader may show.
@@ -111,8 +111,8 @@ select tests.check((select json_array_length(j -> 'moments') from story) = 1, 's
 select tests.check((select j -> 'moments' -> 0 ->> 'place_name' from story) = 'Top Station', 'typed place name is kept');
 select tests.check((select json_array_length(j -> 'moments' -> 0 -> 'photos') from story) = 1, 'photos but not the voice note');
 select tests.check((select j::text from story) not like '%10.12%' and (select j::text from story) not like '%1200%', 'no coordinates and no money');
-select tests.check(public.is_story_photo('u/' || tests.id('trip') || '/p1.jpg'), 'story photo is readable');
-select tests.check(not public.is_story_photo('u/' || tests.id('trip') || '/v1.m4a'), 'voice notes never are');
+select tests.check(public.is_story_photo(tests.uid('ana@adm.test') || '/' || tests.id('trip') || '/p1.jpg'), 'story photo is readable');
+select tests.check(not public.is_story_photo(tests.uid('ana@adm.test') || '/' || tests.id('trip') || '/v1.m4a'), 'voice notes never are');
 -- The older reader takes the same link id: it must show no more than the story.
 create temp table shared (j jsonb);
 grant all on shared to anon, authenticated;
@@ -133,7 +133,7 @@ reset role;
 update public.trips set trip_type = 'trek', visibility = 'private' where id = tests.id('trip');
 set role anon;
 select tests.check(public.get_trip_story('story-link-0001') is null, 'turning the link off hides the story');
-select tests.check(not public.is_story_photo('u/' || tests.id('trip') || '/p1.jpg'), 'and its photos');
+select tests.check(not public.is_story_photo(tests.uid('ana@adm.test') || '/' || tests.id('trip') || '/p1.jpg'), 'and its photos');
 
 -- ---------------------------------------------------------------------------
 -- Announcements are readable by everyone

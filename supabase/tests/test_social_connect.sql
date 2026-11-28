@@ -74,6 +74,37 @@ grant usage on schema tests to anon, authenticated;
 grant select, insert, update on all tables in schema tests to anon, authenticated;
 grant execute on all functions in schema tests to anon, authenticated;
 
+-- Social is switched off on the server until launch (20261128090000_security_round1.sql). These
+-- tests check the social logic as it will run at launch, so switch it back on in this test database.
+-- test_zz_security_round1.sql re-applies the lockdown afterwards and checks it holds.
+do $$
+declare f record;
+begin
+  for f in select p.oid::regprocedure as sig from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+           where n.nspname = 'public' and p.proname in (
+             'board_page', 'board_requests_for_post', 'respond_board_request', 'conversation_members_list',
+             'conversation_messages', 'create_group_conversation', 'join_conversation_by_code', 'join_place_room',
+             'leave_conversation', 'mark_conversation_read', 'my_conversations', 'remove_conversation_member',
+             'start_direct_conversation', 'feed_page', 'post_comments_page', 'list_follows', 'get_profile',
+             'search_travellers', 'suggested_travellers', 'notifications_page', 'place_rooms', 'place_tips_page',
+             'nearby_travellers', 'travellers_heading_to', 'find_trip_matches')
+  loop
+    execute format('grant execute on function %s to authenticated', f.sig);
+  end loop;
+end $$;
+do $$
+declare t text;
+begin
+  foreach t in array array['posts', 'post_comments', 'post_likes', 'follows', 'messages', 'board_posts',
+                           'board_requests', 'place_tips', 'place_tip_votes', 'presence'] loop
+    execute format('drop policy if exists social_off_insert on public.%I', t);
+    execute format('drop policy if exists social_off_update on public.%I', t);
+  end loop;
+end $$;
+drop policy if exists profiles_select_own_or_crew on public.profiles;
+create policy profiles_select_visible on public.profiles
+  for select to authenticated using (id = auth.uid() or not public.blocked_with_me(id));
+
 -- ---------------------------------------------------------------------------
 -- Users + profiles
 -- ---------------------------------------------------------------------------

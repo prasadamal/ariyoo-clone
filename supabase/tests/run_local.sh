@@ -34,7 +34,7 @@ echo "• re-run of v2 migrations ok"
 
 for t in "$HERE"/test_*.sql; do
   echo "• $(basename "$t")"
-  "${PSQL[@]}" -d "$DB" < "$t"
+  "${PSQL[@]}" -d "$DB" -f "$t"
 done
 
 echo "All Wayfare database tests passed."
