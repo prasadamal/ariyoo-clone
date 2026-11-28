@@ -203,7 +203,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const continueAsGuest = useCallback(async () => {
     await setGuestMode(true);
     setGuest(true);
-    router.replace('/(tabs)');
+    // Without an account you keep the diary (journeys need one), so that's where you land.
+    router.replace('/(tabs)/journal');
   }, []);
 
   const resolveOwnerConflict = useCallback(
@@ -270,3 +271,15 @@ export function useCanConnect() {
   const { user, offlineMode, journalReady, ownerConflict } = useAuth();
   return !offlineMode && !!user && journalReady && !ownerConflict;
 }
+
+/**
+ * Journeys need an account (they back up, take a crew and a budget); without one you keep the diary.
+ * A build with no cloud at all (offline journal mode) lets everyone start journeys on the phone.
+ */
+export function useCanStartJourney() {
+  const { user, offlineMode } = useAuth();
+  return offlineMode || !!user;
+}
+
+/** Where "Start a journey" goes: the journey form, or sign-up first when you're journaling without an account. */
+export const NEW_JOURNEY_SIGNUP = { pathname: '/register', params: { reason: 'journey' } } as const;

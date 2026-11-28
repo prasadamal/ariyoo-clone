@@ -1,5 +1,5 @@
 import { capitalizeWords } from '../src/lib/names';
-import { Link } from 'expo-router';
+import { Link, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Linking, Pressable, View } from 'react-native';
 import { Button, Checkbox, HelperText, Text, TextInput } from 'react-native-paper';
@@ -14,6 +14,8 @@ import { Screen } from '../src/ui/Screen';
 
 export default function RegisterScreen() {
   const { signUp } = useAuth();
+  // Opened by "Start a journey" while journaling without an account.
+  const { reason } = useLocalSearchParams<{ reason?: string }>();
   const { colors } = useAppTheme();
   const [displayName, setDisplayName] = useState('');
   const [username, setUsername] = useState('');
@@ -143,6 +145,9 @@ export default function RegisterScreen() {
         <Checkbox.Android status={adult ? 'checked' : 'unchecked'} onPress={() => setAdult(v => !v)} />
         <Text style={{ flex: 1 }}>I am 18 or older</Text>
       </Pressable>
+      {reason === 'journey' ? (
+        <Notice icon="map-marker-path" text="Journeys need a free account: they back up, and you can plan days, split costs and add your crew. Your diary comes with you." />
+      ) : null}
       {backupNotice ? <Notice text={backupNotice} icon="cloud-upload-outline" /> : null}
       {error ? <Notice tone="error" text={error} /> : null}
       <Button mode="contained" onPress={submit} loading={loading} disabled={!valid || loading} style={{ marginTop: 16 }}>

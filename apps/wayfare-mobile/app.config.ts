@@ -57,7 +57,6 @@ export default ({ config }: ConfigContext): ExpoConfig =>
         NSCameraUsageDescription: 'Wayfare uses the camera to take photos for your journal moments and trip covers.',
         NSMicrophoneUsageDescription: 'Wayfare records voice notes for your journal when you tap the microphone.',
         NSFaceIDUsageDescription: 'Wayfare uses Face ID to lock your private travel journal, if you switch the lock on.',
-        NSSpeechRecognitionUsageDescription: 'Wayfare writes out your voice notes so you can read and search them, if you switch this on in Settings.',
         ITSAppUsesNonExemptEncryption: false,
       },
       // "Required reason" API declarations, merged from the PrivacyInfo.xcprivacy files of React Native
@@ -123,15 +122,6 @@ export default ({ config }: ConfigContext): ExpoConfig =>
       'expo-sqlite',
       // Maps: MapLibre with free OpenStreetMap tiles (OpenFreeMap). No Google Maps key needed.
       '@maplibre/maplibre-react-native',
-      [
-        // "Write out voice notes" (Settings, off by default): the phone's own speech recognition.
-        'expo-speech-recognition',
-        {
-          microphonePermission: 'Wayfare records voice notes for your journal when you tap the microphone.',
-          speechRecognitionPermission: 'Wayfare writes out your voice notes so you can read and search them, if you switch this on in Settings.',
-          androidSpeechServicePackages: ['com.google.android.googlequicksearchbox', 'com.google.android.as'],
-        },
-      ],
       'expo-localization',
       [
         'expo-location',

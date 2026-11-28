@@ -1,0 +1,24 @@
+appId: com.wayfare.app
+name: Without an account, Start a journey leads to sign-up
+---
+# Runs after the account is deleted: the app is back at the sign-in screen.
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: "Skip|Just journal for now.*"
+    timeout: 120000
+- runFlow:
+    when:
+      visible: "Skip"
+    commands:
+      - tapOn: "Skip"
+- tapOn: "Just journal for now.*"
+- tapOn: "Journeys"
+- extendedWaitUntil:
+    visible: "Create a free account"
+    timeout: 20000
+- tapOn: "Create a free account"
+- extendedWaitUntil:
+    visible: "Journeys need a free account.*"
+    timeout: 20000
+- takeScreenshot: 10-guest-journey-needs-account

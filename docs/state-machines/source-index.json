@@ -544,59 +544,67 @@
           "text": "import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';"
         },
         {
-          "line": 44,
+          "line": 47,
           "text": "const [all, setAll] = useState<LocalTrip[]>([]);"
         },
         {
-          "line": 45,
+          "line": 48,
           "text": "const [rows, setRows] = useState<TripRow[]>([]);"
         },
         {
-          "line": 46,
+          "line": 49,
           "text": "const [featured, setFeatured] = useState<TripRow[]>([]);"
         },
         {
-          "line": 47,
+          "line": 50,
           "text": "const [counts, setCounts] = useState<Record<TripStatus, number>>({ ongoing: 0, upcoming: 0, completed: 0 });"
         },
         {
-          "line": 51,
+          "line": 54,
           "text": "const [tilesArea, setTilesArea] = useState(0);"
         },
         {
-          "line": 52,
+          "line": 55,
           "text": "const [listOpen, setListOpen] = useState(false);"
         },
         {
-          "line": 56,
+          "line": 61,
+          "text": "const [pins, setPins] = useState<string[]>([]);"
+        },
+        {
+          "line": 63,
+          "text": "const [coverEpoch, setCoverEpoch] = useState(0);"
+        },
+        {
+          "line": 69,
           "text": "const [recordingTripId, setRecordingTripId] = useState<string | null>(null);"
         },
         {
-          "line": 57,
+          "line": 70,
           "text": "const [loaded, setLoaded] = useState(false);"
         },
         {
-          "line": 58,
+          "line": 71,
           "text": "const [loadingMore, setLoadingMore] = useState(false);"
         },
         {
-          "line": 59,
+          "line": 72,
           "text": "const [refreshing, setRefreshing] = useState(false);"
         },
         {
-          "line": 61,
+          "line": 74,
           "text": "const [showStatus, setShowStatus] = useState(false);"
         },
         {
-          "line": 141,
+          "line": 168,
           "text": "statusTimer.current = setTimeout(() => setShowStatus(false), 6000);"
         },
         {
-          "line": 203,
-          "text": "setTimeout(() => {"
+          "line": 222,
+          "text": "else setTimeout(() => (swiping.current = false), 250);"
         },
         {
-          "line": 228,
+          "line": 265,
           "text": "const status = tripStatus(t);"
         }
       ]
@@ -1417,47 +1425,47 @@
           "text": "import { useEffect, useState } from 'react';"
         },
         {
-          "line": 18,
+          "line": 20,
           "text": "const [displayName, setDisplayName] = useState('');"
         },
         {
-          "line": 19,
+          "line": 21,
           "text": "const [username, setUsername] = useState('');"
         },
         {
-          "line": 20,
+          "line": 22,
           "text": "const [usernameState, setUsernameState] = useState<'idle' | 'checking' | 'ok' | 'taken' | 'invalid'>('idle');"
         },
         {
-          "line": 21,
+          "line": 23,
           "text": "const [email, setEmail] = useState('');"
         },
         {
-          "line": 22,
+          "line": 24,
           "text": "const [password, setPassword] = useState('');"
         },
         {
-          "line": 23,
+          "line": 25,
           "text": "const [error, setError] = useState('');"
         },
         {
-          "line": 24,
+          "line": 26,
           "text": "const [loading, setLoading] = useState(false);"
         },
         {
-          "line": 25,
+          "line": 27,
           "text": "const [confirmEmail, setConfirmEmail] = useState<string | null>(null);"
         },
         {
-          "line": 27,
+          "line": 29,
           "text": "const [adult, setAdult] = useState(false);"
         },
         {
-          "line": 42,
+          "line": 44,
           "text": "const t = setTimeout(() => {"
         },
         {
-          "line": 143,
+          "line": 145,
           "text": "<Checkbox.Android status={adult ? 'checked' : 'unchecked'} onPress={() => setAdult(v => !v)} />"
         }
       ]
@@ -1605,47 +1613,43 @@
           "text": "import { useEffect, useState } from 'react';"
         },
         {
-          "line": 51,
+          "line": 50,
           "text": "const [reminder, setReminder] = useState<DiaryReminder>({ on: false, hour: 21 });"
         },
         {
-          "line": 52,
+          "line": 51,
           "text": "const [myUpi, setMyUpi] = useState('');"
         },
         {
-          "line": 53,
+          "line": 52,
           "text": "const [packNudges, setPackNudges] = useState(true);"
         },
         {
-          "line": 55,
-          "text": "const [writeOut, setWriteOut] = useState(false);"
-        },
-        {
-          "line": 62,
+          "line": 56,
           "text": "const [upiOpen, setUpiOpen] = useState(false);"
         },
         {
-          "line": 63,
+          "line": 57,
           "text": "const [upiDraft, setUpiDraft] = useState('');"
         },
         {
-          "line": 67,
+          "line": 61,
           "text": "const [telemetryOn, setTelemetryOn] = useState(true);"
         },
         {
-          "line": 88,
+          "line": 82,
           "text": "const [push, setPush] = useState<PushPreference>('unset');"
         },
         {
-          "line": 89,
+          "line": 83,
           "text": "const [deleteOpen, setDeleteOpen] = useState(false);"
         },
         {
-          "line": 90,
+          "line": 84,
           "text": "const [confirmText, setConfirmText] = useState('');"
         },
         {
-          "line": 91,
+          "line": 85,
           "text": "const [deleting, setDeleting] = useState(false);"
         }
       ]
@@ -1700,87 +1704,99 @@
           "text": "import { useCallback, useEffect, useRef, useState } from 'react';"
         },
         {
-          "line": 79,
+          "line": 80,
           "text": "const [rates, setRates] = useState<RatesSnapshot | null>(null);"
         },
         {
-          "line": 85,
+          "line": 86,
           "text": "const [trip, setTrip] = useState<LocalTrip | null | undefined>(undefined);"
         },
         {
-          "line": 86,
+          "line": 87,
           "text": "const [stats, setStats] = useState<TripStats | null>(null);"
         },
         {
-          "line": 87,
+          "line": 88,
           "text": "const [tab, setTab] = useState<Tab>(ALL_TABS.some(t => t.value === params.tab) ? (params.tab as Tab) : 'journal');"
         },
         {
-          "line": 88,
+          "line": 89,
           "text": "const [menu, setMenu] = useState(false);"
         },
         {
-          "line": 89,
+          "line": 90,
           "text": "const [crew, setCrew] = useState<CrewPerson[]>([]);"
         },
         {
-          "line": 90,
+          "line": 91,
           "text": "const [coverUri, setCoverUri] = useState<string | null>(null);"
         },
         {
-          "line": 92,
+          "line": 93,
           "text": "const [unsaved, setUnsaved] = useState<UnsavedCopy | null>(null);"
         },
         {
-          "line": 149,
+          "line": 99,
+          "text": "const [journalView, setJournalView] = useState<{ grid: boolean; at: number } | undefined>(undefined);"
+        },
+        {
+          "line": 100,
+          "text": "const [pinned, setPinnedState] = useState(false);"
+        },
+        {
+          "line": 122,
+          "text": "setTimeout(() => pageRef.current?.scrollTo({ y: Math.max(0, journalY.current - 8), animated: true }), 60);"
+        },
+        {
+          "line": 174,
           "text": "const phase = tripPhase(trip.starts_on, trip.ends_on);"
         },
         {
-          "line": 164,
+          "line": 189,
           "text": "await updateTrip(trip.id, { status: done ? 'completed' : 'active' });"
         },
         {
-          "line": 211,
+          "line": 236,
           "text": "const spend = stats ? splitSpend(stats.spendByCurrency, trip.currency || 'INR', rates?.rates ?? null) : { total: 0, pending: [] };"
         },
         {
-          "line": 228,
+          "line": 253,
           "text": "{trip.status === 'completed'"
         },
         {
-          "line": 230,
+          "line": 255,
           "text": ": phase === 'upcoming' && until != null"
         },
         {
-          "line": 232,
+          "line": 257,
           "text": ": phase === 'ongoing'"
         },
         {
-          "line": 234,
+          "line": 259,
           "text": ": phase === 'past'"
         },
         {
-          "line": 287,
-          "text": "title={trip.visibility === 'link' ? 'Share story link again' : 'Share story link'}"
+          "line": 313,
+          "text": "title={trip.visibility === 'link' ? 'Share trip link again' : 'Share trip link'}"
         },
         {
-          "line": 301,
+          "line": 327,
           "text": "if (trip.visibility === 'link') return void go();"
         },
         {
-          "line": 310,
+          "line": 336,
           "text": "{role === 'owner' && user && trip.visibility === 'link' ? ("
         },
         {
-          "line": 338,
+          "line": 364,
           "text": "leadingIcon={trip.status === 'completed' ? 'restore' : 'flag-checkered'}"
         },
         {
-          "line": 339,
+          "line": 365,
           "text": "title={trip.status === 'completed' ? 'Reopen journey' : 'Mark complete'}"
         },
         {
-          "line": 389,
+          "line": 426,
           "text": "const next = await updateTrip(trip.id, { status: 'completed' });"
         }
       ]
@@ -1807,22 +1823,22 @@
       "evidence": [
         {
           "line": 3,
-          "text": "import { useMemo, useState } from 'react';"
+          "text": "import { useEffect, useMemo, useState } from 'react';"
         },
         {
-          "line": 18,
+          "line": 19,
           "text": "const [busy, setBusy] = useState(false);"
         },
         {
-          "line": 45,
+          "line": 50,
           "text": "visibility: 'private',"
         },
         {
-          "line": 47,
+          "line": 52,
           "text": "status: 'active',"
         },
         {
-          "line": 56,
+          "line": 61,
           "text": "sync_status: 'pending',"
         }
       ]
@@ -1835,28 +1851,40 @@
           "text": "import { useEffect, useRef, useState } from 'react';"
         },
         {
-          "line": 28,
+          "line": 34,
           "text": "const [trip, setTrip] = useState<LocalTrip | null>(null);"
         },
         {
-          "line": 29,
+          "line": 35,
           "text": "const [stats, setStats] = useState<TripStats | null>(null);"
         },
         {
-          "line": 30,
+          "line": 36,
           "text": "const [cover, setCover] = useState<string | null>(null);"
         },
         {
-          "line": 31,
+          "line": 37,
           "text": "const [spent, setSpent] = useState<string | null>(null);"
         },
         {
-          "line": 32,
+          "line": 38,
           "text": "const [sharing, setSharing] = useState(false);"
         },
         {
-          "line": 33,
+          "line": 39,
+          "text": "const [linking, setLinking] = useState(false);"
+        },
+        {
+          "line": 40,
           "text": "const [burst, setBurst] = useState(0);"
+        },
+        {
+          "line": 93,
+          "text": "if (trip.visibility === 'link') return void go();"
+        },
+        {
+          "line": 149,
+          "text": "{trip.visibility === 'link' ? 'Share trip link again' : 'Share trip link (read-only)'}"
         }
       ]
     },
@@ -1868,16 +1896,24 @@
           "text": "import { useCallback, useState } from 'react';"
         },
         {
-          "line": 19,
+          "line": 24,
           "text": "const params = useLocalSearchParams<{ status: string }>();"
         },
         {
-          "line": 20,
+          "line": 25,
           "text": "const status: TripStatus = params.status === 'upcoming' || params.status === 'ongoing' ? params.status : 'completed';"
         },
         {
-          "line": 21,
+          "line": 26,
           "text": "const [rows, setRows] = useState<TripRow[] | null>(null);"
+        },
+        {
+          "line": 27,
+          "text": "const [pins, setPins] = useState<string[]>([]);"
+        },
+        {
+          "line": 28,
+          "text": "const [epoch, setEpoch] = useState(0);"
         }
       ]
     },
@@ -2104,15 +2140,15 @@
           "text": "function StatusChip({ status, count }: { status: TripStatus; count?: number }) {"
         },
         {
-          "line": 75,
+          "line": 81,
           "text": "const status = tripStatus(trip);"
         },
         {
-          "line": 94,
+          "line": 103,
           "text": "<StatusChip status={status} count={groupCount} />"
         },
         {
-          "line": 104,
+          "line": 118,
           "text": "{showUpload && trip.sync_status === 'pending' ? <Icon name=\"cloud-upload-outline\" size={16} color=\"#ffffffaa\" /> : null}"
         }
       ]
@@ -2238,7 +2274,7 @@
           "text": "setOwnership({ userId: null, phase: 'ready' });"
         },
         {
-          "line": 224,
+          "line": 225,
           "text": "setOwnership({ userId: null, phase: 'ready' });"
         }
       ]
@@ -2509,87 +2545,87 @@
           "text": "import { useCallback, useEffect, useMemo, useRef, useState } from 'react';"
         },
         {
-          "line": 66,
+          "line": 67,
           "text": "const [expenses, setExpenses] = useState<LocalExpense[]>([]);"
         },
         {
-          "line": 67,
+          "line": 68,
           "text": "const [rates, setRates] = useState<RatesSnapshot | null>(null);"
         },
         {
-          "line": 68,
+          "line": 69,
           "text": "const [amount, setAmount] = useState('');"
         },
         {
-          "line": 71,
+          "line": 72,
           "text": "const [category, setCategory] = useState('other');"
         },
         {
-          "line": 72,
+          "line": 73,
           "text": "const [noteFocused, setNoteFocused] = useState(false);"
         },
         {
-          "line": 73,
+          "line": 74,
           "text": "const [showCategories, setShowCategories] = useState(false);"
         },
         {
-          "line": 74,
+          "line": 75,
           "text": "const [budgetOpen, setBudgetOpen] = useState(false);"
         },
         {
-          "line": 75,
+          "line": 76,
           "text": "const [budgetText, setBudgetText] = useState('');"
         },
         {
-          "line": 76,
+          "line": 77,
           "text": "const [formOpen, setFormOpen] = useState(false);"
         },
         {
-          "line": 77,
+          "line": 78,
           "text": "const [showSettle, setShowSettle] = useState(false);"
         },
         {
-          "line": 79,
+          "line": 80,
           "text": "const [upiIds, setUpiIds] = useState<Record<string, string>>({});"
         },
         {
-          "line": 80,
+          "line": 81,
           "text": "const [upiSheet, setUpiSheet] = useState<{ kind: 'pay' | 'request'; who: string; t: { from: string; to: string; amount: number } } | null>(null);"
         },
         {
-          "line": 81,
+          "line": 82,
           "text": "const [upiText, setUpiText] = useState('');"
         },
         {
-          "line": 82,
+          "line": 83,
           "text": "const [upiOpened, setUpiOpened] = useState(false);"
         },
         {
-          "line": 113,
+          "line": 114,
           "text": "const [showExpenses, setShowExpenses] = useState(false);"
         },
         {
-          "line": 114,
+          "line": 115,
           "text": "const [note, setNote] = useState('');"
         },
         {
-          "line": 115,
+          "line": 116,
           "text": "const [paidBy, setPaidBy] = useState(ME);"
         },
         {
-          "line": 116,
+          "line": 117,
           "text": "const [splitWith, setSplitWith] = useState<string[]>(people);"
         },
         {
-          "line": 126,
+          "line": 127,
           "text": "const spending = useMemo(() => expenses.filter(isSpending), [expenses]);"
         },
         {
-          "line": 172,
+          "line": 173,
           "text": "sync_status: 'pending',"
         },
         {
-          "line": 207,
+          "line": 208,
           "text": "sync_status: 'pending',"
         }
       ]
@@ -2640,108 +2676,124 @@
           "text": "import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';"
         },
         {
-          "line": 68,
+          "line": 74,
           "text": "const [entries, setEntries] = useState<LocalEntry[]>([]);"
         },
         {
-          "line": 69,
+          "line": 75,
           "text": "const [text, setText] = useState('');"
         },
         {
-          "line": 70,
+          "line": 76,
           "text": "const [mood, setMood] = useState('');"
         },
         {
-          "line": 74,
+          "line": 80,
           "text": "const [dayFilter, setDayFilter] = useState<string | null>(null);"
         },
         {
-          "line": 75,
-          "text": "const [newestFirst, setNewestFirst] = useState(false);"
+          "line": 82,
+          "text": "const [newestFirst, setNewestFirst] = useState(() => !everyday && tripStatus(trip) !== 'completed');"
         },
         {
-          "line": 76,
+          "line": 83,
           "text": "const [sortOpen, setSortOpen] = useState(false);"
         },
         {
-          "line": 78,
-          "text": "const [grid, setGrid] = useState(false);  const [money, setMoney] = useState<MomentMoney | null>(null);"
-        },
-        {
-          "line": 79,
-          "text": "const [typedPlace, setTypedPlace] = useState<FoundPlace | null>(null);"
-        },
-        {
-          "line": 80,
-          "text": "const [expenses, setExpenses] = useState<LocalExpense[]>([]);"
-        },
-        {
-          "line": 81,
-          "text": "const [photos, setPhotos] = useState<PickedPhoto[]>([]);"
-        },
-        {
-          "line": 82,
-          "text": "const [saving, setSaving] = useState(false);"
-        },
-        {
-          "line": 84,
-          "text": "const [voiceBusy, setVoiceBusy] = useState(false);"
-        },
-        {
           "line": 85,
-          "text": "const [recording, setRecording] = useState(false);"
+          "text": "const [grid, setGrid] = useState(false);"
         },
         {
-          "line": 87,
-          "text": "const [voices, setVoices] = useState<VoiceDraft[]>([]);"
+          "line": 89,
+          "text": "const [money, setMoney] = useState<MomentMoney | null>(null);"
         },
         {
           "line": 90,
-          "text": "const [liveWords, setLiveWords] = useState('');"
+          "text": "const [typedPlace, setTypedPlace] = useState<FoundPlace | null>(null);"
+        },
+        {
+          "line": 91,
+          "text": "const [expenses, setExpenses] = useState<LocalExpense[]>([]);"
         },
         {
           "line": 92,
-          "text": "const [mediaKey, setMediaKey] = useState(0);"
+          "text": "const [photos, setPhotos] = useState<PickedPhoto[]>([]);"
         },
         {
           "line": 94,
-          "text": "const [shownDays, setShownDays] = useState(DAYS_PER_PAGE);"
+          "text": "const [addingPhotos, setAddingPhotos] = useState(false);"
         },
         {
-          "line": 97,
-          "text": "const [limit, setLimit] = useState(MOMENTS_PER_PAGE);"
+          "line": 96,
+          "text": "const [savedPhotos, setSavedPhotos] = useState<number | null>(null);"
         },
         {
           "line": 98,
+          "text": "const [usePhotoTime, setUsePhotoTime] = useState(true);"
+        },
+        {
+          "line": 100,
+          "text": "const [saving, setSaving] = useState(false);"
+        },
+        {
+          "line": 104,
+          "text": "const [voiceBusy, setVoiceBusy] = useState(false);"
+        },
+        {
+          "line": 105,
+          "text": "const [recording, setRecording] = useState(false);"
+        },
+        {
+          "line": 107,
+          "text": "const [voices, setVoices] = useState<VoiceDraft[]>([]);"
+        },
+        {
+          "line": 111,
+          "text": "const [mediaKey, setMediaKey] = useState(0);"
+        },
+        {
+          "line": 113,
+          "text": "const [shownDays, setShownDays] = useState(DAYS_PER_PAGE);"
+        },
+        {
+          "line": 116,
+          "text": "const [limit, setLimit] = useState(MOMENTS_PER_PAGE);"
+        },
+        {
+          "line": 117,
           "text": "const [total, setTotal] = useState(0);"
         },
         {
-          "line": 99,
+          "line": 118,
           "text": "const [loadingMore, setLoadingMore] = useState(false);"
         },
         {
-          "line": 101,
+          "line": 120,
           "text": "const [times, setTimes] = useState<string[]>([]);"
         },
         {
-          "line": 103,
+          "line": 122,
           "text": "const [jumpTo, setJumpTo] = useState<string | null>(null);"
         },
         {
-          "line": 165,
+          "line": 184,
           "text": "sync_status: 'pending',"
         },
         {
-          "line": 186,
+          "line": 206,
           "text": "sync_status: 'pending',"
         },
         {
-          "line": 226,
+          "line": 247,
           "text": "sync_status: 'pending',"
         },
         {
-          "line": 248,
+          "line": 274,
           "text": "sync_status: 'pending',"
+        },
+        {
+          "line": 350,
+          "text": "autoStop.current = setTimeout(() => {"
         }
       ]
     },
@@ -2753,35 +2805,39 @@
           "text": "import { useState } from 'react';"
         },
         {
-          "line": 75,
+          "line": 94,
+          "text": "const [loaded, setLoaded] = useState<Record<string, boolean>>({});"
+        },
+        {
+          "line": 95,
           "text": "const [moodOpen, setMoodOpen] = useState(false);"
         },
         {
-          "line": 76,
+          "line": 96,
           "text": "const [moneyOpen, setMoneyOpen] = useState(false);"
         },
         {
-          "line": 77,
+          "line": 97,
           "text": "const [placeOpen, setPlaceOpen] = useState(false);"
         },
         {
-          "line": 78,
+          "line": 98,
           "text": "const [placeText, setPlaceText] = useState('');"
         },
         {
-          "line": 79,
+          "line": 99,
           "text": "const [placeMatch, setPlaceMatch] = useState<Destination | undefined>(undefined);"
         },
         {
-          "line": 80,
+          "line": 100,
           "text": "const [amountText, setAmountText] = useState('');"
         },
         {
-          "line": 81,
+          "line": 101,
           "text": "const [category, setCategory] = useState('food');"
         },
         {
-          "line": 98,
+          "line": 118,
           "text": "const tool = (icon: string, label: string, onPress: () => void, active = false, disabled = false) => ("
         }
       ]
@@ -2831,47 +2887,47 @@
           "text": "import { useCallback, useEffect, useRef, useState } from 'react';"
         },
         {
-          "line": 41,
+          "line": 45,
           "text": "const [items, setItems] = useState<LocalPackingItem[]>([]);"
         },
         {
-          "line": 42,
+          "line": 46,
           "text": "const [lists, setLists] = useState<PackingLists | null>(null);"
         },
         {
-          "line": 43,
+          "line": 47,
           "text": "const [selected, setSelected] = useState<string>(defaultListFor(trip.starts_on, trip.ends_on));"
         },
         {
-          "line": 44,
+          "line": 48,
           "text": "const [label, setLabelState] = useState('');"
         },
         {
-          "line": 51,
+          "line": 55,
           "text": "const [menu, setMenu] = useState(false);"
         },
         {
-          "line": 52,
+          "line": 56,
           "text": "const [naming, setNaming] = useState(false);"
         },
         {
-          "line": 53,
+          "line": 57,
           "text": "const [newName, setNewName] = useState('');"
         },
         {
-          "line": 54,
+          "line": 58,
           "text": "const [showPacked, setShowPacked] = useState(false);"
         },
         {
-          "line": 56,
+          "line": 60,
           "text": "const [tip, setTip] = useState<WeatherTip | null>(null);"
         },
         {
-          "line": 106,
+          "line": 110,
           "text": "await upsertPackingItem({ ...item, packed: item.packed ? 0 : 1, sync_status: 'pending', updated_at: new Date().toISOString() });"
         },
         {
-          "line": 159,
+          "line": 165,
           "text": "for (const i of items.filter(x => x.packed)) await upsertPackingItem({ ...i, packed: 0, sync_status: 'pending', updated_at: now });"
         }
       ]
@@ -2884,19 +2940,19 @@
           "text": "import { useEffect, useState } from 'react';"
         },
         {
-          "line": 13,
+          "line": 14,
           "text": "const [uris, setUris] = useState<string[] | null>(null);"
         },
         {
-          "line": 14,
+          "line": 15,
           "text": "const [open, setOpen] = useState<number | null>(null);"
         },
         {
-          "line": 18,
+          "line": 19,
           "text": "let active = true;"
         },
         {
-          "line": 25,
+          "line": 26,
           "text": "active = false;"
         }
       ]
@@ -3044,19 +3100,19 @@
       "path": "apps/wayfare-mobile/src/features/trip/TripForm.tsx",
       "evidence": [
         {
-          "line": 2,
+          "line": 3,
           "text": "import { useEffect, useState } from 'react';"
         },
         {
-          "line": 63,
+          "line": 64,
           "text": "const [v, setV] = useState<TripFormValues>(initial);"
         },
         {
-          "line": 64,
+          "line": 65,
           "text": "const [titleTouched, setTitleTouched] = useState(!!initial.title);"
         },
         {
-          "line": 66,
+          "line": 67,
           "text": "const [customType, setCustomType] = useState<string | null>("
         }
       ]
@@ -3765,23 +3821,23 @@
           "text": "if (phase === 'past') return 'completed';"
         },
         {
-          "line": 70,
-          "text": "export function statusTrips<T extends DatedTrip>(trips: T[], status: TripStatus, today = new Date()): T[] {"
-        },
-        {
-          "line": 72,
-          "text": "if (status === 'completed') return list.sort((a, b) => (b.ends_on ?? b.starts_on ?? '').localeCompare(a.ends_on ?? a.starts_on ?? ''));"
-        },
-        {
-          "line": 85,
-          "text": "const status = tripStatus(t, today);"
-        },
-        {
-          "line": 88,
-          "text": "if (status === 'upcoming') {"
+          "line": 91,
+          "text": "export function statusTrips<T extends DatedTrip>(trips: T[], status: TripStatus, today = new Date(), pins: string[] = []): T[] {"
         },
         {
           "line": 93,
+          "text": "if (status === 'completed') return pinnedFirst(list.sort((a, b) => (b.ends_on ?? b.starts_on ?? '').localeCompare(a.ends_on ?? a.starts_on ?? '')), pins);"
+        },
+        {
+          "line": 109,
+          "text": "const status = tripStatus(t, today);"
+        },
+        {
+          "line": 112,
+          "text": "if (status === 'upcoming') {"
+        },
+        {
+          "line": 117,
           "text": "if (status === 'ongoing') {"
         }
       ]
@@ -3809,19 +3865,10 @@
       ]
     },
     {
-      "path": "apps/wayfare-mobile/src/lib/voiceTranscribe.ts",
-      "evidence": [
-        {
-          "line": 98,
-          "text": "await Promise.race([endedPromise, new Promise(r => setTimeout(r, 8000))]);"
-        }
-      ]
-    },
-    {
       "path": "apps/wayfare-mobile/src/lib/wipeDevice.ts",
       "evidence": [
         {
-          "line": 23,
+          "line": 25,
           "text": "const failed = await removeMediaFolders(FileSystem, FileSystem.documentDirectory, FileSystem.cacheDirectory);"
         }
       ]
@@ -3985,11 +4032,23 @@
       "evidence": [
         {
           "line": 2,
-          "text": "import { useState } from 'react';"
+          "text": "import { useCallback, useState } from 'react';"
         },
         {
           "line": 12,
           "text": "const [open, setOpen] = useState<number | null>(null);"
+        },
+        {
+          "line": 50,
+          "text": "const [zoomed, setZoomed] = useState(false);"
+        },
+        {
+          "line": 51,
+          "text": "const [chrome, setChrome] = useState(true);"
+        },
+        {
+          "line": 52,
+          "text": "const [at, setAt] = useState(index ?? 0);"
         }
       ]
     },
@@ -4016,6 +4075,10 @@
         {
           "line": 18,
           "text": "const state = RNTextInput.State as unknown as { currentlyFocusedInput?: () => unknown; currentlyFocusedField?: () => unknown };"
+        },
+        {
+          "line": 50,
+          "text": "const t = setTimeout(() => shown.current && ref.current?.present(), 220);"
         }
       ]
     },
@@ -4892,6 +4955,31 @@
         {
           "line": 90,
           "text": "set visibility = 'private', share_id = null, updated_at = now()"
+        }
+      ]
+    },
+    {
+      "path": "supabase/migrations/20261128090000_security_round1.sql",
+      "evidence": [
+        {
+          "line": 15,
+          "text": "check (storage_path is null or split_part(storage_path, '/', 1) = user_id::text);"
+        },
+        {
+          "line": 42,
+          "text": "and t.visibility = 'link'"
+        },
+        {
+          "line": 66,
+          "text": "if public.is_admin() and new.visibility = 'private' and new.share_id is null then"
+        },
+        {
+          "line": 69,
+          "text": "new.visibility := old.visibility;"
+        },
+        {
+          "line": 182,
+          "text": "execute format('create policy social_off_insert on public.%I as restrictive for insert to anon, authenticated with check (false)', t);"
         }
       ]
     }

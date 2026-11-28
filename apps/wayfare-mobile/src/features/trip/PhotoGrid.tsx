@@ -1,12 +1,13 @@
 import { Image } from 'expo-image';
 import { useEffect, useState } from 'react';
-import { Modal, Pressable, useWindowDimensions, View } from 'react-native';
-import { ActivityIndicator, IconButton, Text } from 'react-native-paper';
+import { Pressable, useWindowDimensions, View } from 'react-native';
+import { ActivityIndicator, Text } from 'react-native-paper';
 import { listTripMedia } from '../../lib/localDb';
 import { isAudio, resolveMediaUri } from '../../lib/media';
 import { useAppTheme } from '../../theme';
+import { PhotoViewer } from '../../ui/PhotoGrid';
 
-/** Every photo of a journey in a three-column grid; tap one to see it large. */
+/** Every photo of a journey in a three-column grid; tap one to see it large (swipe, double-tap to zoom). */
 export function PhotoGrid({ tripId, refreshKey }: { tripId: string; refreshKey?: number }) {
   const { colors } = useAppTheme();
   const { width } = useWindowDimensions();
@@ -36,18 +37,7 @@ export function PhotoGrid({ tripId, refreshKey }: { tripId: string; refreshKey?:
           <Image source={{ uri }} style={{ width: size, height: size, borderRadius: 10, backgroundColor: colors.surfaceVariant }} contentFit="cover" transition={120} />
         </Pressable>
       ))}
-      <Modal visible={open != null} transparent animationType="fade" onRequestClose={() => setOpen(null)}>
-        <View style={{ flex: 1, backgroundColor: '#000000f0', justifyContent: 'center' }}>
-          {open != null ? <Image source={{ uri: uris[open] }} style={{ width: '100%', height: '80%' }} contentFit="contain" /> : null}
-          <View style={{ position: 'absolute', top: 40, left: 8, right: 8, flexDirection: 'row', alignItems: 'center' }}>
-            <IconButton icon="close" iconColor="#fff" onPress={() => setOpen(null)} accessibilityLabel="Close photo" />
-            <View style={{ flex: 1 }} />
-            <IconButton icon="chevron-left" iconColor="#fff" disabled={!open} onPress={() => setOpen(o => (o ? o - 1 : o))} accessibilityLabel="Previous photo" />
-            <Text style={{ color: '#fff' }}>{open != null ? `${open + 1} / ${uris.length}` : ''}</Text>
-            <IconButton icon="chevron-right" iconColor="#fff" disabled={open == null || open >= uris.length - 1} onPress={() => setOpen(o => (o != null && o < uris.length - 1 ? o + 1 : o))} accessibilityLabel="Next photo" />
-          </View>
-        </View>
-      </Modal>
+      <PhotoViewer uris={uris} index={open} onClose={() => setOpen(null)} />
     </View>
   );
 }

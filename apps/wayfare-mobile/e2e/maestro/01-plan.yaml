@@ -1,24 +1,12 @@
 appId: com.wayfare.app
-name: Guest starts a journey and opens Plan with the keyboard up
+name: Start a journey and open Plan with the keyboard up
 ---
+# Signed in by 00-signup.yaml (journeys need an account).
 - launchApp:
-    clearState: true
-- extendedWaitUntil:
-    visible: "Skip|Just journal for now.*"
-    timeout: 120000
-- runFlow:
-    when:
-      visible: "Skip"
-    commands:
-      - tapOn: "Skip"
-- extendedWaitUntil:
-    visible: "Just journal for now.*"
-    timeout: 30000
-- takeScreenshot: 01-sign-in
-- tapOn: "Just journal for now.*"
+    stopApp: true
 - extendedWaitUntil:
     visible: "Start a journey"
-    timeout: 30000
+    timeout: 60000
 - takeScreenshot: 02-home-empty
 - tapOn: "Start a journey"
 - tapOn: "Journey title"

@@ -1,9 +1,9 @@
 import { Image } from 'expo-image';
-import { useState } from 'react';
-import { Dimensions, FlatList, Modal, Pressable, StyleSheet, View } from 'react-native';
+import { useCallback, useState } from 'react';
+import { FlatList, Modal, Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { IconButton, Text } from 'react-native-paper';
-
-const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
+import { ZoomableImage } from './ZoomableImage';
 
 type Props = { uris: string[]; height?: number; radius?: number };
 
@@ -41,23 +41,41 @@ export function PhotoGrid({ uris, height = 220, radius = 14 }: Props) {
   );
 }
 
+/**
+ * Full-screen photos: swipe sideways between them, double-tap or pinch to zoom (paging pauses while
+ * a photo is zoomed), tap once to hide or show the buttons.
+ */
 export function PhotoViewer({ uris, index, onClose }: { uris: string[]; index: number | null; onClose: () => void }) {
+  const { width, height } = useWindowDimensions();
+  const [zoomed, setZoomed] = useState(false);
+  const [chrome, setChrome] = useState(true);
+  const [at, setAt] = useState(index ?? 0);
+  const onZoomChange = useCallback((z: boolean) => setZoomed(z), []);
+  const toggleChrome = useCallback(() => setChrome(c => !c), []);
   return (
-    <Modal visible={index != null} transparent animationType="fade" onRequestClose={onClose}>
-      <View style={{ flex: 1, backgroundColor: '#000' }}>
+    <Modal visible={index != null} transparent animationType="fade" onRequestClose={onClose} onShow={() => { setAt(index ?? 0); setZoomed(false); setChrome(true); }}>
+      {/* Gestures inside a Modal need their own root on Android. */}
+      <GestureHandlerRootView style={{ flex: 1, backgroundColor: '#000' }}>
         <FlatList
           data={uris}
           horizontal
           pagingEnabled
+          scrollEnabled={!zoomed}
           initialScrollIndex={index ?? 0}
-          getItemLayout={(_, i) => ({ length: SCREEN_W, offset: SCREEN_W * i, index: i })}
+          getItemLayout={(_, i) => ({ length: width, offset: width * i, index: i })}
+          onMomentumScrollEnd={e => setAt(Math.round(e.nativeEvent.contentOffset.x / width))}
           keyExtractor={(u, i) => u + i}
-          renderItem={({ item }) => (
-            <Image source={{ uri: item }} style={{ width: SCREEN_W, height: SCREEN_H }} contentFit="contain" />
-          )}
+          extraData={zoomed}
+          renderItem={({ item }) => <ZoomableImage uri={item} width={width} height={height} zoomed={zoomed} onZoomChange={onZoomChange} onTap={toggleChrome} />}
         />
-        <IconButton icon="close" iconColor="#fff" size={28} style={{ position: 'absolute', top: 40, right: 12 }} onPress={onClose} accessibilityLabel="Close photo" />
-      </View>
+        {chrome ? (
+          <View style={{ position: 'absolute', top: 40, left: 8, right: 8, flexDirection: 'row', alignItems: 'center' }} pointerEvents="box-none">
+            {uris.length > 1 ? <Text style={{ color: '#fff', marginLeft: 12, fontWeight: '600' }}>{`${Math.min(at, uris.length - 1) + 1} / ${uris.length}`}</Text> : null}
+            <View style={{ flex: 1 }} />
+            <IconButton icon="close" iconColor="#fff" size={28} onPress={onClose} accessibilityLabel="Close photo" />
+          </View>
+        ) : null}
+      </GestureHandlerRootView>
     </Modal>
   );
 }

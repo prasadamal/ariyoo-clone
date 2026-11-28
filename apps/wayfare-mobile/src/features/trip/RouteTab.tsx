@@ -9,7 +9,7 @@ import { useToast } from '../../context/ToastContext';
 import { formatAltitude, formatKm } from '../../lib/format';
 import { cleanTrack, elevationProfile, elevationStats, trackDistanceKm } from '../../lib/geo';
 import { buildTripGpx } from '../../lib/geoExport';
-import { listEntries, listTrackPoints, type LocalTrackPoint, type LocalTrip } from '../../lib/localDb';
+import { getTrip, listEntries, listTrackPoints, type LocalTrackPoint, type LocalTrip } from '../../lib/localDb';
 import { getActiveTrackingTripId, getTrackingMode, setTrackingMode, startTripTracking, stopTripTracking, type TrackingMode } from '../../lib/locationTask';
 import { routeEnds, type MapPin } from '../../lib/mapView';
 import { sketchPath } from '../../lib/routeSketch';
@@ -83,6 +83,20 @@ export function RouteTab({ trip, onChanged }: Props) {
   const showMap = mapAvailable && !mapFailed && pins.length > 0;
 
   const toggle = async () => {
+    // One route at a time: recording here would quietly stop another journey's route. Ask first.
+    if (!tracking) {
+      const other = await getActiveTrackingTripId().catch(() => null);
+      if (other && other !== trip.id) {
+        const otherTitle = (await getTrip(other).catch(() => null))?.title ?? 'another journey';
+        const go = await new Promise<boolean>(resolve =>
+          Alert.alert('Already recording a route', `Recording here stops the route recording on ${otherTitle}. Its route so far is kept.`, [
+            { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
+            { text: 'Record here', onPress: () => resolve(true) },
+          ], { cancelable: true, onDismiss: () => resolve(false) })
+        );
+        if (!go) return;
+      }
+    }
     setBusy(true);
     try {
       if (tracking) {

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { amountProblem, parseAmount } from '../../lib/momentMoney';
 import { track } from '../../lib/telemetry';
 import { Alert, Linking, Pressable, ScrollView, Share, View } from 'react-native';
 import { Button, Dialog, IconButton, Portal, Text, TextInput } from 'react-native-paper';
@@ -248,6 +249,7 @@ export function BudgetTab({ trip, onChanged, readOnly = false, authorNames = {},
   };
 
   const saveBudget = async () => {
+    if (amountProblem(budgetText)) return;
     const value = Number(budgetText.replace(/[^0-9.]/g, ''));
     await updateTrip(trip.id, { budget_total: value > 0 ? Math.round(value) : null });
     setBudgetOpen(false);
@@ -500,7 +502,10 @@ export function BudgetTab({ trip, onChanged, readOnly = false, authorNames = {},
           onChangeText={t => setAmount(t.replace(/[^0-9.]/g, ''))}
           keyboardType="decimal-pad"
           autoFocus
+          maxLength={14}
+          error={Boolean(amountProblem(amount))}
         />
+        {amountProblem(amount) ? <Text style={{ color: colors.error, fontSize: 12, marginTop: 6 }}>{amountProblem(amount)}</Text> : null}
         <SheetTextInput mode="outlined" label="What for (optional)" value={note} onChangeText={setNote} style={{ marginTop: 10 }} maxLength={80} />
         <View style={{ marginTop: 12 }}>
           <ChipSelect
@@ -524,7 +529,7 @@ export function BudgetTab({ trip, onChanged, readOnly = false, authorNames = {},
         ) : (
           <Text style={{ color: colors.muted, fontSize: 12, marginTop: 10 }}>Add companions to this journey (Edit) to split costs.</Text>
         )}
-        <Button mode="contained" icon="check" onPress={add} disabled={!(Number(amount) > 0) || (companions.length > 0 && !splitWith.length)} style={{ marginTop: 16 }} contentStyle={{ height: 48 }}>
+        <Button mode="contained" icon="check" onPress={add} disabled={parseAmount(amount) === null || (companions.length > 0 && !splitWith.length)} style={{ marginTop: 16 }} contentStyle={{ height: 48 }}>
           Add {amount ? formatMoney(Number(amount) || 0, currency) : 'expense'}
         </Button>
       </Sheet>
@@ -536,7 +541,10 @@ export function BudgetTab({ trip, onChanged, readOnly = false, authorNames = {},
           onChangeText={t => setBudgetText(t.replace(/[^0-9.]/g, ''))}
           keyboardType="decimal-pad"
           autoFocus
+          maxLength={14}
+          error={Boolean(amountProblem(budgetText))}
         />
+        {amountProblem(budgetText) ? <Text style={{ color: colors.error, fontSize: 12, marginTop: 6 }}>{amountProblem(budgetText)}</Text> : null}
         <Button mode="contained" onPress={saveBudget} style={{ marginTop: 14 }} contentStyle={{ height: 46 }}>
           Save budget
         </Button>

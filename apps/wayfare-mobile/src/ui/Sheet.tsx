@@ -6,7 +6,7 @@ import {
   type BottomSheetBackdropProps,
 } from '@gorhom/bottom-sheet';
 import { useCallback, useEffect, useRef, type ComponentProps, type ReactNode } from 'react';
-import { BackHandler, Platform, Pressable, TextInput as RNTextInput, View } from 'react-native';
+import { BackHandler, Keyboard, Platform, Pressable, TextInput as RNTextInput, View } from 'react-native';
 import { Text, TextInput } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppTheme } from '../theme';
@@ -42,6 +42,14 @@ export function Sheet({ visible, onDismiss, title, subtitle, children }: SheetPr
   useEffect(() => {
     if (visible && !shown.current) {
       shown.current = true;
+      // Opened while the keyboard is up (you were typing the moment, then tapped ₹ or the pin): the
+      // sheet would come up under the open keyboard and never see it "appear", so it wouldn't rise.
+      // Put the keyboard away first; the sheet's own box then brings it back and the sheet lifts.
+      if (Platform.OS !== 'web' && Keyboard.isVisible()) {
+        Keyboard.dismiss();
+        const t = setTimeout(() => shown.current && ref.current?.present(), 220);
+        return () => clearTimeout(t);
+      }
       ref.current?.present();
     } else if (!visible && shown.current) {
       shown.current = false;

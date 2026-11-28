@@ -1,9 +1,9 @@
 import { Image } from 'expo-image';
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { Button, Chip, IconButton, Menu, Text, TextInput } from 'react-native-paper';
 import { MOODS } from '../../components/MoodChips';
-import { parseAmount, formatMoney } from '../../lib/momentMoney';
+import { amountProblem, parseAmount, formatMoney } from '../../lib/momentMoney';
 import { typingMention } from '../../lib/mentions';
 import { useAppTheme } from '../../theme';
 import { ChipSelect } from '../../ui/ChipSelect';
@@ -36,9 +36,16 @@ type Props = {
   voiceCount?: number;
   onRemoveVoice?: (index: number) => void;
   voiceBusy: boolean;
-  /** Words heard so far while a written-out voice note records. */
-  liveWords?: string;
+  /** This moment holds as many voice notes as it can (the microphone rests). */
+  voiceFull?: boolean;
   onToggleVoice: () => void;
+  /** The phone is handing over photos you picked: a spinner tile shows in the tray. */
+  addingPhotos?: boolean;
+  /** While saving: how many photos are stored so far (the rest show a spinner). Null when not saving. */
+  savedPhotos?: number | null;
+  /** The moment's time, taken from its earliest photo (tap × to use now instead). */
+  photoTime?: string | null;
+  onClearPhotoTime?: () => void;
   saving: boolean;
   canSave: boolean;
   onSave: () => void;
@@ -70,8 +77,21 @@ function TrayPill({ icon, label, onPress, onRemove, removeLabel, danger }: { ico
   );
 }
 
+/** "Thu 12 Mar, 9:14 am": when the photo was taken. */
+function photoTimeLabel(iso: string) {
+  const d = new Date(iso);
+  const day = d.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' });
+  const time = d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+  return `${day}, ${time}`;
+}
+
+/** The longest moment text (about two pages): plenty for a day, and quick to sync. */
+export const MAX_MOMENT_TEXT = 5000;
+
 export function MomentComposer(p: Props) {
   const { colors } = useAppTheme();
+  // Thumbnails that have finished drawing (big photos take a moment): the others show a ring.
+  const [loaded, setLoaded] = useState<Record<string, boolean>>({});
   const [moodOpen, setMoodOpen] = useState(false);
   const [moneyOpen, setMoneyOpen] = useState(false);
   const [placeOpen, setPlaceOpen] = useState(false);
@@ -82,9 +102,9 @@ export function MomentComposer(p: Props) {
   const amount = parseAmount(amountText);
   const voiceCount = p.voiceCount ?? 0;
   // The place isn't a chip: the pin below turns purple once one is added (tap it to change or clear).
-  const hasTray = p.photos.length > 0 || Boolean(p.money) || p.recording || voiceCount > 0;
+  const hasTray = p.photos.length > 0 || Boolean(p.money) || p.recording || voiceCount > 0 || Boolean(p.addingPhotos) || Boolean(p.photoTime);
   // A fixed height keeps the sideways tray from stretching on Android (chips grew and touched the border).
-  const trayHeight = (p.photos.length ? 60 : 34) + 14;
+  const trayHeight = (p.photos.length || p.addingPhotos ? 60 : 34) + 14;
   // The chosen mood's emoji replaces the smiley button itself (no extra chip).
   const moodEmoji = p.mood ? p.mood.split(' ')[0] : '';
 
@@ -112,19 +132,50 @@ export function MomentComposer(p: Props) {
       {hasTray ? (
         <View style={{ height: trayHeight }}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0 }} contentContainerStyle={styles.tray} keyboardShouldPersistTaps="handled">
-          {p.photos.map((photo, i) => (
-            <View key={photo.uri + i}>
-              <Image source={{ uri: photo.uri }} style={styles.thumb} contentFit="cover" accessibilityLabel={`Photo ${i + 1}`} />
-              <Pressable
-                onPress={() => p.onPhotos(p.photos.filter((_, j) => j !== i))}
-                accessibilityRole="button"
-                accessibilityLabel={`Remove photo ${i + 1}`}
-                style={[styles.remove, { backgroundColor: colors.inverseSurface }]}
-              >
-                <Icon name="close" size={12} color={colors.inverseOnSurface} />
-              </Pressable>
+          {p.photos.map((photo, i) => {
+            // A ring while the thumbnail draws, and while saving until this photo is stored.
+            const busy = !loaded[photo.uri] || (p.savedPhotos != null && i >= p.savedPhotos);
+            return (
+              <View key={photo.uri + i}>
+                <Image
+                  source={{ uri: photo.uri }}
+                  style={[styles.thumb, { backgroundColor: colors.surfaceVariant }]}
+                  contentFit="cover"
+                  accessibilityLabel={`Photo ${i + 1}${busy ? ', loading' : ''}`}
+                  onLoad={() => setLoaded(prev => (prev[photo.uri] ? prev : { ...prev, [photo.uri]: true }))}
+                  onError={() => setLoaded(prev => ({ ...prev, [photo.uri]: true }))}
+                />
+                {busy ? (
+                  <View style={[styles.thumb, styles.busy]} pointerEvents="none">
+                    <ActivityIndicator color="#fff" />
+                  </View>
+                ) : null}
+                {p.savedPhotos == null ? (
+                  <Pressable
+                    onPress={() => p.onPhotos(p.photos.filter((_, j) => j !== i))}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Remove photo ${i + 1}`}
+                    style={[styles.remove, { backgroundColor: colors.inverseSurface }]}
+                  >
+                    <Icon name="close" size={12} color={colors.inverseOnSurface} />
+                  </Pressable>
+                ) : null}
+              </View>
+            );
+          })}
+          {p.addingPhotos ? (
+            <View style={[styles.thumb, { backgroundColor: colors.surfaceVariant, alignItems: 'center', justifyContent: 'center' }]} accessibilityLabel="Adding photos" accessibilityRole="progressbar">
+              <ActivityIndicator color={colors.primary} />
             </View>
-          ))}
+          ) : null}
+          {p.photoTime ? (
+            <TrayPill
+              icon="clock-outline"
+              label={`${photoTimeLabel(p.photoTime)} · photo time`}
+              onRemove={p.onClearPhotoTime}
+              removeLabel="Use the time now instead of the photo's time"
+            />
+          ) : null}
           {p.money ? (
             <TrayPill
               icon="currency-inr"
@@ -137,14 +188,10 @@ export function MomentComposer(p: Props) {
           {Array.from({ length: voiceCount }, (_, i) => (
             <TrayPill key={`voice-${i}`} icon="microphone" label={voiceCount > 1 ? `Voice note ${i + 1}` : 'Voice note'} onRemove={() => p.onRemoveVoice?.(i)} removeLabel="Remove voice note" />
           ))}
-          {p.recording ? <TrayPill icon="record-circle" label="Recording… tap ■ to stop" danger /> : null}
+          {/* Recording: tap anywhere on the pill to stop. */}
+          {p.recording ? <TrayPill icon="record-circle" label="Recording · tap to stop" onPress={p.voiceBusy ? undefined : p.onToggleVoice} danger /> : null}
         </ScrollView>
         </View>
-      ) : null}
-      {p.recording && p.liveWords ? (
-        <Text style={{ color: colors.muted, fontStyle: 'italic', paddingHorizontal: 8, paddingBottom: 6 }} numberOfLines={3}>
-          “{p.liveWords}”
-        </Text>
       ) : null}
 
       <TextInput
@@ -153,6 +200,7 @@ export function MomentComposer(p: Props) {
         value={p.text}
         onChangeText={p.onText}
         multiline
+        maxLength={MAX_MOMENT_TEXT}
         style={styles.input}
         underlineColor="transparent"
         activeUnderlineColor="transparent"
@@ -205,12 +253,19 @@ export function MomentComposer(p: Props) {
             />
           ))}
         </Menu>
-        {tool('camera-outline', 'Add photos', p.onAddPhotos, p.photos.length > 0, p.recording)}
-        {tool(p.recording ? 'stop-circle' : 'microphone-outline', p.recording ? 'Stop recording' : 'Record a voice note', p.onToggleVoice, p.recording, p.voiceBusy)}
+        {/* Photos and money show in the tray above, so their buttons stay plain. */}
+        {tool('camera-outline', 'Add photos', p.onAddPhotos, false, p.recording || Boolean(p.addingPhotos) || p.savedPhotos != null)}
+        {tool(
+          p.recording ? 'stop-circle' : 'microphone-outline',
+          p.recording ? 'Stop recording' : p.voiceFull ? 'This moment holds all the voice notes it can' : 'Record a voice note',
+          p.onToggleVoice,
+          p.recording,
+          p.voiceBusy || (!p.recording && Boolean(p.voiceFull))
+        )}
         {p.onPlace
           ? tool(p.place ? 'map-marker' : 'map-marker-outline', p.place ? `Place: ${p.place.name ?? 'added'}. Tap to change` : 'Add a place', () => { setPlaceText(p.place?.name ?? ''); setPlaceOpen(true); }, Boolean(p.place), p.recording)
           : null}
-        {tool('currency-inr', 'Add money spent', openMoney, Boolean(p.money), p.recording)}
+        {tool('currency-inr', p.money ? 'Change money spent' : 'Add money spent', openMoney, false, p.recording)}
         <View style={{ flex: 1 }} />
         <IconButton
           icon="send"
@@ -220,7 +275,7 @@ export function MomentComposer(p: Props) {
           iconColor={colors.onPrimary}
           onPress={p.onSave}
           loading={p.saving}
-          disabled={!p.canSave || p.saving || p.recording}
+          disabled={!p.canSave || p.saving || p.recording || Boolean(p.addingPhotos)}
           accessibilityLabel="Save moment"
           style={{ margin: 0 }}
         />
@@ -272,8 +327,10 @@ export function MomentComposer(p: Props) {
           keyboardType="decimal-pad"
           left={<TextInput.Affix text={p.currencySymbol} />}
           autoFocus
+          maxLength={14}
           error={amountText.length > 0 && amount === null}
         />
+        {amountProblem(amountText) ? <Text style={{ color: colors.error, fontSize: 12, marginTop: 6 }}>{amountProblem(amountText)}</Text> : null}
         <View style={{ height: 12 }} />
         <ChipSelect scroll options={EXPENSE_CATEGORIES} value={category} onChange={setCategory} />
         <Button
@@ -297,6 +354,7 @@ const styles = StyleSheet.create({
   box: { borderRadius: 20, borderWidth: 1, padding: 8, marginBottom: 16 },
   tray: { gap: 8, alignItems: 'center', paddingHorizontal: 6, paddingTop: 6, paddingBottom: 8, flexGrow: 0 },
   thumb: { width: 60, height: 60, borderRadius: 12 },
+  busy: { position: 'absolute', top: 0, left: 0, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.35)' },
   remove: { position: 'absolute', top: 4, right: 4, width: 20, height: 20, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   input: { backgroundColor: 'transparent', minHeight: 64, maxHeight: 180 },
   tools: { flexDirection: 'row', alignItems: 'center', gap: 2, paddingTop: 2 },

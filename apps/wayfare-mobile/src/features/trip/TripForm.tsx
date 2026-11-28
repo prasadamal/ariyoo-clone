@@ -1,3 +1,4 @@
+import { amountProblem } from '../../lib/momentMoney';
 import { capitalizeWords } from '../../lib/names';
 import { useEffect, useState } from 'react';
 import { View } from 'react-native';
@@ -84,7 +85,8 @@ export function TripForm({ initial, submitLabel, busy, onSubmit }: Props) {
   };
 
   const datesInvalid = !!(v.startsOn && v.endsOn && v.endsOn < v.startsOn);
-  const budgetInvalid = !!v.budget && !(Number(v.budget) > 0);
+  const budgetIssue = amountProblem(v.budget);
+  const budgetInvalid = Boolean(budgetIssue);
   const canSubmit = v.title.trim().length > 0 && !datesInvalid && !budgetInvalid && !busy;
 
   return (
@@ -139,6 +141,7 @@ export function TripForm({ initial, submitLabel, busy, onSubmit }: Props) {
         placeholder="Arif, Neha"
         value={v.companions}
         onChangeText={t => set({ companions: capitalizeWords(t) })}
+        maxLength={200}
         left={<TextInput.Icon icon="account-multiple-outline" />}
       />
       <Text style={{ color: colors.muted, fontSize: 12, marginTop: -6 }}>Names, separated by commas. Used to split costs in Budget.</Text>
@@ -151,7 +154,9 @@ export function TripForm({ initial, submitLabel, busy, onSubmit }: Props) {
         onChangeText={t => set({ budget: t.replace(/[^0-9.]/g, '') })}
         keyboardType="decimal-pad"
         error={budgetInvalid}
+        maxLength={14}
       />
+      {budgetIssue ? <HelperText type="error">{budgetIssue}</HelperText> : null}
 
       {SOCIAL_ENABLED ? (
       <>

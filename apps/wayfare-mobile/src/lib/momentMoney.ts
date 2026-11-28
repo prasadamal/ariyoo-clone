@@ -22,10 +22,25 @@ export function formatMoney(amount: number, symbol = '₹'): string {
   return `${symbol}${amount.toLocaleString('en-IN', { minimumFractionDigits: whole ? 0 : 2, maximumFractionDigits: 2 })}`;
 }
 
+/** The largest amount an expense or budget takes (just under 10 crore). */
+export const MAX_AMOUNT = 99_999_999;
+
 /** Reads what someone typed into an amount box: digits with an optional decimal point, above zero. */
 export function parseAmount(text: string): number | null {
   const cleaned = text.replace(/[,\s₹]/g, '');
   if (!/^\d+(\.\d{1,2})?$/.test(cleaned)) return null;
   const n = Number(cleaned);
-  return n > 0 && n <= 99_999_999 ? n : null;
+  return n > 0 && n <= MAX_AMOUNT ? n : null;
+}
+
+/** Why a typed amount can't be used, in plain words (null when it can, or when the box is empty). */
+export function amountProblem(text: string): string | null {
+  const cleaned = text.replace(/[,\s₹]/g, '');
+  if (!cleaned) return null;
+  if (!/^\d*\.?\d*$/.test(cleaned) || cleaned === '.') return 'Use digits only, like 1250 or 99.50.';
+  if ((cleaned.split('.')[1] ?? '').length > 2) return 'Use at most 2 decimals.';
+  const n = Number(cleaned);
+  if (!(n > 0)) return 'Enter more than 0.';
+  if (n > MAX_AMOUNT) return 'That is more than 9,99,99,999. Check the amount.';
+  return null;
 }

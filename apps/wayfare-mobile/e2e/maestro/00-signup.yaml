@@ -1,0 +1,40 @@
+appId: com.wayfare.app
+name: Sign up (a throwaway account made for this run; deleted at the end)
+---
+# CI_NAME, CI_USER, CI_EMAIL and CI_PASS come from device-checks.sh, made fresh each run.
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: "Skip|Create a free account"
+    timeout: 120000
+- runFlow:
+    when:
+      visible: "Skip"
+    commands:
+      - tapOn: "Skip"
+- tapOn: "Create a free account"
+- extendedWaitUntil:
+    visible: "Your name"
+    timeout: 20000
+- tapOn: "Your name"
+- inputText: ${CI_NAME}
+- tapOn: "Username"
+- inputText: ${CI_USER}
+- tapOn: "Email"
+- inputText: ${CI_EMAIL}
+- tapOn: "Password.*"
+- inputText: ${CI_PASS}
+- scrollUntilVisible:
+    element: "I am 18 or older"
+    direction: DOWN
+    timeout: 10000
+- tapOn: "I am 18 or older"
+- scrollUntilVisible:
+    element: "Create account"
+    direction: DOWN
+    timeout: 10000
+- tapOn: "Create account"
+- extendedWaitUntil:
+    visible: "Where to next\\?|Start a journey"
+    timeout: 90000
+- takeScreenshot: 00-signed-up

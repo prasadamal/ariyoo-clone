@@ -37,9 +37,10 @@ unstick() {  # tap "Wait" on any system "isn't responding" pop-up
   b=$(adb shell cat /sdcard/now.xml 2>/dev/null | grep -oE 'text="Wait"[^>]*bounds="\[[0-9]+,[0-9]+\]\[[0-9]+,[0-9]+\]"' | grep -oE '[0-9]+' | tail -4 | paste -sd' ' -)
   if [ -n "$b" ]; then set -- $b; adb shell input tap $(( ($1+$3)/2 )) $(( ($2+$4)/2 )); echo "    (dismissed a system 'isn't responding' pop-up)" >> "$SUM"; sleep 2; fi
 }
-flow() {  # name, file
+flow() {  # name, file (the run's account details are passed to every flow)
   unstick
-  if maestro test --format junit --output "$OUT/$1.xml" --test-output-dir "$OUT/screens" "$E2E/maestro/$2" > "$OUT/$1.log" 2>&1; then
+  if maestro test -e CI_NAME="$CI_NAME" -e CI_USER="$CI_USER" -e CI_EMAIL="$CI_EMAIL" -e CI_PASS="$CI_PASS" \
+      --format junit --output "$OUT/$1.xml" --test-output-dir "$OUT/screens" "$E2E/maestro/$2" > "$OUT/$1.log" 2>&1; then
     say "- Flow $1: PASS"
   else
     say "- Flow $1: FAIL"; grep -E '\[Failed\]|Assertion|not found' "$OUT/$1.log" | head -5 | sed 's/^/    /' | tee -a "$SUM" > /dev/null
@@ -57,7 +58,17 @@ keyboard() {  # label, button regex
   case "$r" in *UNKNOWN*) grep -iE "type=ime|ITYPE_IME|InputMethod" "$OUT/$1-window.txt" | head -6 | cut -c1-220 | sed 's/^/    /' | tee -a "$SUM" > /dev/null;; esac
 }
 
-flow guest-plan 01-guest-plan.yaml
+# Journeys need an account: each run signs up with a throwaway account made here (never stored, the
+# password never printed) and deletes it at the end through Settings, which tests both screens.
+CI_TAG="$(date +%s)$((RANDOM % 1000))"
+export CI_NAME="Device Test"
+export CI_USER="ci_${CI_TAG: -12}"
+export CI_EMAIL="ci-${CI_TAG}@example.com"
+CI_PASS="$(openssl rand -hex 12)Wf"
+export CI_PASS
+say "- Test account for this run: ${CI_EMAIL} (deleted at the end)"
+flow sign-up 00-signup.yaml
+flow plan 01-plan.yaml
 keyboard plan-sheet '^Add plan$'
 flow expense 02-expense.yaml
 keyboard expense-sheet '^Add ₹'
@@ -119,3 +130,9 @@ fi
 adb shell am start -W -n $PKG/.MainActivity > /dev/null 2>&1; sleep 8
 mem=$(adb shell dumpsys meminfo $PKG | tr -d '\r' | awk '/TOTAL PSS|TOTAL:/ {print $3; exit}')
 say "- Memory after the run (PSS): $((${mem:-0} / 1024)) MB"
+
+# Clean up: delete the run's account (its journeys, moments and photos go with it), then check that
+# without an account, "Start a journey" leads to sign-up.
+flow delete-account 99-delete-account.yaml
+if grep -q "Flow delete-account: FAIL" "$SUM"; then say "    NOTE: ${CI_EMAIL} may still exist; remove it in the admin console."; fi
+flow guest-journey-needs-account 06-guest-diary.yaml

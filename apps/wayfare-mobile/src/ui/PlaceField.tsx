@@ -38,6 +38,7 @@ export function PlaceField({ label = 'Destination', value, onChange, inSheet }: 
         left={<TextInput.Icon icon="map-marker-outline" />}
         right={matched ? <TextInput.Icon icon="check-decagram" color={colors.secondary} /> : undefined}
         autoCorrect={false}
+        maxLength={80}
       />
       {matched ? (
         <Text style={{ color: colors.secondary, fontSize: 12, marginTop: 4 }}>

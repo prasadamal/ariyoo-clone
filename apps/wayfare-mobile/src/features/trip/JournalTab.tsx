@@ -16,8 +16,7 @@ import { currencySymbol } from '../../lib/currencyMath';
 import { totalsByMoment } from '../../lib/momentMoney';
 import { persistJournalPhoto } from '../../lib/media';
 import { VOICE_NOTE_PRESET, cancelVoiceRecording, startVoiceRecording, stopVoiceRecordingToDraft, type VoiceDraft } from '../../lib/voiceNote';
-import { startWriteOutRecording, writeOutEnabled, type WriteOutRecording } from '../../lib/voiceTranscribe';
-import { bodyWithTranscripts } from '../../lib/transcript';
+import { earliestTakenAt } from '../../lib/photoTime';
 import { persistFile } from '../../lib/upload';
 import { fetchWeatherSummary } from '../../lib/weather';
 import { useAppTheme } from '../../theme';
@@ -54,6 +53,10 @@ type Props = {
 
 /** A journey's moments load this many at a time as you scroll. */
 const MOMENTS_PER_PAGE = 5;
+/** What one moment holds: photos, voice notes, and how long one recording may run. */
+const MAX_PHOTOS_PER_MOMENT = 10;
+const MAX_VOICE_PER_MOMENT = 5;
+const MAX_RECORDING_MS = 8 * 60 * 1000;
 
 async function currentFix() {
   const { status } = await Location.requestForegroundPermissionsAsync();
@@ -82,20 +85,29 @@ export function JournalTab({ trip, onChanged, everyday = false, crewNames = {}, 
   const [grid, setGrid] = useState(false);
   useEffect(() => {
     if (viewRequest) setGrid(viewRequest.grid);
-  }, [viewRequest]);  const [money, setMoney] = useState<MomentMoney | null>(null);
+  }, [viewRequest]);
+  const [money, setMoney] = useState<MomentMoney | null>(null);
   const [typedPlace, setTypedPlace] = useState<FoundPlace | null>(null);
   const [expenses, setExpenses] = useState<LocalExpense[]>([]);
   const [photos, setPhotos] = useState<PickedPhoto[]>([]);
+  // The phone is handing over picked photos (a spinner tile shows in the moment box).
+  const [addingPhotos, setAddingPhotos] = useState(false);
+  // While saving, how many of the moment's photos are stored so far.
+  const [savedPhotos, setSavedPhotos] = useState<number | null>(null);
+  // The moment takes its earliest photo's time unless you tap × on it.
+  const [usePhotoTime, setUsePhotoTime] = useState(true);
+  const photoTime = usePhotoTime ? earliestTakenAt(photos.map(p => p.takenAt)) : null;
   const [saving, setSaving] = useState(false);
+  // A second tap on Save while the first is still running does nothing (checked before any await).
+  const saveLock = useRef(false);
   const voiceLock = useRef(false);
   const [voiceBusy, setVoiceBusy] = useState(false);
   const [recording, setRecording] = useState(false);
   // Voice notes recorded for the moment being written; saved with it, like photos.
   const [voices, setVoices] = useState<VoiceDraft[]>([]);
-  // "Write out voice notes" (Settings): the recording in progress and the words heard so far.
-  const writeOut = useRef<WriteOutRecording | null>(null);
-  const [liveWords, setLiveWords] = useState('');
   const recorder = useAudioRecorder(VOICE_NOTE_PRESET);
+  // A long recording stops itself (and is kept) so the file stays small enough to back up.
+  const autoStop = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [mediaKey, setMediaKey] = useState(0);
   // Years of daily pages would render all at once; show recent days and load older ones on request.
   const [shownDays, setShownDays] = useState(DAYS_PER_PAGE);
@@ -151,14 +163,14 @@ export function JournalTab({ trip, onChanged, everyday = false, crewNames = {}, 
 
   useEffect(
     () => () => {
+      if (autoStop.current) clearTimeout(autoStop.current);
       void cancelVoiceRecording(recorder).catch(() => undefined);
-      writeOut.current?.cancel();
-      writeOut.current = null;
     },
     [recorder]
   );
 
-  const attachPhotos = async (entryId: string, picked: PickedPhoto[]) => {
+  const attachPhotos = async (entryId: string, picked: PickedPhoto[], onStored?: (count: number) => void) => {
+    let count = 0;
     for (const p of picked) {
       const mediaId = uuid();
       const stored = await persistJournalPhoto(p.uri, mediaId, p);
@@ -172,6 +184,7 @@ export function JournalTab({ trip, onChanged, everyday = false, crewNames = {}, 
         sync_status: 'pending',
         updated_at: new Date().toISOString(),
       });
+      onStored?.(++count);
     }
   };
 
@@ -195,8 +208,9 @@ export function JournalTab({ trip, onChanged, everyday = false, crewNames = {}, 
     });
   };
 
-  const createEntry = async (body: string, withMoney = true) => {
-    const now = new Date().toISOString();
+  const createEntry = async (body: string, withMoney = true, at: string | null = null) => {
+    // The moment's time: now, or when its earliest photo was taken.
+    const now = at ?? new Date().toISOString();
     let weather: string | null = null;
     let coords: Location.LocationObjectCoords | null = null;
     // A place typed or picked from the list (no GPS needed).
@@ -239,11 +253,16 @@ export function JournalTab({ trip, onChanged, everyday = false, crewNames = {}, 
   };
 
   const save = async () => {
+    if (saveLock.current || addingPhotos) return;
     if (recording || (!text.trim() && !photos.length && !money && !voices.length)) return;
+    saveLock.current = true;
     setSaving(true);
     try {
-      const entry = await createEntry(bodyWithTranscripts(text, voices.map(v => v.transcript)) ?? (photos.length ? '📷' : voices.length ? '🎙 Voice note' : '💰'));
-      if (photos.length) await attachPhotos(entry.id, photos);
+      const entry = await createEntry(text.trim() || (photos.length ? '📷' : voices.length ? '🎙 Voice note' : '💰'), true, photoTime);
+      if (photos.length) {
+        setSavedPhotos(0);
+        await attachPhotos(entry.id, photos, setSavedPhotos);
+      }
       for (const v of voices) {
         await upsertEntryMedia({
           id: v.id,
@@ -264,6 +283,7 @@ export function JournalTab({ trip, onChanged, everyday = false, crewNames = {}, 
       setVoices([]);
       setMoney(null);
       setTypedPlace(null);
+      setUsePhotoTime(true);
       // A new moment is the latest, so it sits at the end: show everything down to it.
       if (!everyday) setLimit(total + 1);
       await load();
@@ -271,22 +291,35 @@ export function JournalTab({ trip, onChanged, everyday = false, crewNames = {}, 
     } catch (e) {
       toast(e instanceof Error ? e.message : 'Could not save entry');
     } finally {
+      saveLock.current = false;
+      setSavedPhotos(null);
       setSaving(false);
     }
   };
 
   const addPhotosToDraft = async () => {
+    if (addingPhotos) return;
+    if (photos.length >= MAX_PHOTOS_PER_MOMENT) {
+      toast(`A moment holds up to ${MAX_PHOTOS_PER_MOMENT} photos. Save this one and start another.`);
+      return;
+    }
     try {
-      const picked = await pickPhotos(true);
-      if (picked.length) setPhotos(prev => [...prev, ...picked].slice(0, 10));
+      const picked = await pickPhotos(true, () => setAddingPhotos(true));
+      if (picked.length) {
+        const room = MAX_PHOTOS_PER_MOMENT - photos.length;
+        if (picked.length > room) toast(`Added ${room} of ${picked.length}: a moment holds up to ${MAX_PHOTOS_PER_MOMENT} photos.`);
+        setPhotos(prev => [...prev, ...picked].slice(0, MAX_PHOTOS_PER_MOMENT));
+      }
     } catch (e) {
       toast(e instanceof Error ? e.message : 'Could not add photos');
+    } finally {
+      setAddingPhotos(false);
     }
   };
 
   const addPhotosToEntry = async (entryId: string) => {
     try {
-      const picked = await pickPhotos(true);
+      const picked = await pickPhotos(true, () => toast('Adding photos…'));
       if (!picked.length) return;
       await attachPhotos(entryId, picked);
       setMediaKey(k => k + 1);
@@ -296,37 +329,39 @@ export function JournalTab({ trip, onChanged, everyday = false, crewNames = {}, 
     }
   };
 
-  /** Record, then stop: the voice note waits in the moment box (with your words) until you tap Save. */
+  /**
+   * Record, then stop: the voice note waits in the moment box until you tap Save. One recording at a
+   * time across the app (the recorder refuses a second), up to 5 notes a moment, and a recording
+   * stops itself after 8 minutes (it is kept) so the file stays small enough to back up.
+   */
   const toggleVoice = async () => {
     if (voiceLock.current) return;
+    if (!recording && voices.length >= MAX_VOICE_PER_MOMENT) {
+      toast(`A moment holds up to ${MAX_VOICE_PER_MOMENT} voice notes.`);
+      return;
+    }
     voiceLock.current = true;
     setVoiceBusy(true);
     try {
       if (!recording) {
-        if (await writeOutEnabled()) {
-          setLiveWords('');
-          writeOut.current = await startWriteOutRecording(setLiveWords);
-        } else await startVoiceRecording(recorder);
+        await startVoiceRecording(recorder);
         setRecording(true);
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => undefined);
-      } else if (writeOut.current) {
-        const rec = writeOut.current;
-        writeOut.current = null;
-        const { uri, transcript } = await rec.stop();
-        const id = uuid();
-        const stored = await persistFile(uri, 'voice', `${id}.wav`);
-        setRecording(false);
-        setLiveWords('');
-        setVoices(prev => [...prev, { id, uri: stored, mime: 'audio/wav', transcript }]);
+        autoStop.current = setTimeout(() => {
+          autoStop.current = null;
+          toast('Voice notes stop at 8 minutes. This one is kept; tap the mic to record more.');
+          void toggleVoiceRef.current?.();
+        }, MAX_RECORDING_MS);
       } else {
+        if (autoStop.current) clearTimeout(autoStop.current);
+        autoStop.current = null;
         const draft = await stopVoiceRecordingToDraft(recorder);
         setRecording(false);
         setVoices(prev => [...prev, draft]);
       }
     } catch (e) {
-      writeOut.current?.cancel();
-      writeOut.current = null;
-      setLiveWords('');
+      if (autoStop.current) clearTimeout(autoStop.current);
+      autoStop.current = null;
       await cancelVoiceRecording(recorder).catch(() => undefined);
       setRecording(false);
       toast(e instanceof Error ? e.message : 'Could not record');
@@ -335,6 +370,9 @@ export function JournalTab({ trip, onChanged, everyday = false, crewNames = {}, 
       setVoiceBusy(false);
     }
   };
+  // The auto-stop timer calls the latest toggleVoice (it sees the current recording state).
+  const toggleVoiceRef = useRef<(() => Promise<void>) | null>(null);
+  toggleVoiceRef.current = toggleVoice;
 
   const remove = (e: LocalEntry) =>
     Alert.alert('Delete this moment?', 'Photos and voice notes in it are deleted too.', [
@@ -467,10 +505,14 @@ export function JournalTab({ trip, onChanged, everyday = false, crewNames = {}, 
         voiceCount={voices.length}
         onRemoveVoice={i => setVoices(prev => prev.filter((_, j) => j !== i))}
         voiceBusy={voiceBusy}
-        liveWords={liveWords}
+        voiceFull={voices.length >= MAX_VOICE_PER_MOMENT}
         onToggleVoice={toggleVoice}
+        addingPhotos={addingPhotos}
+        savedPhotos={savedPhotos}
+        photoTime={photoTime}
+        onClearPhotoTime={() => setUsePhotoTime(false)}
         saving={saving}
-        canSave={!recording && Boolean(text.trim() || photos.length || money || voices.length)}
+        canSave={!recording && !addingPhotos && Boolean(text.trim() || photos.length || money || voices.length)}
         onSave={save}
       />
       ) : (

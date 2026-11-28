@@ -1,5 +1,6 @@
 import { toDayString } from './format';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Device from 'expo-device';
 import { Platform } from 'react-native';
 import { APP_VERSION } from '../config';
 import { uuid } from './id';
@@ -18,6 +19,12 @@ const OPEN_DAY_KEY = 'wayfare_telemetry_open_day_v1';
 
 let enabledCache: boolean | null = null;
 let flushing = false;
+
+/**
+ * Counts come only from real phones: the browser preview and emulators (the automatic release
+ * checks, development) would mix test taps with real people's numbers.
+ */
+const testDevice = Platform.OS === 'web' || Device.isDevice === false;
 
 export async function telemetryEnabled() {
   if (enabledCache == null) enabledCache = (await AsyncStorage.getItem(ENABLED_KEY).catch(() => null)) !== 'off';
@@ -41,7 +48,7 @@ export async function deviceId() {
 
 async function push(e: QueuedEvent) {
   // The browser preview is only used for testing: its counts would mix with real phones' numbers.
-  if (Platform.OS === 'web' || !(await telemetryEnabled())) return;
+  if (testDevice || !(await telemetryEnabled())) return;
   const raw = await AsyncStorage.getItem(QUEUE_KEY).catch(() => null);
   let queue: QueuedEvent[] = [];
   try {
@@ -81,7 +88,7 @@ export async function reportError(error: unknown, where = 'app') {
 
 /** Sends whatever is waiting. Keeps it for later if offline or the server says no. */
 export async function flushTelemetry() {
-  if (flushing || !supabase || Platform.OS === 'web' || !(await telemetryEnabled())) return;
+  if (flushing || !supabase || testDevice || !(await telemetryEnabled())) return;
   flushing = true;
   try {
     const raw = await AsyncStorage.getItem(QUEUE_KEY);

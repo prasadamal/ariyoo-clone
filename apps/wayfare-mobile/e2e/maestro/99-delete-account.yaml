@@ -1,0 +1,22 @@
+appId: com.wayfare.app
+name: Delete the run's account (Settings)
+---
+- launchApp:
+    stopApp: true
+- extendedWaitUntil:
+    visible: "You"
+    timeout: 60000
+- tapOn: "You"
+- tapOn: "Settings"
+- scrollUntilVisible:
+    element: "Delete account"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Delete account"
+- tapOn: "Type \"DELETE\" to confirm"
+- inputText: "DELETE"
+- tapOn: "Delete forever"
+- extendedWaitUntil:
+    visible: "Account deleted"
+    timeout: 90000
+- takeScreenshot: 99-account-deleted

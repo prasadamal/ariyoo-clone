@@ -1,9 +1,9 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { track } from '../../src/lib/telemetry';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { uuid } from '../../src/lib/id';
 import { getDestination } from '../../src/content/destinations';
-import { useAuth } from '../../src/context/AuthContext';
+import { NEW_JOURNEY_SIGNUP, useAuth, useCanStartJourney } from '../../src/context/AuthContext';
 import { useToast } from '../../src/context/ToastContext';
 import { TripForm, emptyTripForm, type TripFormValues } from '../../src/features/trip/TripForm';
 import { setTripCover, upsertTrip } from '../../src/lib/localDb';
@@ -14,8 +14,13 @@ import { Screen } from '../../src/ui/Screen';
 export default function NewTripScreen() {
   const params = useLocalSearchParams<{ placeKey?: string; title?: string; tripType?: string; startsOn?: string; endsOn?: string }>();
   const { user } = useAuth();
+  const canStart = useCanStartJourney();
   const toast = useToast();
   const [busy, setBusy] = useState(false);
+  // Journaling without an account: journeys need one, so sign-up comes first (from any link here).
+  useEffect(() => {
+    if (!canStart) router.replace(NEW_JOURNEY_SIGNUP as never);
+  }, [canStart]);
 
   const initial = useMemo(() => {
     const d = getDestination(params.placeKey ? String(params.placeKey) : null);
@@ -71,6 +76,7 @@ export default function NewTripScreen() {
     }
   };
 
+  if (!canStart) return null;
   return (
     <Screen>
       <TripForm initial={initial} submitLabel="Create journey" busy={busy} onSubmit={create} />

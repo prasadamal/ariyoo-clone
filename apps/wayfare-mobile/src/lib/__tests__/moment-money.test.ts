@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { formatMoney, parseAmount, totalSpent, totalsByMoment } from '../momentMoney';
+import { amountProblem, formatMoney, parseAmount, totalSpent, totalsByMoment } from '../momentMoney';
 
 test('money per moment adds up, and plain expenses are not attached to any moment', () => {
   const totals = totalsByMoment([
@@ -28,4 +28,16 @@ test('what people type into an amount box is checked', () => {
   assert.equal(parseAmount('250'), 250);
   assert.equal(parseAmount(' ₹1,250.50 '), 1250.5);
   for (const bad of ['', '0', '-5', 'abc', '12.345', '1e5', '100000000']) assert.equal(parseAmount(bad), null, bad);
+});
+
+test('amount boxes explain what is wrong in plain words', () => {
+  assert.equal(amountProblem(''), null, 'empty is not an error (optional boxes)');
+  assert.equal(amountProblem('1250'), null);
+  assert.equal(amountProblem('99.50'), null);
+  assert.equal(amountProblem('1,250'), null, 'commas are fine');
+  assert.match(amountProblem('1.2.3') ?? '', /digits only/);
+  assert.match(amountProblem('.') ?? '', /digits only/);
+  assert.match(amountProblem('10.505') ?? '', /2 decimals/);
+  assert.match(amountProblem('0') ?? '', /more than 0/);
+  assert.match(amountProblem('100000000') ?? '', /Check the amount/);
 });

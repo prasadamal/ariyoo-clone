@@ -8,7 +8,7 @@ import { IconButton, Text } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AnnouncementBanner } from '../../src/components/AnnouncementBanner';
 import { TripCard } from '../../src/components/TripCard';
-import { useAuth } from '../../src/context/AuthContext';
+import { NEW_JOURNEY_SIGNUP, useAuth, useCanStartJourney } from '../../src/context/AuthContext';
 import { useSync } from '../../src/context/SyncContext';
 import { timeAgoPhrase } from '../../src/lib/format';
 import { journeysOnly } from '../../src/lib/everydayMemories';
@@ -63,6 +63,9 @@ export default function JourneysTab() {
   const [coverEpoch, setCoverEpoch] = useState(0);
   const toast = useToast();
   const pinOwner = user?.id ?? 'guest';
+  // Journeys need an account: without one, "Start a journey" leads to sign-up (the diary stays free).
+  const canStart = useCanStartJourney();
+  const startJourney = () => (canStart ? router.push('/trip/new') : router.push(NEW_JOURNEY_SIGNUP as never));
   const [recordingTripId, setRecordingTripId] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -355,11 +358,15 @@ export default function JourneysTab() {
                 icon="map-marker-path"
                 animation="travel"
                 title="Where to next?"
-                body="Start a journey to journal moments offline, plan each day, split costs and add your crew."
-                action="Start a journey"
-                onAction={() => router.push('/trip/new')}
-                secondary={SOCIAL_ENABLED ? 'Explore destinations' : undefined}
-                onSecondary={SOCIAL_ENABLED ? () => router.push('/(tabs)/discover') : undefined}
+                body={
+                  canStart
+                    ? 'Start a journey to journal moments offline, plan each day, split costs and add your crew.'
+                    : 'Journeys need a free account: they back up, and you can plan each day, split costs and add your crew. Your diary works without one.'
+                }
+                action={canStart ? 'Start a journey' : 'Create a free account'}
+                onAction={startJourney}
+                secondary={!canStart ? 'Sign in' : SOCIAL_ENABLED ? 'Explore destinations' : undefined}
+                onSecondary={!canStart ? () => router.push('/login') : SOCIAL_ENABLED ? () => router.push('/(tabs)/discover') : undefined}
               />
             )}
           </View>
@@ -379,7 +386,7 @@ export default function JourneysTab() {
       {/* New journey: a brand-coloured glass button floating above the tab bar (the empty screen has its own button). */}
       {loaded && !all.length ? null : (
       <Pressable
-        onPress={() => router.push('/trip/new')}
+        onPress={startJourney}
         accessibilityRole="button"
         accessibilityLabel="Start a new journey"
         style={({ pressed }) => ({ position: 'absolute', right: 18, bottom: fabBottom, transform: [{ scale: pressed ? 0.94 : 1 }] })}
