@@ -55,11 +55,22 @@ export async function cachedCrew(tripId: string): Promise<CrewPerson[]> {
   return cached ? (JSON.parse(cached) as CrewPerson[]) : [];
 }
 
+/** PostgREST's answer when the server doesn't have a function yet (an older database). */
+export function isMissingFunction(error: { code?: string; message?: string } | null) {
+  return Boolean(error) && (error?.code === 'PGRST202' || /could not find the function/i.test(error?.message ?? ''));
+}
+
 /** Look someone up by exact username, for the preview before adding them. */
 export async function findTraveller(handle: string): Promise<Traveller | null> {
   if (!supabase || !validHandle(handle)) return null;
   // Exact-username lookup on the server: profiles aren't readable beyond your own crew.
   const { data, error } = await supabase.rpc('find_traveller', { p_username: handle });
+  if (error && isMissingFunction(error)) {
+    // A server from before that function existed: the profile table still answers directly.
+    const old = await supabase.from('profiles').select('id, username, display_name, avatar_path').eq('username', handle).maybeSingle();
+    if (old.error) throw old.error;
+    return (old.data as Traveller | null) ?? null;
+  }
   if (error) throw error;
   const row = Array.isArray(data) ? data[0] : data;
   return (row as Traveller | undefined) ?? null;
